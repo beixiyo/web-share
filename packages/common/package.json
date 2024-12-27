@@ -1,0 +1,14 @@
+{
+  "name": "web-share-common",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias",
+    "dev": "nodemon -w src -e ts -x pnpm build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

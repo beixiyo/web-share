@@ -1,0 +1,24 @@
+@function randomNum($max, $min: 0, $u: 1) {
+  @return ($min + random($max)) * $u;
+}
+
+@function randomRGB() {
+  @return rgb(randomNum(255), randomNum(255), randomNum(255));
+}
+
+@function randomRGBA() {
+  @return rgba(randomNum(255), randomNum(255), randomNum(255), random())
+}
+
+@function _pxToVw($px, $designSize: 1920px) {
+  @return math.div($px, $designSize) * 100vw;
+}
+
+@function _pxToVh($px, $designSize: 1080px) {
+  @return math.div($px, $designSize) * 100vh;
+}
+
+/** 获取主题色 */
+@function getTheme($themeKey) {
+  @return map-get($curTheme, $themeKey);
+}

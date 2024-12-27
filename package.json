@@ -1,0 +1,40 @@
+{
+  "name": "web-share",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev-server": "pnpm -C packages/server dev",
+    "dev-client": "pnpm -C packages/client dev",
+    "dev-common": "pnpm -C packages/common dev",
+    "preview-client": "pnpm -C packages/client preview",
+    "dev": "run-p dev-common dev-client",
+    "build-common": "pnpm -C packages/common build",
+    "build-server": "pnpm -C packages/server build",
+    "build-client": "pnpm -C packages/client build",
+    "build": "pnpm build-common && run-p build-server build-client"
+  },
+  "dependencies": {
+    "@jl-org/tool": "^1.7.92"
+  },
+  "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
+    "@rollup/plugin-commonjs": "^28.0.2",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^22.10.2",
+    "npm-run-all2": "^7.0.1",
+    "rollup": "^4.29.1",
+    "rollup-plugin-delete": "^2.1.0",
+    "tsc-alias": "^1.8.10",
+    "tslib": "^2.8.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.4",
+    "nodemon": "^3.1.9"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
