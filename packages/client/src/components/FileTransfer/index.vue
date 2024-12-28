@@ -4,6 +4,7 @@
       'overflow-hidden relative min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100',
       'flex justify-center items-center'
     ]">
+
     <!-- 浮动小球 -->
     <User :info="info" v-model="onlineUsers"
       @click-peer="onClickPeer"

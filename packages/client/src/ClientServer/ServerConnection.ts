@@ -175,7 +175,7 @@ export class ServerConnection {
 
   private static endPoint() {
     const peerId = sessionStorage.getItem(PEER_ID)
-    const server = import.meta.env.SERVER || 'localhost'
+    const server = import.meta.env.SERVER || '192.168.78.80'
     const port = import.meta.env.PORT || '3001'
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
 
