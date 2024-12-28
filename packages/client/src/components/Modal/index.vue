@@ -1,9 +1,9 @@
 <template>
   <Teleport to="body">
     <Mask class="Modal-container" v-show="show">
-      <Transition appear>
+      <Transition appear name="modal">
         <div class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-          p-4 bg-white shadow-lg rounded-md"
+          p-4 bg-white shadow-lg rounded-md origin-center"
           v-show="show"
           :style="modalStyle">
 
@@ -90,21 +90,27 @@ onBeforeUnmount(() => {
 
 function onClose() {
   emit('close')
-  toggleShow()
+  toggleShow(false)
 }
 function onConfirm() {
   emit('confirm')
-  toggleShow()
+  toggleShow(true)
 }
 
 function onEscape(e: KeyboardEvent) {
   if (e.code === 'Escape' && show.value) onClose()
 }
 
+defineExpose({
+  close: onClose,
+  confirm: onConfirm,
+  DURATION: 400
+})
+
 </script>
 
 <style lang="scss" scoped>
-@include vue-transition('v', .4s) {
+@include vue-transition('modal', .4s) {
   transform: scale(0.1);
 }
 </style>

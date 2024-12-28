@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ServerConnection, PeerManager, Peer, RTCPeer } from '@/ClientServer'
+import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
 import { Action, SELECTED_PEER_ID, type ProgressData, type UserInfo } from 'web-share-common'
 import { Events } from '@/ClientServer/Events'
 import User from './User.vue'
@@ -124,7 +124,7 @@ const onContextMenuPeer = async (peer: UserInfo) => {
   const { promise, resolve } = Promise.withResolvers()
   await me.value?.sendOffer(peer.peerId, resolve)
   await promise
-  
+
   loading.value = false
 
   // 打开文本输入框
