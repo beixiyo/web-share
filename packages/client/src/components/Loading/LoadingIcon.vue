@@ -35,9 +35,4 @@ const size = handleCssUnit(props.size)
 </script>
 
 <style lang="scss" scoped>
-@keyframes loading {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>
