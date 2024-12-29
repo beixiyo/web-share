@@ -1,7 +1,7 @@
 <template>
   <div v-loading="loading"
     :class="[
-      'overflow-hidden relative min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100',
+      'overflow-hidden relative min-h-screen',
       'flex justify-center items-center'
     ]">
 
@@ -40,7 +40,9 @@
       @close="showAcceptText = false"
       @copy="onCopyText" />
 
-    <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+    <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full
+      z-[-1] bg-gradient-to-br from-indigo-50 to-blue-100">
+    </canvas>
   </div>
 </template>
 
@@ -260,7 +262,9 @@ function onNotifyUserInfo(data: UserInfo) {
 
       const flag = confirm('对方已关闭通道，是否重新连接？')
       flag && window.location.reload()
-    }
+    },
+    onProgress
+
   })
 }
 

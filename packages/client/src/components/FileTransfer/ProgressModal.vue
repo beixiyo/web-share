@@ -15,7 +15,6 @@
 
         <div>
           <h3 class="font-semibold text-gray-900 flex items-center">
-            <span>正在传输</span>
             <span class="text-gray-500 ml-1 w-40 truncate">{{ progress.filename }}</span>
 
             <span class="text-indigo-600 font-bold ml-2">
@@ -41,7 +40,7 @@
         </div>
 
         <div class="text-sm text-right text-gray-500">
-          {{ progress.progress * 100 }}%
+          {{ numFixed(progress.progress * 100) }}%
         </div>
       </div>
     </div>
@@ -51,6 +50,7 @@
 <script setup lang="ts">
 import type { ProgressData } from 'web-share-common'
 import Mask from '../Mask.vue'
+import { numFixed } from '@jl-org/tool'
 
 defineOptions({ name: 'ProgressModal' })
 const props = withDefaults(

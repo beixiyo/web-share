@@ -3,6 +3,7 @@ import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
 import { compressImg, getImg, isStr, wait } from '@jl-org/tool'
 import { FileChunker } from './FileChunker'
+import { Events } from './Events'
 
 
 export class RTCPeer extends Peer {
@@ -136,7 +137,9 @@ export class RTCPeer extends Peer {
             total: this.fileMetaCache.length,
             filename: this.fileMetaCache[i].name,
           }
-          this.sendProgress(progressData)
+          this.sendJSON({ type: Action.Progress, data: progressData })
+          Events.emit(Action.Progress, progressData)
+          await wait(50)
         }
 
         this.sendJSON({ type: Action.FileDone, data: null })
@@ -343,6 +346,9 @@ export class RTCPeer extends Peer {
         case Action.FileDone:
           this.download()
           break
+        case Action.Progress:
+          this.opts.onProgress?.(data.data)
+          break
 
         default:
           console.warn('RTC: unknown message type', data.type)
@@ -409,6 +415,8 @@ export type RTCPeerOpts = {
   ) => void
 
   onText?: (text: string) => void
+
+  onProgress?: (data: ProgressData) => void
 
   onOtherChannelClose?: (error: Event) => void
 }

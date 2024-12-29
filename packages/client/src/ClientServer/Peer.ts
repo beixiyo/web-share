@@ -46,22 +46,6 @@ export abstract class Peer {
     }
   }
 
-  protected sendProgress(progressData: ProgressData) {
-    Events.emit(Action.Progress, progressData)
-    const toId = sessionStorage.getItem(SELECTED_PEER_ID)
-    if (!toId) return
-
-    this.server.relay({
-      type: Action.Relay,
-      data: {
-        type: Action.Progress,
-        fromId: this.peerId,
-        toId: toId,
-        ...progressData,
-      }
-    })
-  }
-
   /**
    * 添加一个文件位置
    */

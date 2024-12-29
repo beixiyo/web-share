@@ -114,10 +114,6 @@ export class ServerConnection {
         this.handleCandidate(data.data)
         break
 
-      case Action.Progress:
-        this.handleProgress(data.data)
-        break
-
       default:
         break
     }
@@ -133,10 +129,6 @@ export class ServerConnection {
 
   private handleCandidate(data: To & Candidate) {
     Events.emit(Action.Candidate, data)
-  }
-
-  private handleProgress(data: To & ProgressData) {
-    Events.emit(Action.Progress, data)
   }
 
   private saveInfo(data: UserInfo) {
