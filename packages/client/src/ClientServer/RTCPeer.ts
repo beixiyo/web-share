@@ -1,9 +1,8 @@
 import { Peer, type PeerOpts } from './Peer'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
-import { compressImg, getImg, isStr, wait } from '@jl-org/tool'
+import { compressImg, getImg, isStr } from '@jl-org/tool'
 import { FileChunker } from './FileChunker'
-import { Events } from './Events'
 
 
 export class RTCPeer extends Peer {
@@ -138,8 +137,7 @@ export class RTCPeer extends Peer {
             filename: this.fileMetaCache[i].name,
           }
           this.sendJSON({ type: Action.Progress, data: progressData })
-          Events.emit(Action.Progress, progressData)
-          await wait(50)
+          this.opts.onProgress?.(progressData)
         }
 
         this.sendJSON({ type: Action.FileDone, data: null })

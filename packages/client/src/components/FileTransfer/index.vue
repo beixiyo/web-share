@@ -75,7 +75,6 @@ const selectedPeer = ref<UserInfo>()
 Events.on(Action.NotifyUserInfo, onNotifyUserInfo)
 Events.on(Action.JoinPublicRoom, onJoinPublicRoom)
 Events.on(Action.LeavePublicRoom, onJoinPublicRoom)
-Events.on(Action.Progress, onProgress)
 
 /***************************************************
  *                    Server
@@ -263,19 +262,17 @@ function onNotifyUserInfo(data: UserInfo) {
       const flag = confirm('对方已关闭通道，是否重新连接？')
       flag && window.location.reload()
     },
-    onProgress
 
+    onProgress(data: ProgressData) {
+      progress.value = data
+      if (
+        data.total === data.curIndex + 1 &&
+        data.progress >= 1
+      ) {
+        progress.value = getInitProgress()
+      }
+    }
   })
-}
-
-function onProgress(data: ProgressData) {
-  progress.value = data
-  if (
-    data.total === data.curIndex + 1 &&
-    data.progress >= 1
-  ) {
-    progress.value = getInitProgress()
-  }
 }
 
 </script>
