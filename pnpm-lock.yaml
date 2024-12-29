@@ -12,6 +12,9 @@ importers:
         specifier: ^1.7.92
         version: 1.7.92
     devDependencies:
+      '@jl-org/ts-tool':
+        specifier: ^0.0.8
+        version: 0.0.8
       '@rollup/plugin-alias':
         specifier: ^5.1.1
         version: 5.1.1(rollup@4.29.1)
@@ -57,6 +60,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@jl-org/cvs':
+        specifier: ^1.0.13
+        version: 1.0.13
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
@@ -694,8 +700,14 @@ packages:
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
     engines: {node: '>=12'}
 
+  '@jl-org/cvs@1.0.13':
+    resolution: {integrity: sha512-Ixgpx35h7Q9VHPOiAS8k2e2Mx8rtRGDn1mUMmMB9Hqz6er800RZOHcqruHSfLHXU6BtiHkgld9VHbMIVaEj5/g==}
+
   '@jl-org/tool@1.7.92':
     resolution: {integrity: sha512-8p243QnhLQmO17EN32LSRBhh4RFSUi+/z0+oa9IEu71Es2tpv2OJNMgJDjJjJ3eXNZ3mnNWJ0Nhpcp1v/drvbQ==}
+
+  '@jl-org/ts-tool@0.0.8':
+    resolution: {integrity: sha512-2YwGmzod5LBOi7cKknRXn2H9xcp99OhokZJ55t+kg7wvPST4obcwLxO03ji0gVuFoHp5BgrkwzDICV+z1a3TDg==}
 
   '@jridgewell/gen-mapping@0.3.8':
     resolution: {integrity: sha512-imAbBGkb+ebQyxKgzv5Hu2nmROxoDOXHh80evxdoXNOrvAnVx7zimzc1Oo5h9RlfV4vPXaE2iM5pOFbvOCClWA==}
@@ -3298,7 +3310,13 @@ snapshots:
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
 
+  '@jl-org/cvs@1.0.13':
+    dependencies:
+      '@jl-org/tool': 1.7.92
+
   '@jl-org/tool@1.7.92': {}
+
+  '@jl-org/ts-tool@0.0.8': {}
 
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:

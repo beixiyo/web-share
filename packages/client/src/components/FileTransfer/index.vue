@@ -40,6 +40,7 @@
       @close="showAcceptText = false"
       @copy="onCopyText" />
 
+    <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
   </div>
 </template>
 
@@ -53,6 +54,7 @@ import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import { copyToClipboard } from '@jl-org/tool'
+import { WaterRipple } from './Ripple'
 
 
 /***************************************************
@@ -111,6 +113,23 @@ const text = ref('')
 
 const filename = computed(() => me.value?.fileMetaCache[0].name || '')
 const fileLen = computed(() => me.value?.fileMetaCache.length || 0)
+
+const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
+
+onMounted(() => {
+  const ripple = new WaterRipple({
+    onResize() {
+      ripple.setSize(window.innerWidth, window.innerHeight)
+    },
+    circleCount: 20,
+    canvas: canvas.value!
+  })
+})
+
+
+/***************************************************
+ *                    Function
+ ***************************************************/
 
 /**
  * 显示右键菜单
