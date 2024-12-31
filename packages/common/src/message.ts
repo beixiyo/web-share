@@ -22,10 +22,6 @@ export type To = {
 
 export type ToUser<T = any> = SendData<To & T, Action.Relay>
 
-export type PingData = SendData<{
-  heartBeat: number
-}>
-
 export type Name = {
   model: string
   os: string

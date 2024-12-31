@@ -74,7 +74,7 @@ const selectedPeer = ref<UserInfo>()
  ***************************************************/
 Events.on(Action.NotifyUserInfo, onNotifyUserInfo)
 Events.on(Action.JoinPublicRoom, onJoinPublicRoom)
-Events.on(Action.LeavePublicRoom, onJoinPublicRoom)
+Events.on(Action.LeavePublicRoom, onLeavePublicRoom)
 
 /***************************************************
  *                    Server
@@ -228,6 +228,11 @@ function onJoinPublicRoom(data: UserInfo[]) {
   for (const item of data) {
     peerManager.createPeer(item.peerId)
   }
+}
+
+function onLeavePublicRoom(data: UserInfo) {
+  allUsers.value = allUsers.value.filter(item => item.peerId !== data.peerId)
+  peerManager.rmPeer(data.peerId)
 }
 
 /**

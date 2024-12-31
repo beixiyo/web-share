@@ -43,6 +43,9 @@ export class RTCPeer extends Peer {
 
       this.pc.ondatachannel = this.onChannelOpened
       this.pc.onicecandidate = this.onIceCandidate
+
+      this.pc.onconnectionstatechange = () => console.log('RTC: Connection state:', this.pc.connectionState)
+      this.pc.oniceconnectionstatechange = () => console.log('ICE connection state:', this.pc.iceConnectionState)
     }
 
     /**
@@ -272,12 +275,7 @@ export class RTCPeer extends Peer {
     const channel = this.pc.createDataChannel('data-channel', {
       ordered: true,
     })
-
-    channel.onerror = this.onChannelError
-    channel.onopen = (e) => {
-      this.onChannelReady?.()
-      this.onChannelOpened(e as RTCDataChannelEvent)
-    }
+    channel.onopen = this.onChannelOpened as any
   }
 
   private onChannelOpened = (e: RTCDataChannelEvent) => {
@@ -294,7 +292,9 @@ export class RTCPeer extends Peer {
     channel.bufferedAmountLowThreshold = this.pc.sctp!.maxMessageSize - this.chunkSize - 50
 
     channel.onclose = this.onClose
+    channel.onerror = this.onChannelError
     channel.onmessage = this.onMessage
+    this.onChannelReady?.()
   }
 
   private onIceCandidate = (e: RTCPeerConnectionIceEvent) => {

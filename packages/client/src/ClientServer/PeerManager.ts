@@ -1,5 +1,5 @@
-import { Action } from 'web-share-common'
-import type { To, Sdp, Candidate, FileMeta } from 'web-share-common'
+import { Action, USER_INFO } from 'web-share-common';
+import type { To, Sdp, Candidate } from 'web-share-common';
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 import type { ServerConnection } from './ServerConnection'
@@ -18,6 +18,17 @@ export class PeerManager {
     Events.on(Action.Offer, this.onOffer)
     Events.on(Action.Answer, this.onAnswer)
     Events.on(Action.Candidate, this.onCandidate)
+
+    window.addEventListener('pagehide', e => {
+      const userInfo = sessionStorage.getItem(USER_INFO)
+      console.log('pagehide', userInfo)
+      if (!userInfo) return
+
+      server.send({
+        type: Action.LeavePublicRoom,
+        data: JSON.parse(userInfo)
+      })
+    })
   }
 
   /**
@@ -42,7 +53,7 @@ export class PeerManager {
     return this.peerMap.get(peerId)
   }
 
-  removePeer(peerId: string) {
+  rmPeer(peerId: string) {
     const peer = this.peerMap.get(peerId)
     if (peer) {
       peer.close()

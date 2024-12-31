@@ -5,7 +5,7 @@ import { cyrb53 } from '@/utils'
 import { WebSocket } from 'ws'
 import type { IncomingMessage } from 'http'
 import { isStr } from '@jl-org/tool'
-import { HEART_BEAT, PEER_ID, type Name } from 'web-share-common'
+import { HEART_BEAT, PEER_ID, type Name, type UserInfo } from 'web-share-common'
 
 
 /**
@@ -120,9 +120,9 @@ export class Peer {
   /**
    * 获取对等方信息。
    */
-  getInfo() {
+  getInfo(): UserInfo {
     return {
-      id: this.id,
+      peerId: this.id,
       name: this.name,
     }
   }

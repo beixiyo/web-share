@@ -1,5 +1,5 @@
-import { Action, DISPLAY_NAME, HEART_BEAT, HEART_BEAT_TIME, PEER_ID } from 'web-share-common'
-import type { ToUser, PingData, SendData, UserInfo, SendUserInfo, Sdp, To, Candidate, FileMeta, ProgressData } from 'web-share-common'
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, USER_INFO } from 'web-share-common'
+import type { ToUser, SendData, UserInfo, Sdp, To, Candidate } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from './WS'
 
@@ -75,7 +75,7 @@ export class ServerConnection {
 
     switch (data.type) {
       case Action.NotifyUserInfo:
-        this.saveInfo(data.data)
+        this.saveToSession(data.data)
         Events.emit(Action.NotifyUserInfo, data.data)
         break
 
@@ -84,7 +84,7 @@ export class ServerConnection {
         Events.emit(Action.JoinPublicRoom, data.data)
         break
       case Action.LeavePublicRoom:
-        this.saveAllUsers(data.data)
+        this.rmUser(data.data)
         Events.emit(Action.LeavePublicRoom, data.data)
         break
 
@@ -115,13 +115,18 @@ export class ServerConnection {
     Events.emit(Action.Candidate, data)
   }
 
-  private saveInfo(data: UserInfo) {
+  private saveToSession(data: UserInfo) {
     sessionStorage.setItem(PEER_ID, data.peerId)
     sessionStorage.setItem(DISPLAY_NAME, data.name.displayName)
+    sessionStorage.setItem(USER_INFO, JSON.stringify(data))
   }
 
   private saveAllUsers(users: UserInfo[]) {
     this.allUsers = users
+  }
+
+  private rmUser(user: UserInfo) {
+    this.allUsers = this.allUsers.filter(u => u.peerId !== user.peerId)
   }
 
   private onClose = () => {
@@ -134,7 +139,7 @@ export class ServerConnection {
 
   private static endPoint() {
     const peerId = sessionStorage.getItem(PEER_ID)
-    const server = import.meta.env.SERVER || '192.168.78.80'
+    const server = import.meta.env.SERVER || location.hostname
     const port = import.meta.env.PORT || '3001'
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
 

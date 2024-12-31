@@ -1,8 +1,8 @@
 import type { Server } from 'node:http'
-import { WebSocketServer, RawData } from 'ws'
+import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { ToUser, PingData, SendData, UserInfo, SendUserInfo, Sdp } from 'web-share-common'
+import type { ToUser, SendData, SendUserInfo } from 'web-share-common'
 
 
 export class WSServer {
@@ -10,7 +10,6 @@ export class WSServer {
   ws: WebSocketServer
   opts: Required<WSServerOpts>
   peerMap = new Map<string, Peer>()
-  allUsers: UserInfo[] = []
 
   constructor(
     server: Server,
@@ -30,6 +29,10 @@ export class WSServer {
     })
 
     // this.keepAliveClear()
+  }
+
+  get allUsers() {
+    return Array.from(this.peerMap.values()).map(peer => peer.getInfo())
   }
 
   private onConnection = (peer: Peer) => {
@@ -56,7 +59,7 @@ export class WSServer {
    */
   private sendTo<T>(toId: string, data: ToUser<T>) {
     const peer = this.peerMap.get(toId)
-    if (!peer) return 
+    if (!peer) return
     this.send(peer, data)
   }
 
@@ -64,20 +67,8 @@ export class WSServer {
    * 通知连接者自己的信息
    */
   private notifyUserInfo(peer: Peer) {
-    const user = {
-      ...peer.getInfo(),
-      peerId: peer.id
-    }
-    /**
-     * 去重
-     */
-    const uniqueIds = new Set(this.allUsers.map(user => user.peerId))
-    if (!uniqueIds.has(peer.id)) {
-      this.allUsers.push(user)
-    }
-
     const data: SendUserInfo = {
-      data: user,
+      data: peer.getInfo(),
       type: Action.NotifyUserInfo
     }
     this.send(peer, data)
@@ -98,17 +89,22 @@ export class WSServer {
         sender.socket.terminate()
         break
       case Action.Ping:
-        this.saveInfo(sender, msg)
+        sender[HEART_BEAT] = Date.now()
+        this.send(sender, { type: Action.Ping, data: null })
         break
 
       case Action.JoinPublicRoom:
         this.notifyUserInfo(sender)
-        this.boardcast(
-          {
-            type: Action.JoinPublicRoom,
-            data: this.allUsers
-          },
-        )
+        this.boardcast({
+          type: Action.JoinPublicRoom,
+          data: this.allUsers
+        })
+        break
+      case Action.LeavePublicRoom:
+        this.boardcast({
+          type: Action.LeavePublicRoom,
+          data: msg.data
+        })
         break
 
       case Action.Relay:
@@ -124,18 +120,10 @@ export class WSServer {
     }
   }
 
-  private saveInfo(sender: Peer, data: PingData) {
-    sender[HEART_BEAT] = data.data[HEART_BEAT]
-  }
-
   /**
    * 心跳检测，定时清理离线连接者
    */
   private keepAliveClear() {
-    const delUserInfo = (peerId: string) => {
-      this.allUsers = this.allUsers.filter(user => user.peerId !== peerId)
-    }
-
     setInterval(() => {
       const clients = this.allUsers.map(user => user.name.displayName).join(', ')
       clients.length && console.log(`客户端: ${clients}`)
@@ -145,27 +133,26 @@ export class WSServer {
       this.peerMap.forEach(peer => {
         const now = Date.now()
         if (now - peer[HEART_BEAT] > this.opts.clearTime) {
-          console.log('被清理了，原因是超时')
+          console.log(`${peer.name.displayName} 被清理了，原因是超时`)
           this.peerMap.delete(peer.id)
           isLeave = true
         }
         else if (!peer.socket) {
-          console.log('被清理了，原因是没有连接')
+          console.log(`${peer.name.displayName} 被清理了，原因是没有连接`)
           this.peerMap.delete(peer.id)
           isLeave = true
         }
         else if (peer.socket.readyState === WebSocket.CLOSED) {
-          console.log('被清理了，原因是客户端已关闭')
+          console.log(`${peer.name.displayName} 被清理了，原因是客户端已关闭`)
           this.peerMap.delete(peer.id)
           isLeave = true
         }
 
-        delUserInfo(peer.id)
         if (isLeave) {
           this.boardcast(
             {
               type: Action.LeavePublicRoom,
-              data: this.allUsers
+              data: peer.getInfo()
             },
           )
         }
