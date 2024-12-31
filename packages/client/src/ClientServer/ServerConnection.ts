@@ -1,6 +1,7 @@
 import { Action, DISPLAY_NAME, HEART_BEAT, HEART_BEAT_TIME, PEER_ID } from 'web-share-common'
 import type { ToUser, PingData, SendData, UserInfo, SendUserInfo, Sdp, To, Candidate, FileMeta, ProgressData } from 'web-share-common'
 import { Events } from './Events'
+import { WS } from './WS'
 
 /**
  * 管理与 WebSocket 服务器的连接
@@ -12,7 +13,7 @@ export class ServerConnection {
 
   declare timer: number
   declare pingTimer: number
-  server: WebSocket | null = null
+  server: WS | null = null
   allUsers: UserInfo[] = []
   opts: Required<ServerConnectionOpts>
 
@@ -22,11 +23,10 @@ export class ServerConnection {
     }
     this.opts = Object.assign(opts, defaultOpts)
     this.connect()
-    this.bindEvent()
   }
 
   send<T>(data: SendData<T>) {
-    if (!this.isConnected) return
+    if (!this.server?.isConnected) return
     this.server?.send(JSON.stringify(data))
   }
 
@@ -34,48 +34,32 @@ export class ServerConnection {
    * 中转数据到指定用户
    */
   relay<T>(data: ToUser<T>) {
-    if (!this.isConnected) return
+    if (!this.server?.isConnected) return
     this.server?.send(JSON.stringify(data))
   }
 
-  bindEvent() {
-    // @ts-ignore
-    if (window.navigator.connection) {
-      // @ts-ignore
-      window.navigator.connection.addEventListener('change', () => this.reconnect())
-    }
-
-    document.addEventListener('visibilitychange', this.onVisibilityChange)
-  }
-
-  get isConnected() {
-    return this.server?.readyState === WebSocket.OPEN
-  }
-
-  get isConnecting() {
-    return this.server?.readyState === WebSocket.CONNECTING
-  }
-
-  get isOffline() {
-    return !navigator.onLine
-  }
-
-  get isClose() {
-    return this.server?.readyState === WebSocket.CLOSED
-  }
-
   private connect() {
-    if (this.isConnected || this.isConnecting || this.isOffline) return
+    if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline) return
 
-    const ws = new WebSocket(ServerConnection.endPoint())
-    ws.binaryType = 'arraybuffer'
-    ws.onopen = this.onOpen
-    ws.onmessage = this.onMessage
-    ws.onclose = this.onClose
-    ws.onerror = this.onError
+    const ws = new WS({
+      url: ServerConnection.endPoint().href,
+      leaveTime: this.opts.leaveTime,
+      heartbeatInterval: HEART_BEAT_TIME - 1000,
+      genHeartbeatMsg: () => ({
+        data: null,
+        type: Action.Ping
+      }),
+    })
+    ws.connect()
+
+    const socket = ws.socket!
+    socket.binaryType = 'arraybuffer'
+    socket.onopen = this.onOpen
+    socket.onmessage = this.onMessage
+    socket.onclose = this.onClose
+    socket.onerror = this.onError
 
     this.server = ws
-    this.heartBeat()
   }
 
   private onOpen = () => {
@@ -148,23 +132,6 @@ export class ServerConnection {
     console.error(error)
   }
 
-  private reconnect() {
-    this.server?.close()
-    this.connect()
-  }
-
-  private onVisibilityChange = () => {
-    if (document.visibilityState === 'visible' && this.isClose) {
-      this.reconnect()
-    }
-    else if (document.visibilityState === 'hidden') {
-      clearTimeout(this.timer)
-      this.timer = setTimeout(() => {
-        this.server?.close()
-      }, this.opts.leaveTime)
-    }
-  }
-
   private static endPoint() {
     const peerId = sessionStorage.getItem(PEER_ID)
     const server = import.meta.env.SERVER || '192.168.78.80'
@@ -180,18 +147,6 @@ export class ServerConnection {
     return url
   }
 
-  private heartBeat() {
-    clearInterval(this.pingTimer)
-    this.pingTimer = setInterval(() => {
-      const data: PingData = {
-        data: {
-          heartBeat: Date.now()
-        },
-        type: Action.Ping
-      }
-      this.send(data)
-    }, HEART_BEAT_TIME - 1000)
-  }
 }
 
 
