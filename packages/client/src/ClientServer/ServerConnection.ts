@@ -16,13 +16,8 @@ export class ServerConnection {
   declare pingTimer: number
   server: WS | null = null
   allUsers: UserInfo[] = []
-  opts: Required<ServerConnectionOpts>
 
-  constructor(opts: ServerConnectionOpts = {}) {
-    const defaultOpts: Required<ServerConnectionOpts> = {
-      leaveTime: 1000 * 10
-    }
-    this.opts = Object.assign(opts, defaultOpts)
+  constructor() {
     this.connect()
   }
 
@@ -54,7 +49,7 @@ export class ServerConnection {
 
     const ws = new WS({
       url: ServerConnection.endPoint().href,
-      leaveTime: this.opts.leaveTime,
+      leaveTime: HEART_BEAT_TIME - 1000,
       heartbeatInterval: HEART_BEAT_TIME - 1000,
       genHeartbeatMsg: () => ({
         data: null,
@@ -158,13 +153,4 @@ export class ServerConnection {
     return url
   }
 
-}
-
-
-export type ServerConnectionOpts = {
-  /**
-   * 页面不可见时，多久断开连接
-   * @default 1000 * 10
-   */
-  leaveTime?: number
 }
