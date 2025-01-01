@@ -17,7 +17,10 @@ export class ServerConnection {
   server: WS | null = null
   allUsers: UserInfo[] = []
 
-  constructor() {
+  opts: ServerConnectionOpts
+
+  constructor(opts: ServerConnectionOpts = {}) {
+    this.opts = opts
     this.connect()
   }
 
@@ -77,16 +80,16 @@ export class ServerConnection {
     switch (data.type) {
       case Action.NotifyUserInfo:
         this.saveToSession(data.data)
-        Events.emit(Action.NotifyUserInfo, data.data)
+        this.opts.onNotifyUserInfo?.(data.data)
         break
 
       case Action.JoinPublicRoom:
         this.saveAllUsers(data.data)
-        Events.emit(Action.JoinPublicRoom, data.data)
+        this.opts.onJoinPublicRoom?.(data.data)
         break
       case Action.LeavePublicRoom:
         this.rmUser(data.data)
-        Events.emit(Action.LeavePublicRoom, data.data)
+        this.opts.onLeavePublicRoom?.(data.data)
         break
 
       case Action.Offer:
@@ -153,4 +156,11 @@ export class ServerConnection {
     return url
   }
 
+}
+
+
+export type ServerConnectionOpts = {
+  onNotifyUserInfo?: (user: UserInfo) => void
+  onJoinPublicRoom?: (user: UserInfo[]) => void
+  onLeavePublicRoom?: (user: UserInfo) => void
 }

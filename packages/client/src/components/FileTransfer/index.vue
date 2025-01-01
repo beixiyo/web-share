@@ -70,16 +70,13 @@ const onlineUsers = computed(() => allUsers.value.filter(user => user.peerId !==
 const selectedPeer = ref<UserInfo>()
 
 /***************************************************
- *                    Events
- ***************************************************/
-Events.on(Action.NotifyUserInfo, onNotifyUserInfo)
-Events.on(Action.JoinPublicRoom, onJoinPublicRoom)
-Events.on(Action.LeavePublicRoom, onLeavePublicRoom)
-
-/***************************************************
  *                    Server
  ***************************************************/
-const server = new ServerConnection()
+const server = new ServerConnection({
+  onNotifyUserInfo,
+  onJoinPublicRoom,
+  onLeavePublicRoom,
+})
 const peerManager = new PeerManager(server)
 
 /**
