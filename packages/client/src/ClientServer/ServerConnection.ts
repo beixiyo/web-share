@@ -1,7 +1,8 @@
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, USER_INFO } from 'web-share-common'
 import type { ToUser, SendData, UserInfo, Sdp, To, Candidate } from 'web-share-common'
 import { Events } from './Events'
-import { WS } from './WS'
+import { WS } from '@jl-org/tool'
+
 
 /**
  * 管理与 WebSocket 服务器的连接

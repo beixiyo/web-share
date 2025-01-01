@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jl-org/tool':
-        specifier: ^1.7.92
-        version: 1.7.92
+        specifier: ^1.7.93
+        version: 1.7.93
     devDependencies:
       '@jl-org/ts-tool':
         specifier: ^0.0.8
@@ -703,8 +703,8 @@ packages:
   '@jl-org/cvs@1.0.13':
     resolution: {integrity: sha512-Ixgpx35h7Q9VHPOiAS8k2e2Mx8rtRGDn1mUMmMB9Hqz6er800RZOHcqruHSfLHXU6BtiHkgld9VHbMIVaEj5/g==}
 
-  '@jl-org/tool@1.7.92':
-    resolution: {integrity: sha512-8p243QnhLQmO17EN32LSRBhh4RFSUi+/z0+oa9IEu71Es2tpv2OJNMgJDjJjJ3eXNZ3mnNWJ0Nhpcp1v/drvbQ==}
+  '@jl-org/tool@1.7.93':
+    resolution: {integrity: sha512-b3NtzyYAlPEKzvL+Q/YXyWkH36NMRZnu2pi4RnkgNAX1IROnUDVfBew1Ob1dXt/ZlS7pY5SobG8FjD3PpEdaVw==}
 
   '@jl-org/ts-tool@0.0.8':
     resolution: {integrity: sha512-2YwGmzod5LBOi7cKknRXn2H9xcp99OhokZJ55t+kg7wvPST4obcwLxO03ji0gVuFoHp5BgrkwzDICV+z1a3TDg==}
@@ -3312,9 +3312,9 @@ snapshots:
 
   '@jl-org/cvs@1.0.13':
     dependencies:
-      '@jl-org/tool': 1.7.92
+      '@jl-org/tool': 1.7.93
 
-  '@jl-org/tool@1.7.92': {}
+  '@jl-org/tool@1.7.93': {}
 
   '@jl-org/ts-tool@0.0.8': {}
 
