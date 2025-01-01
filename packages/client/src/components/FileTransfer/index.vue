@@ -48,15 +48,14 @@
 
 <script setup lang="ts">
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { Action, SELECTED_PEER_ID, type ProgressData, type UserInfo } from 'web-share-common'
-import { Events } from '@/ClientServer/Events'
+import { SELECTED_PEER_ID, type ProgressData, type UserInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import { copyToClipboard } from '@jl-org/tool'
-import { WaterRipple } from './Ripple'
+import { WaterRipple } from '@jl-org/cvs'
 
 
 /***************************************************
