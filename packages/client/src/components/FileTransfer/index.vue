@@ -164,10 +164,11 @@ const sendText = async () => {
 }
 
 /**
- * 发送文件
+ * 单击发送文件
  */
 const onClickPeer = async (peer: UserInfo) => {
   selectedPeer.value = peer
+  sessionStorage.setItem(SELECTED_PEER_ID, peer.peerId)
   if (!me) return
 
   loading.value = true

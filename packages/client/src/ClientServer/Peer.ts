@@ -1,7 +1,6 @@
-import { Action, SELECTED_PEER_ID, type FileMeta, type ProgressData, type SendData, type ToUser } from 'web-share-common'
+import { type FileMeta } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
 import { downloadByData } from '@jl-org/tool'
-import { Events } from './Events'
 
 
 export abstract class Peer {

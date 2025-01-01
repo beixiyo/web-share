@@ -261,6 +261,7 @@ export class RTCPeer extends Peer {
   }
 
   async handleCandidate(candidate: Candidate & To) {
+    console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
     return this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
   }
 
@@ -320,6 +321,8 @@ export class RTCPeer extends Peer {
       }
     }
     this.server.relay(data)
+
+    console.log(`向 ${toId} 发送 ICE candidate`, e.candidate)
   }
 
   private onMessage = (e: MessageEvent) => {
