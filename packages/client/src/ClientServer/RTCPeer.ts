@@ -228,11 +228,16 @@ export class RTCPeer extends Peer {
       }
     }
     this.server.relay(data)
+
+    console.log(`向 ${toId} 发送 offer`, this.pc.localDescription)
   }
 
   async handleOffer(offer: Sdp & To) {
+    this.isCaller = false // 标记为接收方
+    
     await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
-    await this.pc.setLocalDescription(await this.pc.createAnswer())
+    const answer = await this.pc.createAnswer()
+    await this.pc.setLocalDescription(answer)
 
     const data: ToUser<Sdp> = {
       type: Action.Relay,
@@ -245,9 +250,13 @@ export class RTCPeer extends Peer {
     }
 
     this.server.relay(data)
+
+    console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
+    console.log(`发送 answer 给 ${data.data.toId}`, this.pc.localDescription)
   }
 
   async handleAnswer(answer: Sdp & To) {
+    console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
     return this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
   }
 
@@ -270,12 +279,12 @@ export class RTCPeer extends Peer {
   }
 
   private openChannel() {
-    this.isCaller = true
-
     const channel = this.pc.createDataChannel('data-channel', {
       ordered: true,
     })
     channel.onopen = this.onChannelOpened as any
+
+    this.isCaller = true
   }
 
   private onChannelOpened = (e: RTCDataChannelEvent) => {

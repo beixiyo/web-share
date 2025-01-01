@@ -42,6 +42,16 @@ export class ServerConnection {
   private connect() {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline) return
 
+    const onConnect = (socket: WebSocket) => {
+      socket.binaryType = 'arraybuffer'
+      socket.onopen = this.onOpen
+      socket.onmessage = this.onMessage
+      socket.onclose = this.onClose
+      socket.onerror = this.onError
+
+      this.server = ws
+    }
+
     const ws = new WS({
       url: ServerConnection.endPoint().href,
       leaveTime: this.opts.leaveTime,
@@ -50,17 +60,12 @@ export class ServerConnection {
         data: null,
         type: Action.Ping
       }),
+
+      onHidden: () => { },
+      onVisible: onConnect
     })
-    ws.connect()
 
-    const socket = ws.socket!
-    socket.binaryType = 'arraybuffer'
-    socket.onopen = this.onOpen
-    socket.onmessage = this.onMessage
-    socket.onclose = this.onClose
-    socket.onerror = this.onError
-
-    this.server = ws
+    onConnect(ws.connect())
   }
 
   private onOpen = () => {

@@ -28,7 +28,7 @@ export class WSServer {
       this.onConnection(peer)
     })
 
-    // this.keepAliveClear()
+    this.keepAliveClear()
   }
 
   get allUsers() {

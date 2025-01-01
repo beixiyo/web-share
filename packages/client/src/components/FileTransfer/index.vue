@@ -263,9 +263,6 @@ function onNotifyUserInfo(data: UserInfo) {
       showTextInput.value = false
       showAcceptFile.value = false
       showAcceptText.value = false
-
-      const flag = confirm('对方已关闭通道，是否重新连接？')
-      flag && window.location.reload()
     },
 
     onProgress(data: ProgressData) {
