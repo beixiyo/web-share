@@ -108,8 +108,8 @@ const acceptText = ref('')
 const showTextInput = ref(false)
 const text = ref('')
 
-const filename = computed(() => me.value?.fileMetaCache[0].name || '')
-const fileLen = computed(() => me.value?.fileMetaCache.length || 0)
+const filename = ref(me.value?.fileMetaCache[0].name || '')
+const fileLen = ref(me.value?.fileMetaCache.length || 0)
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 
@@ -239,6 +239,9 @@ function onNotifyUserInfo(data: UserInfo) {
   info.value = data
   me.value = peerManager.createPeer(data.peerId, {
     onFileMetas(fileMetas, cb) {
+      // filename.value = fileMetas[0].name || ''
+      filename.value = '5555555555555555555555555555555555555555555555555555555555'
+      fileLen.value = fileMetas.length || 0
       showAcceptFile.value = true
 
       for (const item of fileMetas) {

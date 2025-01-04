@@ -14,7 +14,7 @@
         <div>
           <h3 class="flex items-center">
             <span class="font-semibold">接收文件</span>
-            <span class="text-gray-500 ml-2 w-28 truncate">{{ filename }}</span>
+            <span class="text-gray-500 ml-2 w-48 truncate">{{ filename }}</span>
           </h3>
           <div>
             <span>共</span>
