@@ -108,6 +108,9 @@ export class RTCPeer extends Peer {
     files: File[],
     onDenyFile?: VoidFunction
   ) {
+    /**
+     * 发送文件后，复制 resolve，等待被调用后执行下载文件
+     */
     const { promise, resolve } = Promise.withResolvers<void>()
     this.onAcceptFile = resolve
     this.onDenyFile = onDenyFile
@@ -234,7 +237,7 @@ export class RTCPeer extends Peer {
 
   async handleOffer(offer: Sdp & To) {
     this.isCaller = false // 标记为接收方
-    
+
     await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
     const answer = await this.pc.createAnswer()
     await this.pc.setLocalDescription(answer)

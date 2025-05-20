@@ -71,6 +71,9 @@ export abstract class Peer {
 
     if (!fileMeta || !fileChunks) return
 
+    /**
+     * 没有收完，则放回数据，等待下次下载
+     */
     if (!this.fileIsReceived(fileChunks, fileMeta)) {
       this.fileMetaQueue.unshift(fileMeta)
       this.fileQueue.unshift(fileChunks)

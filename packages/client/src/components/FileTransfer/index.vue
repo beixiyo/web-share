@@ -238,9 +238,15 @@ function onLeavePublicRoom(data: UserInfo) {
 function onNotifyUserInfo(data: UserInfo) {
   info.value = data
   me.value = peerManager.createPeer(data.peerId, {
-    onFileMetas(fileMetas, cb) {
-      // filename.value = fileMetas[0].name || ''
-      filename.value = '5555555555555555555555555555555555555555555555555555555555'
+    /**
+     * 在获取元数据时被调用 {@link RTCPeer.saveFileMetas}
+     * @see {@link RTCPeer.saveFileMetas}
+     *
+     * @param fileMetas 文件元数据
+     * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意
+     */
+    onFileMetas(fileMetas, acceptCallback) {
+      filename.value = fileMetas[0].name || 'unknown'
       fileLen.value = fileMetas.length || 0
       showAcceptFile.value = true
 
@@ -250,7 +256,7 @@ function onNotifyUserInfo(data: UserInfo) {
       }
 
       acceptPromise = Promise.withResolvers()
-      cb(acceptPromise)
+      acceptCallback(acceptPromise)
     },
 
     onText(text) {
