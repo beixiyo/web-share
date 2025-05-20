@@ -1,3 +1,4 @@
+import 'virtual:uno.css'
 import '@/styles/index.css'
 import '@/plugins'
 import { createApp } from 'vue'

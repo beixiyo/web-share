@@ -1,7 +1,7 @@
 <template>
   <!-- 浮动小球 -->
   <div v-for="peer in user" :key="peer.peerId"
-    class="transition-all duration-[20s] ease-in-out animate-float"
+    class="animate-float"
     @click="emit('clickPeer', peer)"
     @contextmenu.prevent="emit('contextmenuPeer', peer)">
 

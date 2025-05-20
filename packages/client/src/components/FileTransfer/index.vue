@@ -1,7 +1,7 @@
 <template>
   <div v-loading="loading"
     :class="[
-      'overflow-hidden relative min-h-screen',
+      'overflow-hidden relative h-screen',
       'flex justify-center items-center'
     ]">
 
