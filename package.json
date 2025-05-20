@@ -16,7 +16,7 @@
     "build": "pnpm build-common && run-p build-server build-client"
   },
   "dependencies": {
-    "@jl-org/tool": "^1.9.4"
+    "@jl-org/tool": "^1.9.5"
   },
   "devDependencies": {
     "@jl-org/ts-tool": "^0.0.8",
