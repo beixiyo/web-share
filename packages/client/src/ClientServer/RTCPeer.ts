@@ -2,7 +2,8 @@ import { Peer, type PeerOpts } from './Peer'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
 import { compressImg, getImg, isStr } from '@jl-org/tool'
-import { FileChunker } from './FileChunker'
+import { FileChunker } from '@/utils'
+import type { FileInfo } from '@/types/fileInfo'
 
 
 export class RTCPeer extends Peer {
@@ -118,7 +119,13 @@ export class RTCPeer extends Peer {
     return promise.then(async () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        this.sendJSON({ type: Action.NewFile, data: null })
+        const fileInfo: FileInfo = {
+          lastModified: file.lastModified,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        }
+        this.sendJSON({ type: Action.NewFile, data: fileInfo })
         const chunker = new FileChunker(file, this.chunkSize)
 
         while (!chunker.done) {
@@ -126,7 +133,8 @@ export class RTCPeer extends Peer {
             console.error('RTC: channel closed, 中断文件传输')
             return
           }
-          const { arrayBuffer } = await chunker.next()
+          const blob = chunker.next()
+          const arrayBuffer = await blob.arrayBuffer()
 
           if (this.channelAmountIsHigh) {
             await this.waitUntilChannelIdle()
@@ -354,7 +362,8 @@ export class RTCPeer extends Peer {
          * 文件传输中
          */
         case Action.NewFile:
-          this.addFile()
+          const fileInfo: FileInfo = data.data
+          this.createFile(fileInfo)
           break
         case Action.FileDone:
           this.download()
@@ -368,7 +377,7 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      this.pushFileBuffer(e.data)
+      this.wirteFileBuffer(e.data)
     }
   }
 
@@ -388,7 +397,6 @@ export class RTCPeer extends Peer {
             data: null
           })
 
-          this.fileQueue.splice(0)
           this.fileMetaQueue.splice(0)
         })
     })

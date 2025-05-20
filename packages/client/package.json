@@ -12,12 +12,15 @@
   },
   "dependencies": {
     "@jl-org/cvs": "^1.0.13",
+    "localforage": "^1.10.0",
+    "streamsaver": "^2.0.6",
     "vue": "^3.5.13",
     "vue-router": "^4.4.5",
     "web-share-common": "workspace:^"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.0",
+    "@types/streamsaver": "^2.0.5",
     "@unocss/preset-legacy-compat": "^65.4.3",
     "@unocss/preset-wind": "^65.4.3",
     "@unocss/reset": "^65.4.3",

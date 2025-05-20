@@ -240,7 +240,6 @@ function onNotifyUserInfo(data: UserInfo) {
   me.value = peerManager.createPeer(data.peerId, {
     /**
      * 在获取元数据时被调用 {@link RTCPeer.saveFileMetas}
-     * @see {@link RTCPeer.saveFileMetas}
      *
      * @param fileMetas 文件元数据
      * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意

@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@jl-org/tool':
-        specifier: ^1.7.96
+        specifier: ^1.9.4
         version: 1.9.4
     devDependencies:
       '@jl-org/ts-tool':
@@ -63,6 +63,12 @@ importers:
       '@jl-org/cvs':
         specifier: ^1.0.13
         version: 1.0.13
+      localforage:
+        specifier: ^1.10.0
+        version: 1.10.0
+      streamsaver:
+        specifier: ^2.0.6
+        version: 2.0.6
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
@@ -76,6 +82,9 @@ importers:
       '@tsconfig/node22':
         specifier: ^22.0.0
         version: 22.0.0
+      '@types/streamsaver':
+        specifier: ^2.0.5
+        version: 2.0.5
       '@unocss/preset-legacy-compat':
         specifier: ^65.4.3
         version: 65.5.0
@@ -1063,6 +1072,9 @@ packages:
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
 
+  '@types/streamsaver@2.0.5':
+    resolution: {integrity: sha512-93o0zjV8swEhR2YI57h/2ytbJF8bJh7sI9GNB02TLJHdM4fWDxZuChwfWhyD8vt2ub4kw4rsfZ0C0yAUX+3gcg==}
+
   '@types/ws@8.5.13':
     resolution: {integrity: sha512-osM/gWBTPKgHV8XkTunnegTRIsvF6owmf5w+JtAfOw472dptdm0dlGv4xCt6GwQRcC2XVOvvRE/0bAoQcL2QkA==}
 
@@ -1783,6 +1795,9 @@ packages:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
 
+  immediate@3.0.6:
+    resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
+
   immutable@5.0.3:
     resolution: {integrity: sha512-P8IdPQHq3lA1xVeBRi5VPqUm5HDgKnx0Ru51wZz5mjxHr5n3RWhjIpOFU7ybkUxfB+5IToy+OLaHYDBIWsv+uw==}
 
@@ -1908,6 +1923,9 @@ packages:
   launch-ide@1.0.7:
     resolution: {integrity: sha512-wJMTq6U2sVYqxrlp544KQxtl8cHoXFfQa2ivDtKJ6ock2ARneiEHqUFce/NQsnNP1aZNg4OXB6g00oFRvni1/Q==}
 
+  lie@3.1.1:
+    resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}
+
   local-pkg@0.5.1:
     resolution: {integrity: sha512-9rrA30MRRP3gBD3HTGnC6cDFpaE1kVDWxWgqWJUN0RvDNAo+Nz/9GxB+nHOH0ifbVFy0hSA1V6vFDvnx54lTEQ==}
     engines: {node: '>=14'}
@@ -1915,6 +1933,9 @@ packages:
   local-pkg@1.1.1:
     resolution: {integrity: sha512-WunYko2W1NcdfAFpuLUoucsgULmgDBRkdxHxWQ7mK0cQqwPiy8E1enjuRBrhLtZkB5iScJ1XIPdhVEFK8aOLSg==}
     engines: {node: '>=14'}
+
+  localforage@1.10.0:
+    resolution: {integrity: sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -2490,6 +2511,9 @@ packages:
   statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
     engines: {node: '>= 0.8'}
+
+  streamsaver@2.0.6:
+    resolution: {integrity: sha512-LK4e7TfCV8HzuM0PKXuVUfKyCB1FtT9L0EGxsFk5Up8njj0bXK8pJM9+Wq2Nya7/jslmCQwRK39LFm55h7NBTw==}
 
   strip-final-newline@4.0.0:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
@@ -3620,6 +3644,8 @@ snapshots:
       '@types/node': 22.10.2
       '@types/send': 0.17.4
 
+  '@types/streamsaver@2.0.5': {}
+
   '@types/ws@8.5.13':
     dependencies:
       '@types/node': 22.10.2
@@ -4503,6 +4529,8 @@ snapshots:
 
   ignore@5.3.2: {}
 
+  immediate@3.0.6: {}
+
   immutable@5.0.3: {}
 
   indent-string@4.0.0: {}
@@ -4591,6 +4619,10 @@ snapshots:
       chalk: 4.1.1
       dotenv: 16.5.0
 
+  lie@3.1.1:
+    dependencies:
+      immediate: 3.0.6
+
   local-pkg@0.5.1:
     dependencies:
       mlly: 1.7.3
@@ -4601,6 +4633,10 @@ snapshots:
       mlly: 1.7.4
       pkg-types: 2.1.0
       quansync: 0.2.10
+
+  localforage@1.10.0:
+    dependencies:
+      lie: 3.1.1
 
   lru-cache@5.1.1:
     dependencies:
@@ -5237,6 +5273,8 @@ snapshots:
   speakingurl@14.0.1: {}
 
   statuses@2.0.1: {}
+
+  streamsaver@2.0.6: {}
 
   strip-final-newline@4.0.0: {}
 

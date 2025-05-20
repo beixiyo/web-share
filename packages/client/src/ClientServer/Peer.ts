@@ -1,27 +1,52 @@
 import { type FileMeta } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
-import { downloadByData } from '@jl-org/tool'
+import { createWriteStream } from 'streamsaver'
+import type { FileInfo } from '@/types/fileInfo'
 
 
 export abstract class Peer {
 
   server: ServerConnection
   peerId: string
+  /**
+   * 文件分片大小
+   * @default 64 * 1024
+   */
   chunkSize: number
 
+  private fileStream?: WritableStream<Uint8Array>
+  private writer?: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>>
+
   /**
-   * 发送方和接收方各存一份，当都完成是才会清空
+   * 发送方和接收方各存一份，当都完成时才会清空
    * 用于计算进度等
    */
   fileMetaCache: FileMeta[] = []
-
   fileMetaQueue: FileMeta[] = []
-  fileQueue: ArrayBuffer[][] = []
 
   constructor(opts: PeerOpts) {
     this.server = opts.server
     this.peerId = opts.peerId
-    this.chunkSize = opts.chunkSize ?? 1024 * 64
+    this.chunkSize = opts.chunkSize || 1024 * 64
+  }
+
+  createFile(fileInfo: FileInfo) {
+    this.fileStream = createWriteStream(fileInfo.name, {
+      size: fileInfo.size
+    })
+    this.writer = this.fileStream!.getWriter()
+  }
+
+  async download() {
+    await this.writer?.close()
+  }
+
+  async wirteFileBuffer(data: Uint8Array | ArrayBufferLike) {
+    return this.writer?.write(
+      data instanceof Uint8Array
+        ? data
+        : new Uint8Array(data)
+    )
   }
 
   /***************************************************
@@ -42,65 +67,6 @@ export abstract class Peer {
     for (const meta of fileMetas) {
       this.fileMetaQueue.push(meta)
       this.fileMetaCache.push(meta)
-    }
-  }
-
-  /**
-   * 添加一个文件位置
-   */
-  protected addFile() {
-    this.fileQueue.push([])
-  }
-
-  /**
-   * 拿出一个文件 Buffer
-   */
-  protected pushFileBuffer(buffer: ArrayBuffer) {
-    const curFile = this.fileQueue.at(-1)
-    curFile?.push(buffer)
-  }
-
-  /**
-   * 下载文件
-   */
-  download() {
-    const {
-      fileChunks,
-      fileMeta,
-    } = this.takeFile()
-
-    if (!fileMeta || !fileChunks) return
-
-    /**
-     * 没有收完，则放回数据，等待下次下载
-     */
-    if (!this.fileIsReceived(fileChunks, fileMeta)) {
-      this.fileMetaQueue.unshift(fileMeta)
-      this.fileQueue.unshift(fileChunks)
-      requestAnimationFrame(() => this.download())
-      return
-    }
-
-    return downloadByData(
-      new Blob(fileChunks, { type: fileMeta.type }),
-      fileMeta.name
-    )
-  }
-
-  private fileIsReceived(
-    fileChunks: ArrayBuffer[],
-    fileMeta: FileMeta,
-  ) {
-    return fileChunks.length === fileMeta.totalChunkSize
-  }
-
-  private takeFile() {
-    const fileMeta = this.fileMetaQueue.shift()
-    const fileChunks = this.fileQueue.shift()
-
-    return {
-      fileMeta,
-      fileChunks,
     }
   }
 
