@@ -5,18 +5,21 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "---dev---": "---dev---",
     "dev-server": "pnpm -C packages/server dev",
+    "win-dev-server": "start cmd /k pnpm dev-server",
     "dev-client": "pnpm -C packages/client dev",
     "dev-common": "pnpm -C packages/common dev",
+    "dev": "run-p dev-common dev-client win-dev-server",
     "preview-client": "pnpm -C packages/client preview",
-    "dev": "run-p dev-common dev-client",
+    "---build---": "---build---",
     "build-common": "pnpm -C packages/common build",
     "build-server": "pnpm -C packages/server build",
     "build-client": "pnpm -C packages/client build",
     "build": "pnpm build-common && run-p build-server build-client"
   },
   "dependencies": {
-    "@jl-org/tool": "^1.9.5"
+    "@jl-org/tool": "^2.0.5"
   },
   "devDependencies": {
     "@jl-org/ts-tool": "^0.0.8",

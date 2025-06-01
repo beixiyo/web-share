@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jl-org/tool':
-        specifier: ^1.9.5
-        version: 1.9.5
+        specifier: ^2.0.5
+        version: 2.0.5
     devDependencies:
       '@jl-org/ts-tool':
         specifier: ^0.0.8
@@ -66,9 +66,6 @@ importers:
       localforage:
         specifier: ^1.10.0
         version: 1.10.0
-      streamsaver:
-        specifier: ^2.0.6
-        version: 2.0.6
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
@@ -82,9 +79,6 @@ importers:
       '@tsconfig/node22':
         specifier: ^22.0.0
         version: 22.0.0
-      '@types/streamsaver':
-        specifier: ^2.0.5
-        version: 2.0.5
       '@unocss/preset-legacy-compat':
         specifier: ^65.4.3
         version: 65.5.0
@@ -724,8 +718,11 @@ packages:
   '@jl-org/cvs@1.0.13':
     resolution: {integrity: sha512-Ixgpx35h7Q9VHPOiAS8k2e2Mx8rtRGDn1mUMmMB9Hqz6er800RZOHcqruHSfLHXU6BtiHkgld9VHbMIVaEj5/g==}
 
-  '@jl-org/tool@1.9.5':
-    resolution: {integrity: sha512-7oyZi65e6bWc83NcMe0FcpWRpCTxGKAnY6S39xyLXWavZkelWPDPZzFGbkAJYSKGBTjflIDfLmV26Ey/fF/kTA==}
+  '@jl-org/tool@1.9.8':
+    resolution: {integrity: sha512-VN2yENtUDWYNU5bHc1WCPuRDEZjqpKzRPbMyWBcuxn1g/REXkfUfD6hoYAIkFIClVUcuMWNugjFAVqP6yZ0Lvg==}
+
+  '@jl-org/tool@2.0.5':
+    resolution: {integrity: sha512-A/J/z8D3vzi4MG6sidQ3y/GGeL3W8cmMn8XByUzURaJjkpiisSBJfekbrjBQdVddDzbJdkFUBNDdqhFZoLCwHw==}
 
   '@jl-org/ts-tool@0.0.8':
     resolution: {integrity: sha512-2YwGmzod5LBOi7cKknRXn2H9xcp99OhokZJ55t+kg7wvPST4obcwLxO03ji0gVuFoHp5BgrkwzDICV+z1a3TDg==}
@@ -1055,9 +1052,6 @@ packages:
 
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
-
-  '@types/streamsaver@2.0.5':
-    resolution: {integrity: sha512-93o0zjV8swEhR2YI57h/2ytbJF8bJh7sI9GNB02TLJHdM4fWDxZuChwfWhyD8vt2ub4kw4rsfZ0C0yAUX+3gcg==}
 
   '@types/ws@8.5.13':
     resolution: {integrity: sha512-osM/gWBTPKgHV8XkTunnegTRIsvF6owmf5w+JtAfOw472dptdm0dlGv4xCt6GwQRcC2XVOvvRE/0bAoQcL2QkA==}
@@ -1827,7 +1821,7 @@ packages:
     hasBin: true
 
   is-module@1.0.0:
-    resolution: {integrity: sha1-Mlj7afeMFNW4FdZkM2tM/7ZEFZE=}
+    resolution: {integrity: sha512-51ypPSPCoTEIN9dy5Oy+h4pShgJmPCygKfyRCISBI+JoWT/2oJvK8QPxmwv7b/p239jXrm9M1mlQbyKJ5A152g==}
 
   is-number@7.0.0:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
@@ -2315,10 +2309,6 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.4.49:
-    resolution: {integrity: sha512-OCVPnIObs4N29kxTjzLfUryOkvZEq+pf8jTF0lg8E7uETuWHA+v7j3c/xJmiqpX450191LlmZfUKkXxkTry7nA==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.3:
     resolution: {integrity: sha512-dle9A3yYxlBSrt8Fu+IpjGT8SY8hN0mlaA6GY8t0P5PjIOZemULz/E2Bnm/2dcUOena75OTNkHI76uZBNUUq3A==}
     engines: {node: ^10 || ^12 || >=14}
@@ -2495,9 +2485,6 @@ packages:
   statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
     engines: {node: '>= 0.8'}
-
-  streamsaver@2.0.6:
-    resolution: {integrity: sha512-LK4e7TfCV8HzuM0PKXuVUfKyCB1FtT9L0EGxsFk5Up8njj0bXK8pJM9+Wq2Nya7/jslmCQwRK39LFm55h7NBTw==}
 
   strip-final-newline@4.0.0:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
@@ -3357,9 +3344,11 @@ snapshots:
 
   '@jl-org/cvs@1.0.13':
     dependencies:
-      '@jl-org/tool': 1.9.5
+      '@jl-org/tool': 1.9.8
 
-  '@jl-org/tool@1.9.5': {}
+  '@jl-org/tool@1.9.8': {}
+
+  '@jl-org/tool@2.0.5': {}
 
   '@jl-org/ts-tool@0.0.8': {}
 
@@ -3627,8 +3616,6 @@ snapshots:
       '@types/http-errors': 2.0.4
       '@types/node': 22.10.2
       '@types/send': 0.17.4
-
-  '@types/streamsaver@2.0.5': {}
 
   '@types/ws@8.5.13':
     dependencies:
@@ -5050,12 +5037,6 @@ snapshots:
 
   postcss-value-parser@4.2.0: {}
 
-  postcss@8.4.49:
-    dependencies:
-      nanoid: 3.3.8
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
   postcss@8.5.3:
     dependencies:
       nanoid: 3.3.8
@@ -5257,8 +5238,6 @@ snapshots:
   speakingurl@14.0.1: {}
 
   statuses@2.0.1: {}
-
-  streamsaver@2.0.6: {}
 
   strip-final-newline@4.0.0: {}
 
@@ -5516,7 +5495,7 @@ snapshots:
   vite@6.0.5(@types/node@22.10.2)(jiti@2.4.2)(sass@1.83.0)(yaml@2.6.1):
     dependencies:
       esbuild: 0.24.0
-      postcss: 8.4.49
+      postcss: 8.5.3
       rollup: 4.29.1
     optionalDependencies:
       '@types/node': 22.10.2

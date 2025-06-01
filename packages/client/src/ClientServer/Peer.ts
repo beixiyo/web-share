@@ -1,7 +1,7 @@
 import { type FileMeta } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
-import { createWriteStream } from 'streamsaver'
 import type { FileInfo } from '@/types/fileInfo'
+import { createStreamDownloader, type StreamDownloader } from '@jl-org/tool'
 
 
 export abstract class Peer {
@@ -10,12 +10,11 @@ export abstract class Peer {
   peerId: string
   /**
    * 文件分片大小
-   * @default 64 * 1024
+   * @default 1024 * 12
    */
   chunkSize: number
 
-  private fileStream?: WritableStream<Uint8Array>
-  private writer?: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>>
+  private downloader?: StreamDownloader
 
   /**
    * 发送方和接收方各存一份，当都完成时才会清空
@@ -27,22 +26,24 @@ export abstract class Peer {
   constructor(opts: PeerOpts) {
     this.server = opts.server
     this.peerId = opts.peerId
-    this.chunkSize = opts.chunkSize || 1024 * 64
+    /**
+     * 12KB 避免 IP 强制分片
+     */
+    this.chunkSize = opts.chunkSize || 1024 * 12
   }
 
-  createFile(fileInfo: FileInfo) {
-    this.fileStream = createWriteStream(fileInfo.name, {
-      size: fileInfo.size
+  async createFile(fileInfo: FileInfo) {
+    this.downloader = await createStreamDownloader(fileInfo.name, {
+      swPath: '/sw.js'
     })
-    this.writer = this.fileStream!.getWriter()
   }
 
   async download() {
-    await this.writer?.close()
+    await this.downloader?.complete()
   }
 
   async wirteFileBuffer(data: Uint8Array | ArrayBufferLike) {
-    return this.writer?.write(
+    return this.downloader?.append(
       data instanceof Uint8Array
         ? data
         : new Uint8Array(data)

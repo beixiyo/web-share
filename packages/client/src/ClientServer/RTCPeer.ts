@@ -14,6 +14,11 @@ export class RTCPeer extends Peer {
   declare pc: RTCPeerConnection
   channel: RTCDataChannel | null = null
 
+  /** 文件传输器创建完毕 */
+  isDownloaderReady = false
+  /** 文件传输器尚未创建完毕时，接收的数据缓冲区 */
+  downloadBuffer: Uint8Array[] = []
+
   /**
    * sendFiles 时传递的 Promise.resolve
    * 当对方同意接收文件时执行，触发文件传输
@@ -335,7 +340,7 @@ export class RTCPeer extends Peer {
     console.log(`向 ${toId} 发送 ICE candidate`, e.candidate)
   }
 
-  private onMessage = (e: MessageEvent) => {
+  private onMessage = async (e: MessageEvent) => {
     if (isStr(e.data)) {
       const data = JSON.parse(e.data) as SendData
 
@@ -362,10 +367,21 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
-          this.createFile(fileInfo)
+          await this.createFile(fileInfo)
+
+          /**
+           * 写入之前可能有的缓冲数据
+           */
+          this.isDownloaderReady = true
+          for (const data of this.downloadBuffer) {
+            this.wirteFileBuffer(data)
+          }
+          this.downloadBuffer = []
           break
         case Action.FileDone:
           this.download()
+          this.isDownloaderReady = false
+          this.downloadBuffer = []
           break
         case Action.Progress:
           this.opts.onProgress?.(data.data)
@@ -376,7 +392,13 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      this.wirteFileBuffer(e.data)
+      if (this.isDownloaderReady) {
+        this.wirteFileBuffer(e.data)
+      }
+      else {
+        console.log('RTC: 下载中，暂存缓冲数据', e.data.byteLength)
+        this.downloadBuffer.push(e.data)
+      }
     }
   }
 
