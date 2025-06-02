@@ -387,13 +387,9 @@ export class RTCPeer extends Peer {
     }
   }
 
-  private curLen = 0
-
   private async appendBuffer() {
     let data = this.downloadBuffer.shift()
     while (data) {
-      this.curLen += data.byteLength
-      console.log(`接收到 ${this.curLen} 字节数据`)
       await this.wirteFileBuffer(data)
       data = this.downloadBuffer.shift()
     }

@@ -5,7 +5,7 @@ export enum Action {
   NotifyUserInfo = 'NotifyUserInfo',
   JoinPublicRoom = 'JoinPublicRoom',
   LeavePublicRoom = 'LeavePublicRoom',
-  
+
   Relay = 'Relay',
   Offer = 'Offer',
   Answer = 'Answer',

@@ -81,7 +81,7 @@ export type PeerOpts = {
   server: ServerConnection
   peerId: string
   /**
-   * @default 1024 * 64
+   * @default 1024 * 12
    */
   chunkSize?: number
 }
