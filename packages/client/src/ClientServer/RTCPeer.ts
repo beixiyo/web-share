@@ -1,7 +1,7 @@
 import { Peer, type PeerOpts } from './Peer'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
-import { compressImg, FileChunker, getImg, isStr } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, isStr, type MIMEType } from '@jl-org/tool'
 import type { FileInfo } from '@/types/fileInfo'
 
 
@@ -14,8 +14,7 @@ export class RTCPeer extends Peer {
   declare pc: RTCPeerConnection
   channel: RTCDataChannel | null = null
 
-  /** 文件传输器创建完毕 */
-  isDownloaderReady = false
+  downloadRafId: number[] = []
   /** 文件传输器尚未创建完毕时，接收的数据缓冲区 */
   downloadBuffer: Uint8Array[] = []
 
@@ -127,7 +126,7 @@ export class RTCPeer extends Peer {
           lastModified: file.lastModified,
           name: file.name,
           size: file.size,
-          type: file.type,
+          type: file.type as MIMEType,
         }
         this.sendJSON({ type: Action.NewFile, data: fileInfo })
         const chunker = new FileChunker(file, this.chunkSize)
@@ -368,20 +367,12 @@ export class RTCPeer extends Peer {
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
           await this.createFile(fileInfo)
-
-          /**
-           * 写入之前可能有的缓冲数据
-           */
-          this.isDownloaderReady = true
-          for (const data of this.downloadBuffer) {
-            this.wirteFileBuffer(data)
-          }
-          this.downloadBuffer = []
+          this.appendDownloadBuffer()
           break
         case Action.FileDone:
+          this.stopAllRaf()
+          await this.appendBuffer()
           this.download()
-          this.isDownloaderReady = false
-          this.downloadBuffer = []
           break
         case Action.Progress:
           this.opts.onProgress?.(data.data)
@@ -392,14 +383,37 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      if (this.isDownloaderReady) {
-        this.wirteFileBuffer(e.data)
-      }
-      else {
-        console.log('RTC: 下载中，暂存缓冲数据', e.data.byteLength)
-        this.downloadBuffer.push(e.data)
-      }
+      this.downloadBuffer.push(e.data)
     }
+  }
+
+  private curLen = 0
+
+  private async appendBuffer() {
+    let data = this.downloadBuffer.shift()
+    while (data) {
+      this.curLen += data.byteLength
+      console.log(`接收到 ${this.curLen} 字节数据`)
+      await this.wirteFileBuffer(data)
+      data = this.downloadBuffer.shift()
+    }
+  }
+
+  private appendDownloadBuffer() {
+    const consume = () => {
+      const id = requestAnimationFrame(async () => {
+        await this.appendBuffer()
+        this.downloadRafId.push(id)
+        requestAnimationFrame(consume)
+      })
+    }
+
+    consume()
+  }
+
+  private stopAllRaf() {
+    this.downloadRafId.forEach(cancelAnimationFrame)
+    this.downloadRafId = []
   }
 
   protected override saveFileMetas(fileMetas: FileMeta[]) {

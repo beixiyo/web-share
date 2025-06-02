@@ -33,8 +33,11 @@ export abstract class Peer {
   }
 
   async createFile(fileInfo: FileInfo) {
+    console.log(fileInfo)
     this.downloader = await createStreamDownloader(fileInfo.name, {
-      swPath: '/sw.js'
+      swPath: '/sw.js',
+      contentLength: fileInfo.size,
+      mimeType: fileInfo.type,
     })
   }
 
