@@ -289,19 +289,34 @@ function allUserConnect() {
 
   for (let i = 0; i < users.length; i++) {
     const fromUser = users[i]
+    // 确保 fromUser 是当前用户自己，只有自己才能主动发起 offer
+    if (fromUser.peerId !== info.value?.peerId) continue
 
     for (let j = 0; j < users.length; j++) {
       const toUser = users[j]
 
       // 不与自己建立连接
-      if (fromUser === toUser) continue
+      if (fromUser.peerId === toUser.peerId) continue
 
       // 生成连接对的唯一标识，避免重复连接
       const pairKey = [fromUser.peerId, toUser.peerId].sort().join(';')
 
+      const fromPeerInstance = peerManager.getPeer(fromUser.peerId)
+      if (!fromPeerInstance) continue
+
       if (!connectedPairs.has(pairKey)) {
-        connectedPairs.add(pairKey)
-        peerManager.getPeer(fromUser.peerId)?.sendOffer(toUser.peerId)
+        fromPeerInstance.sendOffer(
+          toUser.peerId,
+          () => {
+            connectedPairs.add(pairKey)
+          }
+        )
+      }
+      // 已记录但通道未打开，可能上次尝试失败，可以尝试重新连接
+      else if (connectedPairs.has(pairKey) && !fromPeerInstance.isChannelOpen) {
+        fromPeerInstance.sendOffer(toUser.peerId, () => {
+          connectedPairs.add(pairKey)
+        })
       }
     }
   }

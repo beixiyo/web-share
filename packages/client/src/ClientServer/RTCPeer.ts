@@ -10,8 +10,9 @@ export class RTCPeer extends Peer {
   private isCaller = false
   private opts: PeerOpts & RTCPeerOpts
   onChannelReady?: Function
+  private remotePeerId?: string
 
-  declare pc: RTCPeerConnection
+  declare pc: RTCPeerConnection | null
   channel: RTCDataChannel | null = null
 
   downloadRafId: number[] = []
@@ -48,8 +49,8 @@ export class RTCPeer extends Peer {
       this.pc.ondatachannel = this.onChannelOpened
       this.pc.onicecandidate = this.onIceCandidate
 
-      this.pc.onconnectionstatechange = () => console.log('RTC: Connection state:', this.pc.connectionState)
-      this.pc.oniceconnectionstatechange = () => console.log('ICE connection state:', this.pc.iceConnectionState)
+      this.pc.onconnectionstatechange = () => console.log('RTC: Connection state:', this.pc?.connectionState)
+      this.pc.oniceconnectionstatechange = () => console.log('ICE connection state:', this.pc?.iceConnectionState)
     }
 
     /**
@@ -87,8 +88,28 @@ export class RTCPeer extends Peer {
   }
 
   close() {
-    this.channel?.close()
-    this.pc?.close()
+    if (this.channel) {
+      this.channel.onclose = null // 移除事件处理器，防止意外调用
+      this.channel.onmessage = null
+      this.channel.onerror = null
+      this.channel.onopen = null
+      if (this.channel.readyState !== 'closed') {
+        this.channel.close()
+      }
+      this.channel = null
+    }
+    if (this.pc) {
+      this.pc.onicecandidate = null
+      this.pc.ondatachannel = null
+      this.pc.oniceconnectionstatechange = null
+      this.pc.onconnectionstatechange = null
+      this.pc.onsignalingstatechange = null
+      if (this.pc.signalingState !== 'closed') {
+        this.pc.close()
+      }
+      this.pc = null
+    }
+    console.log(`RTCPeer ${this.peerId} closed.`)
   }
 
   /***************************************************
@@ -218,6 +239,11 @@ export class RTCPeer extends Peer {
    * @param onChannelReady 通道连接成功回调，你可以用 Promise.withResolvers
    */
   async sendOffer(toId: string, onChannelReady?: Function) {
+    if (!this.pc) {
+      return
+    }
+
+    this.remotePeerId = toId
     this.onChannelReady = onChannelReady
 
     if (this.isChannelOpen) {
@@ -248,7 +274,12 @@ export class RTCPeer extends Peer {
   }
 
   async handleOffer(offer: Sdp & To) {
+    if (!this.pc) {
+      return
+    }
+
     this.isCaller = false // 标记为接收方
+    this.remotePeerId = offer.fromId
 
     await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
     const answer = await this.pc.createAnswer()
@@ -271,11 +302,17 @@ export class RTCPeer extends Peer {
   }
 
   async handleAnswer(answer: Sdp & To) {
+    if (!this.pc) {
+      return
+    }
     console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
     return this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
   }
 
   async handleCandidate(candidate: Candidate & To) {
+    if (!this.pc) {
+      return
+    }
     console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
     return this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
   }
@@ -295,6 +332,10 @@ export class RTCPeer extends Peer {
   }
 
   private openChannel() {
+    if (!this.pc) {
+      return
+    }
+
     const channel = this.pc.createDataChannel('data-channel', {
       ordered: true,
     })
@@ -304,6 +345,9 @@ export class RTCPeer extends Peer {
   }
 
   private onChannelOpened = (e: RTCDataChannelEvent) => {
+    if (!this.pc) {
+      return
+    }
     console.log('RTC: channel opened with', this.peerId)
 
     const channel = e.channel || e.target
@@ -323,7 +367,7 @@ export class RTCPeer extends Peer {
   }
 
   private onIceCandidate = (e: RTCPeerConnectionIceEvent) => {
-    const toId = sessionStorage.getItem(SELECTED_PEER_ID)
+    const toId = this.remotePeerId || sessionStorage.getItem(SELECTED_PEER_ID)
     if (!e.candidate || !toId) return
 
     const data: ToUser<Candidate> = {

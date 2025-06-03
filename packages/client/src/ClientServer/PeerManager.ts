@@ -1,5 +1,5 @@
-import { Action, USER_INFO } from 'web-share-common';
-import type { To, Sdp, Candidate } from 'web-share-common';
+import { Action, USER_INFO } from 'web-share-common'
+import type { To, Sdp, Candidate } from 'web-share-common'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 import type { ServerConnection } from './ServerConnection'
@@ -56,6 +56,7 @@ export class PeerManager {
   rmPeer(peerId: string) {
     const peer = this.peerMap.get(peerId)
     if (peer) {
+      console.log(`Removing peer: ${peerId}, closing its connection.`)
       peer.close()
       this.peerMap.delete(peerId)
     }
