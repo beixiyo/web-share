@@ -37,6 +37,10 @@ export class RTCPeer extends Peer {
   }
 
   connect() {
+    if (this.pc) {
+      this.close()
+    }
+
     if (!this.pc || this.isSignalClose) {
       this.pc = new RTCPeerConnection({
         'iceServers': [
@@ -57,7 +61,7 @@ export class RTCPeer extends Peer {
      * 重连
      */
     if (this.isCaller) {
-      const targetId = sessionStorage.getItem(SELECTED_PEER_ID)
+      const targetId = this.toId
       if (!targetId) return
       this.sendOffer(targetId)
     }
@@ -74,6 +78,10 @@ export class RTCPeer extends Peer {
   get channelAmountIsHigh() {
     if (!this.channelIsReady(this.channel)) return false
     return this.channel.bufferedAmount > this.channel.bufferedAmountLowThreshold
+  }
+
+  get toId() {
+    return this.remotePeerId || sessionStorage.getItem(SELECTED_PEER_ID)
   }
 
   /**
@@ -98,6 +106,7 @@ export class RTCPeer extends Peer {
       }
       this.channel = null
     }
+
     if (this.pc) {
       this.pc.onicecandidate = null
       this.pc.ondatachannel = null
@@ -109,6 +118,7 @@ export class RTCPeer extends Peer {
       }
       this.pc = null
     }
+
     console.log(`RTCPeer ${this.peerId} closed.`)
   }
 
@@ -240,11 +250,10 @@ export class RTCPeer extends Peer {
    */
   async sendOffer(toId: string, onChannelReady?: Function) {
     if (!this.pc) {
+      this.connect()
+      console.error('RTC: [sendOffer] PeerConnection is null. Cannot send offer.')
       return
     }
-
-    this.remotePeerId = toId
-    this.onChannelReady = onChannelReady
 
     if (this.isChannelOpen) {
       console.log('RTC: channel is already open, cannot send offer')
@@ -255,6 +264,9 @@ export class RTCPeer extends Peer {
     if (!this.channel || this.isChannelClose) {
       this.openChannel()
     }
+
+    this.remotePeerId = toId
+    this.onChannelReady = onChannelReady
 
     const offer = await this.pc.createOffer()
     await this.pc.setLocalDescription(offer)
@@ -275,6 +287,8 @@ export class RTCPeer extends Peer {
 
   async handleOffer(offer: Sdp & To) {
     if (!this.pc) {
+      this.connect()
+      console.warn('RTC: [handleOffer] PeerConnection not initialized. Attempting to connect first.')
       return
     }
 
@@ -303,14 +317,18 @@ export class RTCPeer extends Peer {
 
   async handleAnswer(answer: Sdp & To) {
     if (!this.pc) {
+      this.connect()
+      console.warn('RTC: PeerConnection not initialized, cannot handle answer.')
       return
     }
+
     console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
-    return this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
+    await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
   }
 
   async handleCandidate(candidate: Candidate & To) {
     if (!this.pc) {
+      this.connect()
       return
     }
     console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
@@ -333,6 +351,7 @@ export class RTCPeer extends Peer {
 
   private openChannel() {
     if (!this.pc) {
+      this.connect()
       return
     }
 
@@ -346,6 +365,7 @@ export class RTCPeer extends Peer {
 
   private onChannelOpened = (e: RTCDataChannelEvent) => {
     if (!this.pc) {
+      this.connect()
       return
     }
     console.log('RTC: channel opened with', this.peerId)
@@ -367,7 +387,7 @@ export class RTCPeer extends Peer {
   }
 
   private onIceCandidate = (e: RTCPeerConnectionIceEvent) => {
-    const toId = this.remotePeerId || sessionStorage.getItem(SELECTED_PEER_ID)
+    const toId = this.toId
     if (!e.candidate || !toId) return
 
     const data: ToUser<Candidate> = {
