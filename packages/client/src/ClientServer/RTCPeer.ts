@@ -1,7 +1,7 @@
 import { Peer, type PeerOpts } from './Peer'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
-import { compressImg, FileChunker, getImg, isStr, type MIMEType } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, isStr, wait, type MIMEType } from '@jl-org/tool'
 import type { FileInfo } from '@/types/fileInfo'
 
 
@@ -138,6 +138,7 @@ export class RTCPeer extends Peer {
           }
           const blob = chunker.next()
           const arrayBuffer = await blob.arrayBuffer()
+          await wait(100)
 
           if (this.channelAmountIsHigh) {
             await this.waitUntilChannelIdle()

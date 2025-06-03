@@ -28,10 +28,11 @@
       v-model="text" />
 
     <!-- 接收文件提示 -->
-    <AcceptModal v-if="showAcceptFile"
-      :src="previewSrc"
-      @accept="onAcceptFile" @deny="onDenyFile"
-      :filename="filename" :total="fileLen" />
+    <AcceptModal
+      v-if="showAcceptFile"
+      :fileMetas="currentFileMetas"
+      :previewSrc="previewSrc"
+      @accept="onAcceptFile" @deny="onDenyFile" />
 
     <!-- 接收文本弹窗 -->
     <AcceptTextModal
@@ -48,7 +49,7 @@
 
 <script setup lang="ts">
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type ProgressData, type UserInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
@@ -96,6 +97,7 @@ const getInitProgress = () => ({
   filename: '--'
 })
 const progress = ref<ProgressData>(getInitProgress())
+const currentFileMetas = ref<FileMeta[]>([])
 
 /***************************************************
  *                  接收文件相关
@@ -108,9 +110,6 @@ const acceptText = ref('')
 
 const showTextInput = ref(false)
 const text = ref('')
-
-const filename = ref(me.value?.fileMetaCache[0].name || '')
-const fileLen = ref(me.value?.fileMetaCache.length || 0)
 
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 
@@ -249,9 +248,8 @@ function onNotifyUserInfo(data: UserInfo) {
      * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意
      */
     onFileMetas(fileMetas, acceptCallback) {
-      filename.value = fileMetas[0].name || 'unknown'
-      fileLen.value = fileMetas.length || 0
       showAcceptFile.value = true
+      currentFileMetas.value = fileMetas
 
       for (const item of fileMetas) {
         if (!item.base64) continue
