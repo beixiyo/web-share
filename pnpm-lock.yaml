@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jl-org/tool':
-        specifier: ^2.0.7
-        version: 2.0.7
+        specifier: ^2.0.8
+        version: 2.0.8
     devDependencies:
       '@jl-org/ts-tool':
         specifier: ^0.0.8
@@ -727,8 +727,8 @@ packages:
   '@jl-org/tool@1.9.8':
     resolution: {integrity: sha512-VN2yENtUDWYNU5bHc1WCPuRDEZjqpKzRPbMyWBcuxn1g/REXkfUfD6hoYAIkFIClVUcuMWNugjFAVqP6yZ0Lvg==}
 
-  '@jl-org/tool@2.0.7':
-    resolution: {integrity: sha512-LtzVaAOQLZ9XrPAxfushD7J+DvphYwFZZlL8AsCIA2Nk7Xv88ve1PIY02NS92rYBRBgNpOEK5eH2c7HXLP7dkw==}
+  '@jl-org/tool@2.0.8':
+    resolution: {integrity: sha512-m+PdGZwusZhN/VQZubotccmuMJFOjqnYYbb8XeOUg7a1ean06R17aVvJIYOayj/TFAmFLtcSwUN6e/tEcoDQow==}
 
   '@jl-org/ts-tool@0.0.8':
     resolution: {integrity: sha512-2YwGmzod5LBOi7cKknRXn2H9xcp99OhokZJ55t+kg7wvPST4obcwLxO03ji0gVuFoHp5BgrkwzDICV+z1a3TDg==}
@@ -3362,7 +3362,7 @@ snapshots:
 
   '@jl-org/tool@1.9.8': {}
 
-  '@jl-org/tool@2.0.7': {}
+  '@jl-org/tool@2.0.8': {}
 
   '@jl-org/ts-tool@0.0.8': {}
 
