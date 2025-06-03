@@ -1,5 +1,5 @@
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, USER_INFO } from 'web-share-common'
-import type { ToUser, SendData, UserInfo, Sdp, To, Candidate } from 'web-share-common'
+import type { SendData, UserInfo, To, FileMeta } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
 
@@ -32,16 +32,19 @@ export class ServerConnection {
   /**
    * 中转数据到指定用户
    */
-  relay<T>(data: ToUser<T>) {
+  relay<T>(data: To & T) {
     if (!this.server?.isConnected) return
-    this.server?.send(JSON.stringify(data))
+    this.server?.send(JSON.stringify({
+      type: Action.Relay,
+      data
+    }))
   }
 
   private connect() {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline) return
 
     const onConnect = (socket: WebSocket) => {
-      socket.binaryType = 'arraybuffer'
+      // socket.binaryType = 'arraybuffer'
       socket.onopen = this.onOpen
       socket.onmessage = this.onMessage
       socket.onclose = this.onClose
@@ -76,11 +79,17 @@ export class ServerConnection {
     const data = JSON.parse(ev.data) as SendData<any>
 
     switch (data.type) {
+      /**
+       * 通知
+       */
       case Action.NotifyUserInfo:
         this.saveToSession(data.data)
         this.opts.onNotifyUserInfo?.(data.data)
         break
 
+      /**
+       * 房间
+       */
       case Action.JoinPublicRoom:
         this.saveAllUsers(data.data)
         this.opts.onJoinPublicRoom?.(data.data)
@@ -90,31 +99,29 @@ export class ServerConnection {
         this.opts.onLeavePublicRoom?.(data.data)
         break
 
+      /**
+       * 信令
+       */
       case Action.Offer:
-        this.handleOffer(data.data)
+        Events.emit(Action.Offer, data)
         break
       case Action.Answer:
-        this.handleAnswer(data.data)
+        Events.emit(Action.Answer, data)
         break
       case Action.Candidate:
-        this.handleCandidate(data.data)
+        Events.emit(Action.Candidate, data)
+        break
+
+      /**
+       * 文件传输前
+       */
+      case Action.FileMetas:
+        Events.emit(Action.FileMetas, data)
         break
 
       default:
         break
     }
-  }
-
-  private handleOffer(data: To & Sdp) {
-    Events.emit(Action.Offer, data)
-  }
-
-  private handleAnswer(data: To & Sdp) {
-    Events.emit(Action.Answer, data)
-  }
-
-  private handleCandidate(data: To & Candidate) {
-    Events.emit(Action.Candidate, data)
   }
 
   private saveToSession(data: UserInfo) {

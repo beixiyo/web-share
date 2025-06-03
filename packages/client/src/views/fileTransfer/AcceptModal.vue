@@ -58,7 +58,7 @@
       <div v-if="previewSrc" class="mb-4">
         <div class="text-sm font-medium text-gray-700 mb-2">预览</div>
         <img :src="previewSrc"
-          class="w-full h-32 object-cover rounded-lg border" alt="预览图" />
+          class="w-full max-h-72 object-contain rounded-lg border" alt="预览图" />
       </div>
 
       <!-- 统计信息 -->

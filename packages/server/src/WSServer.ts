@@ -2,7 +2,7 @@ import type { Server } from 'node:http'
 import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { ToUser, SendData, SendUserInfo } from 'web-share-common'
+import type { SendData, SendUserInfo, To } from 'web-share-common'
 
 
 export class WSServer {
@@ -57,7 +57,7 @@ export class WSServer {
   /**
    * 发给指定用户
    */
-  private sendTo<T>(toId: string, data: ToUser<T>) {
+  private sendTo<T>(toId: string, data: SendData<T>) {
     const peer = this.peerMap.get(toId)
     if (!peer) return
     this.send(peer, data)
@@ -108,11 +108,8 @@ export class WSServer {
         break
 
       case Action.Relay:
-        const data = msg as ToUser
-        this.sendTo(data.data.toId, {
-          ...data,
-          type: data.data.type
-        })
+        const data = msg.data
+        this.sendTo(data.toId, data)
         break
 
       default:

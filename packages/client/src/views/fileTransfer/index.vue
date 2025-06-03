@@ -240,10 +240,12 @@ function onNotifyUserInfo(data: UserInfo) {
     /**
      * 在获取元数据时被调用 {@link RTCPeer.saveFileMetas}
      *
-     * @param fileMetas 文件元数据
      * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意
      */
     onFileMetas(fileMetas, acceptCallback) {
+      acceptPromise = Promise.withResolvers()
+      acceptCallback(acceptPromise)
+
       showAcceptFile.value = true
       currentFileMetas.value = fileMetas
 
@@ -251,9 +253,6 @@ function onNotifyUserInfo(data: UserInfo) {
         if (!item.base64) continue
         previewSrc.value = item.base64
       }
-
-      acceptPromise = Promise.withResolvers()
-      acceptCallback(acceptPromise)
     },
 
     onText(text) {

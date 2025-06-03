@@ -20,8 +20,6 @@ export type To = {
   fromId: string
 }
 
-export type ToUser<T = any> = SendData<To & T, Action.Relay>
-
 export type Name = {
   model: string
   os: string

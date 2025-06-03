@@ -1,6 +1,6 @@
 import { Peer, type PeerOpts } from './Peer'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
-import type { To, ToUser, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
+import type { To, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
 import { compressImg, FileChunker, getImg, isStr, wait, type MIMEType } from '@jl-org/tool'
 import type { FileInfo } from '@/types/fileInfo'
 
@@ -199,6 +199,10 @@ export class RTCPeer extends Peer {
    * 发送元数据和预览图
    */
   async sendFileMetas(files: File[]) {
+    if (!this.toId) {
+      return console.warn('没有指定对方 ID，无法发送文件元数据')
+    }
+
     console.log(`发送 ${files[0].name}`)
     const getMeta = (file: File) => ({
       name: file.name,
@@ -223,7 +227,7 @@ export class RTCPeer extends Peer {
             return reject('文件预览失败')
           }
 
-          const base64 = await compressImg(img, 'base64', .3, 'image/webp')
+          const base64 = await compressImg(img, 'base64', .1, 'image/webp')
           res.base64 = base64
         }
 
@@ -233,8 +237,13 @@ export class RTCPeer extends Peer {
 
     const data = await Promise.all(proms)
 
-    this.sendJSON({
+    /**
+     * 通过 WS 发送，因为 WebRTC 接收文件大小有限
+     */
+    this.server.relay({
       data,
+      toId: this.toId,
+      fromId: this.peerId,
       type: Action.FileMetas
     })
   }
@@ -271,14 +280,11 @@ export class RTCPeer extends Peer {
     const offer = await this.pc.createOffer()
     await this.pc.setLocalDescription(offer)
 
-    const data: ToUser<Sdp> = {
-      type: Action.Relay,
-      data: {
-        toId,
-        fromId: this.peerId,
-        sdp: this.pc.localDescription!,
-        type: Action.Offer
-      }
+    const data: To & Sdp = {
+      toId,
+      fromId: this.peerId,
+      sdp: this.pc.localDescription!,
+      type: Action.Offer
     }
     this.server.relay(data)
 
@@ -299,20 +305,16 @@ export class RTCPeer extends Peer {
     const answer = await this.pc.createAnswer()
     await this.pc.setLocalDescription(answer)
 
-    const data: ToUser<Sdp> = {
-      type: Action.Relay,
-      data: {
-        toId: offer.fromId,
-        fromId: this.peerId,
-        sdp: this.pc.localDescription!,
-        type: Action.Answer
-      }
+    const data: To & Sdp = {
+      toId: offer.fromId,
+      fromId: this.peerId,
+      sdp: this.pc.localDescription!,
+      type: Action.Answer
     }
-
     this.server.relay(data)
 
     console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
-    console.log(`发送 answer 给 ${data.data.toId}`, this.pc.localDescription)
+    console.log(`发送 answer 给 ${data.toId}`, this.pc.localDescription)
   }
 
   async handleAnswer(answer: Sdp & To) {
@@ -333,6 +335,27 @@ export class RTCPeer extends Peer {
     }
     console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
     return this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
+  }
+
+  handleFileMetas(
+    fileMeta: FileMeta[]
+  ) {
+    this.opts.onFileMetas?.(fileMeta, (data) => {
+      const { promise } = data
+      promise
+        .then(() => {
+          this.sendJSON({
+            type: Action.AcceptFile,
+            data: null
+          })
+        })
+        .catch(() => {
+          this.sendJSON({
+            type: Action.DenyFile,
+            data: null
+          })
+        })
+    })
   }
 
   /***************************************************
@@ -390,14 +413,11 @@ export class RTCPeer extends Peer {
     const toId = this.toId
     if (!e.candidate || !toId) return
 
-    const data: ToUser<Candidate> = {
-      type: Action.Relay,
-      data: {
-        toId,
-        fromId: this.peerId,
-        candidate: e.candidate,
-        type: Action.Candidate
-      }
+    const data: To & Candidate = {
+      toId,
+      fromId: this.peerId,
+      candidate: e.candidate,
+      type: Action.Candidate
     }
     this.server.relay(data)
 
@@ -416,9 +436,6 @@ export class RTCPeer extends Peer {
         /**
          * 文件传输前
          */
-        case Action.FileMetas:
-          this.saveFileMetas(data.data)
-          break
         case Action.AcceptFile:
           this.onAcceptFile?.()
           break
@@ -477,28 +494,6 @@ export class RTCPeer extends Peer {
     this.downloadRafId = []
   }
 
-  /**
-   * 保存对方的文件元信息，用来展示文件列表
-   */
-  protected override saveFileMetas(fileMetas: FileMeta[]) {
-    super.saveFileMetas(fileMetas)
-    this.opts.onFileMetas?.(fileMetas, ({ promise }) => {
-      promise
-        .then(() => {
-          this.sendJSON({
-            type: Action.AcceptFile,
-            data: null
-          })
-        })
-        .catch(() => {
-          this.sendJSON({
-            type: Action.DenyFile,
-            data: null
-          })
-        })
-    })
-  }
-
   private onClose = () => {
     console.log('RTC: channel closed', this.peerId)
     if (!this.isCaller) return
@@ -524,7 +519,6 @@ export class RTCPeer extends Peer {
 export type RTCPeerOpts = {
   /**
    * 当对方传递文件元信息时触发
-   * @param fileMetas 文件元信息
    * @param acceptCallback 回调函数内包含一个 PromiseWithResolvers，当你同意接收文件时，resolve 他就会通知对方
    */
   onFileMetas?: (

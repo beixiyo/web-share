@@ -1,5 +1,5 @@
 import { Action, USER_INFO } from 'web-share-common'
-import type { To, Sdp, Candidate } from 'web-share-common'
+import type { To, Sdp, Candidate, FileMeta } from 'web-share-common'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 import type { ServerConnection } from './ServerConnection'
@@ -18,6 +18,7 @@ export class PeerManager {
     Events.on(Action.Offer, this.onOffer)
     Events.on(Action.Answer, this.onAnswer)
     Events.on(Action.Candidate, this.onCandidate)
+    Events.on(Action.FileMetas, this.onFileMetas)
 
     window.addEventListener('pagehide', e => {
       const userInfo = sessionStorage.getItem(USER_INFO)
@@ -84,6 +85,13 @@ export class PeerManager {
     const peer = this.getPeer(candidate.toId)
     if (peer) {
       peer.handleCandidate(candidate)
+    }
+  }
+
+  onFileMetas = (data: To & { data: FileMeta[] }) => {
+    const peer = this.getPeer(data.toId)
+    if (peer) {
+      peer.handleFileMetas(data.data)
     }
   }
 
