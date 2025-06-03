@@ -20,8 +20,8 @@ export abstract class Peer {
    * 发送方和接收方各存一份，当都完成时才会清空
    * 用于计算进度等
    */
+  /** 在整个传输过程中保持不变，用于进度计算和 UI 显示 */
   fileMetaCache: FileMeta[] = []
-  fileMetaQueue: FileMeta[] = []
 
   constructor(opts: PeerOpts) {
     this.server = opts.server
@@ -68,10 +68,7 @@ export abstract class Peer {
    * 存储文件元数据
    */
   protected saveFileMetas(fileMetas: FileMeta[]) {
-    for (const meta of fileMetas) {
-      this.fileMetaQueue.push(meta)
-      this.fileMetaCache.push(meta)
-    }
+    this.fileMetaCache.push(...fileMetas)
   }
 
 }

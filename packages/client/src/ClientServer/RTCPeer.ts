@@ -412,6 +412,9 @@ export class RTCPeer extends Peer {
     this.downloadRafId = []
   }
 
+  /**
+   * 保存对方的文件元信息，用来展示文件列表
+   */
   protected override saveFileMetas(fileMetas: FileMeta[]) {
     super.saveFileMetas(fileMetas)
     this.opts.onFileMetas?.(fileMetas, ({ promise }) => {
@@ -427,8 +430,6 @@ export class RTCPeer extends Peer {
             type: Action.DenyFile,
             data: null
           })
-
-          this.fileMetaQueue.splice(0)
         })
     })
   }
