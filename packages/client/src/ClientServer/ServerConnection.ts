@@ -1,4 +1,4 @@
-import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, USER_INFO } from 'web-share-common'
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import type { SendData, UserInfo, To, FileMeta } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
@@ -152,7 +152,7 @@ export class ServerConnection {
     const port = import.meta.env.PORT || '3001'
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
 
-    const url = new URL(`${protocol}://${server}:${port}/`)
+    const url = new URL(import.meta.env[SERVER_URL] || `${protocol}://${server}:${port}/`)
 
     if (peerId) {
       url.searchParams.set(PEER_ID, peerId)

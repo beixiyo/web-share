@@ -41,7 +41,18 @@ export default defineConfig({
       },
     },
     postcss: {
-      plugins: []
+      plugins: [
+        postcssPreset({
+          autoprefixer: {
+            grid: true,
+            flexbox: true,
+          },
+          features: {
+            'nesting-rules': true,
+          },
+          browsers: ['last 2 versions', '> 1%', 'IE 11'],
+        })
+      ]
     }
   },
   server: {
