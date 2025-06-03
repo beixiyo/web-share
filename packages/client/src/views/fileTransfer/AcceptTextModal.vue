@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import Mask from '../Mask.vue'
+import Mask from '@/components/Mask.vue'
 
 
 defineOptions({ name: 'AcceptTextModal' })

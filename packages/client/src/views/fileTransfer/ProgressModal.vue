@@ -41,8 +41,8 @@
 
         <!-- 文件大小信息 -->
         <div v-if="currentFileSize" class="text-xs text-gray-500">
-          {{ byteToMB(currentFileSize * progress.progress) + ' MB' }} /
-          {{ byteToMB(currentFileSize) + ' MB' }}
+          {{ formatByte(currentFileSize * progress.progress) }} /
+          {{ formatByte(currentFileSize) }}
         </div>
       </div>
 
@@ -90,8 +90,8 @@
 
 <script setup lang="ts">
 import type { ProgressData } from 'web-share-common'
-import Mask from '../Mask.vue'
-import { byteToMB } from '@/utils'
+import Mask from '@/components/Mask.vue'
+import { formatByte } from '@/utils'
 import { FileText, Image, Video, Music, Archive, File } from 'lucide-vue-next'
 import { numFixed } from '@jl-org/tool'
 

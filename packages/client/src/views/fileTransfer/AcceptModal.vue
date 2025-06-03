@@ -6,11 +6,7 @@
       <div class="flex items-center mb-4 space-x-4">
         <div
           class="flex justify-center items-center size-12 bg-green-100 rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-green-600"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              stroke-width="2" d="M7 16l-3-3m0 0l3-3m0 0l6 6m-6-6l6-6" />
-          </svg>
+          <Blend color="green" />
         </div>
         <div class="flex-1">
           <h3 class="font-semibold text-lg text-gray-900">接收文件</h3>
@@ -41,7 +37,7 @@
                 {{ file.name }}
               </div>
               <div class="text-xs text-gray-500 flex items-center space-x-2">
-                <span>{{ byteToMB(file.size) + ' MB' }}</span>
+                <span>{{ formatByte(file.size) }}</span>
                 <span>•</span>
                 <span>{{ getFileTypeLabel(file.type) }}</span>
               </div>
@@ -73,7 +69,7 @@
             <span class="font-medium text-blue-600">{{ fileMetas.length }}
               个文件</span>
             <span
-              class="font-medium text-blue-600">{{ byteToMB(totalSize) + ' MB' }}</span>
+              class="font-medium text-blue-600">{{ formatByte(totalSize) }}</span>
           </div>
         </div>
       </div>
@@ -95,9 +91,9 @@
 
 <script setup lang="ts">
 import type { FileMeta } from 'web-share-common'
-import Mask from '../Mask.vue'
-import { FileText, Image, Video, Music, Archive, File } from 'lucide-vue-next'
-import { byteToMB } from '@/utils'
+import { FileText, Image, Video, Music, Archive, File, Blend } from 'lucide-vue-next'
+import { formatByte } from '@/utils'
+import Mask from '@/components/Mask.vue'
 
 defineOptions({ name: 'AcceptModal' })
 

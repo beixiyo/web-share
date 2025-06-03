@@ -159,7 +159,6 @@ export class RTCPeer extends Peer {
           }
           const blob = chunker.next()
           const arrayBuffer = await blob.arrayBuffer()
-          await wait(100)
 
           if (this.channelAmountIsHigh) {
             await this.waitUntilChannelIdle()
@@ -190,6 +189,7 @@ export class RTCPeer extends Peer {
    * 发送元数据和预览图
    */
   async sendFileMetas(files: File[]) {
+    console.log(`发送 ${files[0].name}`)
     const getMeta = (file: File) => ({
       name: file.name,
       size: file.size,

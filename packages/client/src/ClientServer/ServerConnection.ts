@@ -6,7 +6,7 @@ import { WS } from '@jl-org/tool'
 
 /**
  * 管理与 WebSocket 服务器的连接
- * 
+ *
  * 处理连接、断开连接、消息发送和接收等功能
  * 监听各种事件 如 visibilityChange，并相应地处理 WebSocket 连接和消息
  */
@@ -52,14 +52,12 @@ export class ServerConnection {
 
     const ws = new WS({
       url: ServerConnection.endPoint().href,
-      leaveTime: HEART_BEAT_TIME - 1000,
+      leaveTime: -1,
       heartbeatInterval: HEART_BEAT_TIME - 1000,
       genHeartbeatMsg: () => ({
         data: null,
         type: Action.Ping
       }),
-
-      onHidden: () => { },
       onVisible: onConnect
     })
 

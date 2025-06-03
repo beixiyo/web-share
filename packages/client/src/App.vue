@@ -1,8 +1,7 @@
 <template>
-  <FileTransfer />
+  <router-view />
 </template>
 
 <script setup lang="ts">
-import FileTransfer from './components/FileTransfer/index.vue'
 
 </script>
