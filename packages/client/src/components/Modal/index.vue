@@ -1,36 +1,41 @@
 <template>
   <Teleport to="body">
-    <Mask class="Modal-container" v-show="show">
+    <Mask v-show="show" class="Modal-container">
       <Transition appear name="modal">
-        <div class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-          p-4 bg-white shadow-lg rounded-md origin-center"
+        <div
           v-show="show"
-          :style="modalStyle">
-
+          class="fixed left-1/2 top-1/2 z-50 origin-center rounded-md bg-white p-4 shadow-lg -translate-x-1/2 -translate-y-1/2"
+          :style="modalStyle"
+        >
           <slot name="title">
-            <h4 :style="titleStyle">{{ title }}</h4>
+            <h4 :style="titleStyle">
+              {{ title }}
+            </h4>
           </slot>
 
           <div class="content mt-4">
             <slot name="content">
-              <p :style="contentStyle">{{ content }}</p>
+              <p :style="contentStyle">
+                {{ content }}
+              </p>
             </slot>
           </div>
 
           <div
-            class="footer flex justify-end items-center gap-3 absolute bottom-2 right-4">
+            class="footer absolute bottom-2 right-4 flex items-center justify-end gap-3"
+          >
             <slot name="footer">
               <button
-                class="bg-gray-400 text-white py-1 px-2 rounded 
-                hover:bg-gray-500 transition duration-200"
-                @click="onClose">
+                class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
+                @click="onClose"
+              >
                 取消
               </Button>
 
               <button
-                class="bg-blue-400 text-white py-1 px-2 rounded 
-                hover:bg-blue-500 transition duration-200"
-                @click="onConfirm">
+                class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
+                @click="onConfirm"
+              >
                 确认
               </button>
             </slot>
@@ -42,18 +47,18 @@
 </template>
 
 <script setup lang="ts">
-import { useToggle } from '@/hooks'
-import { defaultProps, type CompProps } from './compProps'
+import type { CompProps } from './compProps'
 import Mask from '@/components/Mask.vue'
-
+import { useToggle } from '@/hooks'
+import { defaultProps } from './compProps'
 
 defineOptions({
+  name: 'Modal',
   inheritAttrs: true,
-  name: 'Modal'
 })
 const props = withDefaults(
   defineProps<CompProps>(),
-  defaultProps
+  defaultProps,
 )
 const emit = defineEmits<{
   (e: 'close'): void
@@ -68,14 +73,13 @@ const modalStyle = computed(() => ({
 const titleStyle = computed(() => ({
   color: props.titleColor,
   fontSize: props.titleSize,
-  fontWeight: props.titleWeight
+  fontWeight: props.titleWeight,
 }))
 
 const contentStyle = computed(() => ({
   color: props.color,
   fontSize: props.fontSize,
 }))
-
 
 const [show, toggleShow] = useToggle(true)
 
@@ -98,15 +102,15 @@ function onConfirm() {
 }
 
 function onEscape(e: KeyboardEvent) {
-  if (e.code === 'Escape' && show.value) onClose()
+  if (e.code === 'Escape' && show.value)
+    onClose()
 }
 
 defineExpose({
   close: onClose,
   confirm: onConfirm,
-  DURATION: 400
+  DURATION: 400,
 })
-
 </script>
 
 <style lang="scss" scoped>

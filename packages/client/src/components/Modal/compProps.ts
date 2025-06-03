@@ -1,17 +1,17 @@
-import { type BaseType, handleCssUnit } from '@jl-org/tool'
+import type { BaseType } from '@jl-org/tool'
+import { handleCssUnit } from '@jl-org/tool'
 
-
-export type CompProps = {
-  title?: string,
-  titleWeight?: BaseType,
-  titleSize?: BaseType,
-  titleColor?: string,
+export interface CompProps {
+  title?: string
+  titleWeight?: BaseType
+  titleSize?: BaseType
+  titleColor?: string
 
   width?: BaseType
-  height?: BaseType,
-  content?: string,
-  fontSize?: BaseType,
-  color?: string,
+  height?: BaseType
+  content?: string
+  fontSize?: BaseType
+  color?: string
 }
 
 export const defaultProps = {
