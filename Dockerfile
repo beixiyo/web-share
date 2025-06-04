@@ -4,9 +4,9 @@ FROM node:22-alpine AS base
 # 设置工作目录，后续的命令都会在这个目录下执行。
 WORKDIR /app
 
-RUN npm config set registry https://registry.npmmirror.com && \
-npm i -g pnpm && \
-pnpm config set registry https://registry.npmmirror.com
+RUN npm config set registry https://mirrors.cloud.tencent.com/npm/ && \
+npm i -g pnpm@9.7.1 && \
+pnpm config set registry https://mirrors.cloud.tencent.com/npm/
 
 # 复制根目录的 package.json 和 lockfile (pnpm-lock.yaml)。
 # 这是为了利用 Docker 的层缓存机制：只要这些文件没有改变，后续的 pnpm install 步骤就可以使用缓存。
@@ -19,11 +19,7 @@ COPY packages/common/package.json ./packages/common/
 
 # ---- 依赖安装阶段 (Dependencies Stage) ----
 FROM base AS dependencies
-
-# 安装所有项目的依赖，包括开发依赖 (devDependencies)，因为构建过程可能需要它们。
-# '--frozen-lockfile' (或 pnpm 的 '--lockfile-only' 结合 'pnpm install') 确保使用锁文件中指定的版本，保证构建的可复现性。
-# pnpm 会自动处理 monorepo 中的工作区依赖。
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 
 # ---- 构建器阶段 (Builder Stage) ----
