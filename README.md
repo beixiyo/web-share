@@ -2,16 +2,25 @@
 
 Developing ...
 
-## Demo
+## Local development
 
-http://35.235.112.89:7001/fileTransfer
+```bash
+npm i -g pnpm@9.7.1
+
+pnpm i
+
+# Note: if you are first run this command, you need to run it again. because the first time it will build common.
+pnpm run dev
+```
 
 ---
+
 
 ## Build and run
 
 ```bash
 docker build \
+# add your Web Socket server URL here
 --build-arg VITE_SERVER_URL_ARG=ws://YourHost:YourPort \
 -t web-share . 
 
