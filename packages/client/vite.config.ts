@@ -6,7 +6,6 @@ import UnoCSS from 'unocss/vite'
 import postcssPreset from 'postcss-preset-env'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { envParse } from 'vite-plugin-env-parse'
-import genCompName from 'unplugin-generate-component-name/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 
@@ -17,7 +16,6 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
     UnoCSS(),
-    genCompName(),
     envParse(),
     AutoImport({
       imports: ['vue', 'vue-router', 'pinia'],

@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 
 import { builtinModules } from 'node:module' // 用于获取 Node.js 内置模块
-import pkg from './package.json' assert { type: 'json' }
+import pkg from './package.json' with { type: 'json' }
 
 /**
  * 构建需要外部化的模块列表
