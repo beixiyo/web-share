@@ -11,6 +11,7 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@jl-org/tool": "^2.0.8",
     "@jl-org/cvs": "^1.0.13",
     "@jl-org/vite-auto-route": "^1.0.6",
     "localforage": "^1.10.0",

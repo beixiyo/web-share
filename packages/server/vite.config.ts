@@ -24,8 +24,8 @@ export default defineConfig({
 
   build: {
     lib: {
-      entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`, // 输出 index.mjs (推荐) 或 index.js
+      entry: fileURLToPath(new URL('./src/main.ts', import.meta.url)),
+      fileName: (format) => `server.${format === 'es' ? 'mjs' : 'js'}`, // 输出 index.mjs (推荐) 或 index.js
       formats: ['es']
     },
     rollupOptions: {

@@ -3,21 +3,22 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/server.mjs",
   "scripts": {
     "dev": "nodemon -w src -e ts -x run-s build start",
-    "start": "node dist/index.mjs",
+    "start": "node dist/server.mjs",
     "build": "vite build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.2",
-    "ua-parser-js": "^2.0.0",
+    "@jl-org/tool": "^2.0.8",
+    "express": "^5.1.0",
+    "ua-parser-js": "^2.0.3",
     "unique-names-generator": "^4.7.1",
-    "web-share-common": "workspace:^",
-    "ws": "^8.18.0"
+    "ws": "^8.18.2",
+    "web-share-common": "workspace:^"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

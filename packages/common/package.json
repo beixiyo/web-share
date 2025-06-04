@@ -5,8 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias",
-    "dev": "nodemon -w src -e ts -x pnpm build"
+    "dev:build": "tsc -p tsconfig.json && tsc-alias",
+    "dev": "nodemon -w src -e ts -x pnpm dev:build",
+    "build": "tsc -p tsconfig.build.json && tsc-alias"
   },
   "keywords": [],
   "author": "",
