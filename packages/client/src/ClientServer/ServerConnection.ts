@@ -1,4 +1,4 @@
-import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
@@ -83,6 +83,17 @@ export class ServerConnection {
     })
   }
 
+  saveUserInfoToSession(data: UserInfo) {
+    sessionStorage.setItem(PEER_ID, data.peerId)
+    sessionStorage.setItem(ROOM_ID, data.roomId)
+    sessionStorage.setItem(DISPLAY_NAME, data.name.displayName)
+    sessionStorage.setItem(USER_INFO, JSON.stringify(data))
+  }
+
+  get userInfo() {
+    return JSON.parse(sessionStorage.getItem(USER_INFO) || '{}') as UserInfo
+  }
+
   private connect() {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline) return
 
@@ -112,9 +123,10 @@ export class ServerConnection {
 
   private onOpen = () => {
     console.log('WS: server open')
+    const userInfo = this.userInfo
     this.send({
       type: Action.JoinRoom,
-      data: null
+      data: userInfo
     })
 
     let backlog = this.backlogOfData.shift()
@@ -132,7 +144,7 @@ export class ServerConnection {
        * 通知
        */
       case Action.NotifyUserInfo:
-        this.saveToSession(data.data)
+        this.saveUserInfoToSession(data.data)
         this.opts.onNotifyUserInfo(data.data)
         break
 
@@ -181,12 +193,6 @@ export class ServerConnection {
       default:
         break
     }
-  }
-
-  private saveToSession(data: UserInfo) {
-    sessionStorage.setItem(PEER_ID, data.peerId)
-    sessionStorage.setItem(DISPLAY_NAME, data.name.displayName)
-    sessionStorage.setItem(USER_INFO, JSON.stringify(data))
   }
 
   private saveAllUsers(users: UserInfo[]) {

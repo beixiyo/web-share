@@ -10,6 +10,7 @@ export type SendData<D = any, T = Action> = {
 
 export type UserInfo = {
   peerId: string
+  roomId: string
   name: Name
 }
 

@@ -2,7 +2,7 @@ import type { Server } from 'node:http'
 import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo } from 'web-share-common'
+import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo } from 'web-share-common'
 
 
 export class WSServer {
@@ -141,6 +141,11 @@ export class WSServer {
         break
 
       case Action.JoinRoom:
+        const data = msg.data as UserInfo
+        if (data.roomId) {
+          this.addToNewRoom(sender, data.roomId)
+        }
+
         this.notifyUserInfo(sender)
         this.broadcastToRoom(sender.roomId, {
           type: Action.JoinRoom,
@@ -159,9 +164,7 @@ export class WSServer {
       case Action.CreateDirectRoom:
         const directRoomId = `direct_${crypto.randomUUID()}`
         // 将用户 A 移动到这个新房间
-        this.removePeerFromRoom(sender)   // 从旧房间移除
-        sender.roomId = directRoomId      // 更新用户的 roomId
-        this.addPeerToRoom(sender)        // 加入新房间
+        this.addToNewRoom(sender, directRoomId)
         // 通知用户 A 新的房间 ID，以便生成二维码
         const roomInfo: RoomInfo = {
           roomId: directRoomId,
@@ -176,9 +179,7 @@ export class WSServer {
         const roomToJoin = this.roomMap.get(roomId)
 
         if (roomToJoin?.has(peerId)) {
-          this.removePeerFromRoom(sender) // 从旧房间移除
-          sender.roomId = roomId    // 更新用户的roomId
-          this.addPeerToRoom(sender)      // 加入新房间
+          this.addToNewRoom(sender, roomId)
 
           // 通知房间内的所有用户（主要是用户 A 和用户 B）有新用户加入
           this.notifyUserInfo(sender) // 通知 B 自己的信息
@@ -201,6 +202,12 @@ export class WSServer {
       default:
         break
     }
+  }
+
+  private addToNewRoom(peer: Peer, roomId: string) {
+    this.removePeerFromRoom(peer)   // 从旧房间移除
+    peer.roomId = roomId      // 更新用户的 roomId
+    this.addPeerToRoom(peer)        // 加入新房间
   }
 
   /**

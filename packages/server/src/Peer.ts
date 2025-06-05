@@ -180,6 +180,7 @@ export class Peer {
     return {
       peerId: this.id,
       name: this.name,
+      roomId: this.roomId,
     }
   }
 

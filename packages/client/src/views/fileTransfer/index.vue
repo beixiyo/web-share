@@ -183,9 +183,7 @@ onMounted(() => {
     canvas: canvas.value!
   })
 
-  // setTimeout(() => {
-    handleQuery()
-  // }, 1000);
+  handleQuery()
 })
 
 
@@ -225,6 +223,10 @@ async function requestCreateDirectRoom() {
  */
 async function onDirectRoomCreated(data: RoomInfo) {
   if (data.roomId) {
+    if (info.value) {
+      info.value.roomId = data.roomId
+      server.saveUserInfoToSession(info.value)
+    }
     const { peerId } = data.peerInfo
 
     qrData = `${ServerConnection.getUrl().href}/fileTransfer/?roomId=${encodeURIComponent(data.roomId)}&peerId=${encodeURIComponent(peerId)}`
