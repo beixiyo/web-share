@@ -4,7 +4,7 @@
       <Transition appear name="modal">
         <div
           v-show="show"
-          class="fixed left-1/2 top-1/2 z-50 origin-center rounded-md bg-white p-4 shadow-lg -translate-x-1/2 -translate-y-1/2"
+          class="fixed left-1/2 top-1/2 z-50 origin-center rounded-md bg-white p-6 shadow-lg -translate-x-1/2 -translate-y-1/2"
           :style="modalStyle"
         >
           <slot name="title">
@@ -22,7 +22,7 @@
           </div>
 
           <div
-            class="footer absolute bottom-2 right-4 flex items-center justify-end gap-3"
+            class="footer absolute bottom-6 right-6 flex items-center justify-end gap-3"
           >
             <slot name="footer">
               <button
@@ -50,6 +50,7 @@
 import type { CompProps } from './compProps'
 import Mask from '@/components/Mask.vue'
 import { defaultProps } from './compProps'
+import type { CSSProperties } from 'vue'
 
 defineOptions({
   name: 'Modal',
@@ -73,10 +74,11 @@ const modalStyle = computed(() => ({
   minHeight: props.height,
 }))
 
-const titleStyle = computed(() => ({
+const titleStyle = computed<CSSProperties>(() => ({
   color: props.titleColor,
   fontSize: props.titleSize,
   fontWeight: props.titleWeight,
+  lineHeight: 1
 }))
 
 const contentStyle = computed(() => ({
