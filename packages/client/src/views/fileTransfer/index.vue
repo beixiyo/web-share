@@ -74,8 +74,8 @@ const selectedPeer = ref<UserInfo>()
  ***************************************************/
 const server = new ServerConnection({
   onNotifyUserInfo,
-  onJoinPublicRoom,
-  onLeavePublicRoom,
+  onJoinRoom,
+  onLeaveRoom,
 })
 const peerManager = new PeerManager(server)
 
@@ -219,14 +219,14 @@ function onCopyText() {
 /**
  * 添加用户
  */
-function onJoinPublicRoom(data: UserInfo[]) {
+function onJoinRoom(data: UserInfo[]) {
   allUsers.value = data
   for (const item of data) {
     peerManager.createPeer(item.peerId)
   }
 }
 
-function onLeavePublicRoom(data: UserInfo) {
+function onLeaveRoom(data: UserInfo) {
   allUsers.value = allUsers.value.filter(item => item.peerId !== data.peerId)
   peerManager.rmPeer(data.peerId)
 }

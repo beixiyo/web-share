@@ -26,7 +26,7 @@ export class PeerManager {
       if (!userInfo) return
 
       server.send({
-        type: Action.LeavePublicRoom,
+        type: Action.LeaveRoom,
         data: JSON.parse(userInfo)
       })
     })

@@ -17,6 +17,7 @@ export class Peer {
   declare ip: string
   declare id: string
   declare socket: WebSocket
+  declare roomId: string
   [HEART_BEAT] = Date.now()
 
   name: Name = {
@@ -55,11 +56,66 @@ export class Peer {
       this.ip = this.ip.slice(7)
     }
 
-    // IPv4 和 IPv6 使用不同的值来表示本地主机
-    // 将所有与服务器在同一网络上的对等方放入同一个房间
-    if (this.ip === '::1' || Peer.ipIsPrivate(this.ip)) {
-      this.ip = '127.0.0.1'
+    // 设置房间ID - 根据IP网段划分
+    this.roomId = this.getRoomIdFromIP(this.ip)
+  }
+
+  /**
+   * 根据IP地址获取房间ID
+   * 同一局域网的设备会被分配到同一个房间
+   */
+  private getRoomIdFromIP(ip: string): string {
+    // IPv6本地地址
+    if (ip === '::1') {
+      return 'local'
     }
+
+    // IPv4处理
+    if (!ip.includes(':')) {
+      // 本地回环地址
+      if (ip === '127.0.0.1' || ip.startsWith('127.')) {
+        return 'local'
+      }
+
+      // 私有网络地址 - 按网段划分
+      if (Peer.ipIsPrivate(ip)) {
+        const parts = ip.split('.')
+
+        // 10.x.x.x 网络 - 按前两段划分
+        if (parts[0] === '10') {
+          return `lan_10_${parts[1]}`
+        }
+
+        // 172.16.x.x - 172.31.x.x 网络 - 按前三段划分
+        if (parts[0] === '172' && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) {
+          return `lan_172_${parts[1]}_${parts[2]}`
+        }
+
+        // 192.168.x.x 网络 - 按前三段划分
+        if (parts[0] === '192' && parts[1] === '168') {
+          return `lan_192_168_${parts[2]}`
+        }
+      }
+
+      // 公网IP - 每个IP一个房间（通常不会有文件传输需求）
+      return `public_${ip.replace(/\./g, '_')}`
+    }
+
+    // IPv6私有地址处理
+    const firstWord = ip.split(':').find(el => !!el)!
+
+    if (/^fe[c-f][0-f]$/.test(firstWord) || /^fc[0-f]{2}$/.test(firstWord) || /^fd[0-f]{2}$/.test(firstWord)) {
+      // IPv6私有地址 - 按前缀划分
+      return `lan_ipv6_${firstWord}`
+    }
+
+    if (firstWord === 'fe80') {
+      // 链路本地地址
+      return 'local'
+    }
+
+    // 其他IPv6地址
+    return `ipv6_${firstWord}`
   }
 
   /**
@@ -128,13 +184,6 @@ export class Peer {
   }
 
   /**
-   * 检查 UUID 是否有效
-   */
-  static isValidUuid(uuid: string) {
-    return /^([0-9]|[a-f]){8}-(([0-9]|[a-f]){4}-){3}([0-9]|[a-f]){12}$/.test(uuid)
-  }
-
-  /**
    * 检查 IP 地址是否为私有地址
    */
   static ipIsPrivate(ip: string) {
@@ -182,5 +231,5 @@ export class Peer {
     // 任何其他 IP 地址都不是唯一本地地址（ULA）
     return false
   }
-  
+
 }

@@ -70,7 +70,7 @@ export class ServerConnection {
   private onOpen = () => {
     console.log('WS: server open')
     this.send({
-      type: Action.JoinPublicRoom,
+      type: Action.JoinRoom,
       data: null
     })
   }
@@ -90,13 +90,13 @@ export class ServerConnection {
       /**
        * 房间
        */
-      case Action.JoinPublicRoom:
+      case Action.JoinRoom:
         this.saveAllUsers(data.data)
-        this.opts.onJoinPublicRoom?.(data.data)
+        this.opts.onJoinRoom?.(data.data)
         break
-      case Action.LeavePublicRoom:
+      case Action.LeaveRoom:
         this.rmUser(data.data)
-        this.opts.onLeavePublicRoom?.(data.data)
+        this.opts.onLeaveRoom?.(data.data)
         break
 
       /**
@@ -166,6 +166,6 @@ export class ServerConnection {
 
 export type ServerConnectionOpts = {
   onNotifyUserInfo?: (user: UserInfo) => void
-  onJoinPublicRoom?: (user: UserInfo[]) => void
-  onLeavePublicRoom?: (user: UserInfo) => void
+  onJoinRoom?: (user: UserInfo[]) => void
+  onLeaveRoom?: (user: UserInfo) => void
 }

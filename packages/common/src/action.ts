@@ -3,8 +3,8 @@ export enum Action {
   Ping = 'Ping',
 
   NotifyUserInfo = 'NotifyUserInfo',
-  JoinPublicRoom = 'JoinPublicRoom',
-  LeavePublicRoom = 'LeavePublicRoom',
+  JoinRoom = 'JoinRoom',
+  LeaveRoom = 'LeaveRoom',
 
   Relay = 'Relay',
   Offer = 'Offer',
