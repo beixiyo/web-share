@@ -2,7 +2,7 @@ import type { Server } from 'node:http'
 import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { SendData, SendUserInfo } from 'web-share-common';
+import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo } from 'web-share-common'
 
 
 export class WSServer {
@@ -142,7 +142,6 @@ export class WSServer {
 
       case Action.JoinRoom:
         this.notifyUserInfo(sender)
-        // 只向同一房间的用户广播
         this.broadcastToRoom(sender.roomId, {
           type: Action.JoinRoom,
           data: this.getRoomUsers(sender.roomId)
@@ -150,11 +149,47 @@ export class WSServer {
         break
 
       case Action.LeaveRoom:
-        // 只向同一房间广播
         this.broadcastToRoom(sender.roomId, {
           type: Action.LeaveRoom,
           data: msg.data
         })
+        break
+
+      // 用户 A 请求创建一个用于直接连接的房间
+      case Action.CreateDirectRoom:
+        const directRoomId = `direct_${crypto.randomUUID()}`
+        // 将用户 A 移动到这个新房间
+        this.removePeerFromRoom(sender)   // 从旧房间移除
+        sender.roomId = directRoomId      // 更新用户的 roomId
+        this.addPeerToRoom(sender)        // 加入新房间
+        // 通知用户 A 新的房间 ID，以便生成二维码
+        const roomInfo: RoomInfo = {
+          roomId: directRoomId,
+          peerInfo: sender.getInfo()
+        }
+        this.send(sender, { type: Action.DirectRoomCreated, data: roomInfo })
+        break
+
+      // 用户 B 通过扫码请求加入指定房间
+      case Action.JoinDirectRoom:
+        const { roomId, peerId } = msg.data as JoinRoomInfo
+        const roomToJoin = this.roomMap.get(roomId)
+
+        if (roomToJoin?.has(peerId)) {
+          this.removePeerFromRoom(sender) // 从旧房间移除
+          sender.roomId = roomId    // 更新用户的roomId
+          this.addPeerToRoom(sender)      // 加入新房间
+
+          // 通知房间内的所有用户（主要是用户 A 和用户 B）有新用户加入
+          this.notifyUserInfo(sender) // 通知 B 自己的信息
+          this.broadcastToRoom(roomId, {
+            type: Action.JoinRoom,
+            data: this.getRoomUsers(roomId)
+          })
+        }
+        else {
+          this.send(sender, { type: Action.Error, data: { message: '指定的房间或用户不存在' } })
+        }
         break
 
       case Action.Relay:

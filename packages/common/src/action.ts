@@ -6,6 +6,10 @@ export enum Action {
   JoinRoom = 'JoinRoom',
   LeaveRoom = 'LeaveRoom',
 
+  CreateDirectRoom = 'CreateDirectRoom',
+  JoinDirectRoom = 'JoinDirectRoom',
+  DirectRoomCreated = 'DirectRoomCreated',
+
   Relay = 'Relay',
   Offer = 'Offer',
   Answer = 'Answer',
@@ -20,4 +24,6 @@ export enum Action {
   NewFile = 'NewFile',
   FileDone = 'FileDone',
   Progress = 'Progress',
+
+  Error = 'Error',
 }

@@ -1,5 +1,5 @@
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, SERVER_URL, USER_INFO } from 'web-share-common'
-import type { SendData, UserInfo, To, FileMeta } from 'web-share-common'
+import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
 
@@ -17,15 +17,27 @@ export class ServerConnection {
   server: WS | null = null
   allUsers: UserInfo[] = []
 
+  /**
+   * WebSocket 连接后，将之前的未发送的数据放入队列中
+   */
+  private backlogOfData: any[] = []
+
   opts: ServerConnectionOpts
 
-  constructor(opts: ServerConnectionOpts = {}) {
+  constructor(opts: ServerConnectionOpts) {
     this.opts = opts
     this.connect()
   }
 
+  get isConnected() {
+    return this.server?.isConnected
+  }
+
   send<T>(data: SendData<T>) {
-    if (!this.server?.isConnected) return
+    if (!this.isConnected) {
+      this.backlogOfData.push(data)
+      return
+    }
     this.server?.send(JSON.stringify(data))
   }
 
@@ -33,11 +45,42 @@ export class ServerConnection {
    * 中转数据到指定用户
    */
   relay<T>(data: To & T) {
-    if (!this.server?.isConnected) return
+    if (!this.isConnected) return
     this.server?.send(JSON.stringify({
       type: Action.Relay,
       data
     }))
+  }
+
+  /**
+   * 创建房间
+   */
+  createDirectRoom() {
+    this.send({
+      type: Action.CreateDirectRoom,
+      data: null
+    })
+  }
+
+  /**
+   * 加入房间
+   */
+  joinDirectRoom(roomId: string, peerId?: string) {
+    peerId = peerId || sessionStorage.getItem(PEER_ID) || undefined
+    if (!peerId) {
+      this.opts.onError?.({ message: '找不到用户' })
+      return
+    }
+
+    const data: JoinRoomInfo = {
+      roomId,
+      peerId
+    }
+
+    this.send({
+      type: Action.JoinDirectRoom,
+      data
+    })
   }
 
   private connect() {
@@ -73,6 +116,12 @@ export class ServerConnection {
       type: Action.JoinRoom,
       data: null
     })
+
+    let backlog = this.backlogOfData.shift()
+    while (backlog) {
+      this.send(backlog)
+      backlog = this.backlogOfData.shift()
+    }
   }
 
   private onMessage = (ev: MessageEvent) => {
@@ -84,7 +133,7 @@ export class ServerConnection {
        */
       case Action.NotifyUserInfo:
         this.saveToSession(data.data)
-        this.opts.onNotifyUserInfo?.(data.data)
+        this.opts.onNotifyUserInfo(data.data)
         break
 
       /**
@@ -92,11 +141,11 @@ export class ServerConnection {
        */
       case Action.JoinRoom:
         this.saveAllUsers(data.data)
-        this.opts.onJoinRoom?.(data.data)
+        this.opts.onJoinRoom(data.data)
         break
       case Action.LeaveRoom:
         this.rmUser(data.data)
-        this.opts.onLeaveRoom?.(data.data)
+        this.opts.onLeaveRoom(data.data)
         break
 
       /**
@@ -117,6 +166,16 @@ export class ServerConnection {
        */
       case Action.FileMetas:
         Events.emit(Action.FileMetas, data)
+        break
+
+      /**
+       * 扫码连接
+       */
+      case Action.DirectRoomCreated:
+        this.opts.onDirectRoomCreated(data.data)
+        break
+      case Action.Error:
+        this.opts.onError?.(data.data)
         break
 
       default:
@@ -146,13 +205,30 @@ export class ServerConnection {
     console.error(error)
   }
 
-  private static endPoint() {
-    const peerId = sessionStorage.getItem(PEER_ID)
-    const server = import.meta.env.SERVER || location.hostname
-    const port = import.meta.env.PORT || '3001'
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+  static getUrl(port?: string) {
+    port = port || location.port
+    const hostname = location.hostname
+    const protocol = location.protocol
+    const href = `${protocol}//${hostname}:${port}`
 
-    const url = new URL(import.meta.env[SERVER_URL] || `${protocol}://${server}:${port}/`)
+    return {
+      hostname,
+      port,
+      protocol,
+      href,
+    }
+  }
+
+  static endPoint() {
+    const peerId = sessionStorage.getItem(PEER_ID)
+    let {
+      hostname,
+      port,
+      protocol,
+    } = ServerConnection.getUrl('3001')
+    protocol = protocol === 'https:' ? 'wss' : 'ws'
+
+    const url = new URL(import.meta.env[SERVER_URL] || `${protocol}://${hostname}:${port}/`)
 
     if (peerId) {
       url.searchParams.set(PEER_ID, peerId)
@@ -165,7 +241,10 @@ export class ServerConnection {
 
 
 export type ServerConnectionOpts = {
-  onNotifyUserInfo?: (user: UserInfo) => void
-  onJoinRoom?: (user: UserInfo[]) => void
-  onLeaveRoom?: (user: UserInfo) => void
+  onNotifyUserInfo: (user: UserInfo) => void
+  onJoinRoom: (user: UserInfo[]) => void
+  onLeaveRoom: (user: UserInfo) => void
+
+  onDirectRoomCreated: (data: RoomInfo) => void
+  onError?: (data: { message: string }) => void
 }

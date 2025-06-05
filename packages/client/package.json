@@ -11,17 +11,19 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
-    "@jl-org/tool": "^2.0.8",
     "@jl-org/cvs": "^1.0.13",
+    "@jl-org/tool": "^2.0.8",
     "@jl-org/vite-auto-route": "1.0.6",
     "localforage": "1.10.0",
     "lucide-vue-next": "0.511.0",
+    "qrcode": "^1.5.4",
     "vue": "3.5.13",
     "vue-router": "4.4.5",
     "web-share-common": "workspace:*"
   },
   "devDependencies": {
     "@tsconfig/node22": "22.0.0",
+    "@types/qrcode": "^1.5.5",
     "@unocss/preset-legacy-compat": "65.4.3",
     "@unocss/preset-wind": "65.4.3",
     "@unocss/reset": "65.4.3",

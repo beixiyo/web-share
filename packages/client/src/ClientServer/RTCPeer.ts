@@ -337,9 +337,7 @@ export class RTCPeer extends Peer {
     return this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
   }
 
-  handleFileMetas(
-    fileMeta: FileMeta[]
-  ) {
+  handleFileMetas(fileMeta: FileMeta[]) {
     this.opts.onFileMetas?.(fileMeta, (data) => {
       const { promise } = data
       promise

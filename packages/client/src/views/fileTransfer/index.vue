@@ -2,13 +2,54 @@
   <div v-loading="loading"
     :class="[
       'overflow-hidden relative h-screen',
-      'flex justify-center items-center'
+      'flex flex-col justify-center items-center'
     ]">
+
+    <!-- 用户信息展示 -->
+    <div v-if="info"
+      class="absolute top-4 left-4 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md">
+      <component :is="getDeviceIcon(info.name.type || info.name.os)"
+        class="w-6 h-6 text-indigo-600" />
+      <span class="font-semibold text-gray-700">你当前是:
+        {{ info.name.displayName }}</span>
+    </div>
 
     <!-- 浮动小球 -->
     <User :info="info" v-model="onlineUsers"
       @click-peer="onClickPeer"
       @contextmenu-peer="onContextMenuPeer" />
+
+    <!-- 连接操作按钮 -->
+    <div class="flex space-x-4">
+      <button @click="requestCreateDirectRoom"
+        class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+        创建房间
+      </button>
+    </div>
+
+    <!-- 二维码弹窗 -->
+    <Modal v-model="showQrCodeModal" title="请让对方扫描二维码">
+      <div class="flex flex-col items-center p-4">
+        <img v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
+          :src="qrCodeValue" alt="二维码" />
+
+        <p v-else-if="!qrCodeValue && showQrCodeModal" class="text-gray-500">
+          正在生成二维码...
+        </p>
+
+        <p
+          v-else-if="qrCodeValue && !qrCodeValue.startsWith('data:image/png')"
+          class="text-gray-500">
+          二维码内容已准备，等待扫码...
+        </p>
+
+        <p class="mt-2 text-sm text-gray-600">扫描此二维码以建立连接</p>
+        <button @click="copyLink"
+          class="px-6 py-2 mt-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+          或者复制链接让对方打开
+        </button>
+      </div>
+    </Modal>
 
     <!-- 隐藏的文件输入 -->
     <input type="file" ref="fileInput" class="hidden"
@@ -17,7 +58,7 @@
 
     <!-- 文件传输进度弹窗 -->
     <ProgressModal v-if="progress.total > 0"
-      :progress="progress" />
+      :progress="progress" :fileSizes="currentFileSizes" />
 
     <!-- 发送文本对话框 -->
     <SendTextModal
@@ -48,15 +89,19 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo } from 'web-share-common'
+import { Action, SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type Name, type RoomInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
+import Modal from '@/components/Modal/index.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
+import { Laptop, Smartphone, HelpCircle } from 'lucide-vue-next'
+import QRCode from 'qrcode'
 
 
 /***************************************************
@@ -72,10 +117,22 @@ const selectedPeer = ref<UserInfo>()
 /***************************************************
  *                    Server
  ***************************************************/
+const showQrCodeModal = ref(false)
+const qrCodeValue = ref('')
+const currentFileSizes = ref<number[]>([]) // 用于ProgressModal显示文件大小
+
 const server = new ServerConnection({
   onNotifyUserInfo,
   onJoinRoom,
   onLeaveRoom,
+  onDirectRoomCreated,
+
+  onError: (errorData) => {
+    console.error('Server Error:', errorData.message)
+    alert(`发生错误: ${errorData.message}`)
+    loading.value = false
+    showQrCodeModal.value = false
+  }
 })
 const peerManager = new PeerManager(server)
 
@@ -110,6 +167,11 @@ const acceptText = ref('')
 const showTextInput = ref(false)
 const text = ref('')
 
+/***************************************************
+ *                    其他数据
+ ***************************************************/
+let qrData: string
+const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 
 onMounted(() => {
@@ -120,12 +182,83 @@ onMounted(() => {
     circleCount: 20,
     canvas: canvas.value!
   })
+
+  // setTimeout(() => {
+    handleQuery()
+  // }, 1000);
 })
 
 
 /***************************************************
  *                    Function
  ***************************************************/
+
+/**
+ * 根据设备类型获取图标
+ */
+function getDeviceIcon(deviceType: string | undefined) {
+  if (!deviceType) return HelpCircle
+  if (deviceType.toLowerCase().includes('window')) return Laptop
+  if (deviceType.toLowerCase().includes('mobile')) return Smartphone
+  return HelpCircle
+}
+
+/**
+ * 请求创建直接连接房间
+ */
+async function requestCreateDirectRoom() {
+  if (!info.value) {
+    alert('无法获取用户信息，请稍后再试')
+    return
+  }
+  if (qrCodeValue.value) {
+    showQrCodeModal.value = true
+    return
+  }
+
+  loading.value = true
+  server.createDirectRoom()
+}
+
+/**
+ * 处理服务器创建直接房间的响应
+ */
+async function onDirectRoomCreated(data: RoomInfo) {
+  if (data.roomId) {
+    const { peerId } = data.peerInfo
+
+    qrData = `${ServerConnection.getUrl().href}/fileTransfer/?roomId=${encodeURIComponent(data.roomId)}&peerId=${encodeURIComponent(peerId)}`
+    console.log('创建房间成功:', qrData)
+    try {
+      qrCodeValue.value = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'H', width: 300 })
+      showQrCodeModal.value = true
+    }
+    catch (err) {
+      console.error('生成二维码失败:', err)
+      alert('生成二维码失败，请稍后再试')
+    }
+  }
+
+  loading.value = false
+}
+
+function copyLink() {
+  if (!qrData) return
+  copyToClipboard(qrData)
+}
+
+function handleQuery() {
+  const {
+    roomId,
+    peerId
+  } = route.query
+  if (!roomId || !peerId) {
+    return
+  }
+
+  // @ts-ignore
+  server.joinDirectRoom(roomId, peerId)
+}
 
 /**
  * 显示右键菜单
@@ -187,6 +320,7 @@ const handleFileSelect = async (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const files = Array.from(target.files)
+    currentFileSizes.value = files.map(f => f.size) // 更新文件大小数组
 
     me.value?.sendFileMetas(files)
     me.value?.sendFiles(files, () => {
@@ -236,47 +370,86 @@ function onLeaveRoom(data: UserInfo) {
  */
 function onNotifyUserInfo(data: UserInfo) {
   info.value = data
-  me.value = peerManager.createPeer(data.peerId, {
-    /**
-     * 在获取元数据时被调用 {@link RTCPeer.saveFileMetas}
-     *
-     * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意
-     */
-    onFileMetas(fileMetas, acceptCallback) {
-      acceptPromise = Promise.withResolvers()
-      acceptCallback(acceptPromise)
+  if (!peerManager.getPeer(data.peerId)) {
+    me.value = peerManager.createPeer(data.peerId, {
+      /**
+       * 在获取元数据时被调用 {@link RTCPeer.handleFileMetas}
+       *
+       * @param acceptCallback 传递 Promise 过去，当 resolve 时，对方会发送同意
+       */
+      onFileMetas(fileMetas, acceptCallback) {
+        acceptPromise = Promise.withResolvers()
+        acceptCallback(acceptPromise)
+        showAcceptFile.value = true
+        currentFileMetas.value = fileMetas
+        currentFileSizes.value = fileMetas.map(fm => fm.size)
 
-      showAcceptFile.value = true
-      currentFileMetas.value = fileMetas
+        for (const item of fileMetas) {
+          if (!item.base64) continue
+          previewSrc.value = item.base64
+        }
+      },
 
-      for (const item of fileMetas) {
-        if (!item.base64) continue
-        previewSrc.value = item.base64
-      }
-    },
+      onText(text) {
+        showAcceptText.value = true
+        acceptText.value = text
+      },
 
-    onText(text) {
-      showAcceptText.value = true
-      acceptText.value = text
-    },
-
-    onOtherChannelClose() {
-      progress.value = getInitProgress()
-      showTextInput.value = false
-      showAcceptFile.value = false
-      showAcceptText.value = false
-    },
-
-    onProgress(data: ProgressData) {
-      progress.value = data
-      if (
-        data.total === data.curIndex + 1 &&
-        data.progress >= 1
-      ) {
+      onOtherChannelClose() {
         progress.value = getInitProgress()
+        showTextInput.value = false
+        showAcceptFile.value = false
+        showAcceptText.value = false
+      },
+
+      onProgress(data: ProgressData) {
+        progress.value = data
+        if (
+          data.total === data.curIndex + 1 &&
+          data.progress >= 1
+        ) {
+          progress.value = getInitProgress()
+        }
       }
+    })
+  }
+  else {
+    me.value = peerManager.getPeer(data.peerId)
+  }
+
+  // 如果是通过扫码加入的房间，并且当前用户不是房主，则主动向房主发起连接
+  if (qrCodeValue.value) { // 如果qrCodeValue有值，说明是扫码加入的，或者刚生成了码
+    try {
+      const qrData = JSON.parse(qrCodeValue.value) // qrCodeValue 现在是 DataURL 或扫码内容
+      let peerIdToJoinFromQr: string | undefined
+      // 尝试从扫码内容中解析 peerIdToJoin
+      if (typeof qrData === 'object' && qrData.peerIdToJoin) {
+        peerIdToJoinFromQr = qrData.peerIdToJoin
+      }
+
+      if (peerIdToJoinFromQr && peerIdToJoinFromQr !== info.value?.peerId && selectedPeer.value?.peerId === peerIdToJoinFromQr) {
+        // 当前用户不是房主，且选中的peer是房主，则自动发起连接
+        console.log('扫码加入成功，自动连接房主...')
+        if (me.value && selectedPeer.value) {
+          const { promise, resolve } = Promise.withResolvers()
+          me.value.sendOffer(selectedPeer.value.peerId, resolve)
+          promise.then(() => console.log('Offer sent to room owner after scan join'))
+        }
+      }
+    } catch (e) {
+      // 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略
+      // console.warn('Error parsing qrCodeValue in onNotifyUserInfo, possibly a DataURL:', e)
     }
-  })
+  }
+
+  // showQrCodeModal.value = false // 加入成功后关闭二维码弹窗，这个逻辑可以根据具体场景调整
+  // qrCodeValue.value = '' // 清空，这个也需要看是否立即清空
+  if (!showQrCodeModal.value) { // 如果二维码弹窗没开，才清空
+    qrCodeValue.value = ''
+  }
+  loading.value = false // 确保加载状态被关闭
 }
 
 </script>
+
+<style scoped></style>

@@ -14,7 +14,7 @@
           </slot>
 
           <div class="content mt-4">
-            <slot name="content">
+            <slot>
               <p :style="contentStyle">
                 {{ content }}
               </p>
@@ -49,7 +49,6 @@
 <script setup lang="ts">
 import type { CompProps } from './compProps'
 import Mask from '@/components/Mask.vue'
-import { useToggle } from '@/hooks'
 import { defaultProps } from './compProps'
 
 defineOptions({
@@ -64,6 +63,10 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'confirm'): void
 }>()
+
+const show = defineModel<boolean>({
+  default: false,
+})
 
 const modalStyle = computed(() => ({
   minWidth: props.width,
@@ -81,7 +84,6 @@ const contentStyle = computed(() => ({
   fontSize: props.fontSize,
 }))
 
-const [show, toggleShow] = useToggle(true)
 
 onMounted(() => {
   window.addEventListener('keydown', onEscape)
@@ -94,11 +96,11 @@ onBeforeUnmount(() => {
 
 function onClose() {
   emit('close')
-  toggleShow(false)
+  show.value = false
 }
 function onConfirm() {
   emit('confirm')
-  toggleShow(true)
+  show.value = false
 }
 
 function onEscape(e: KeyboardEvent) {

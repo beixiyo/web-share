@@ -13,6 +13,16 @@ export type UserInfo = {
   name: Name
 }
 
+export type RoomInfo = {
+  roomId: string
+  peerInfo: UserInfo
+}
+
+export type JoinRoomInfo = {
+  roomId: string
+  peerId: string
+}
+
 export type SendUserInfo = SendData<UserInfo>
 
 export type To = {
