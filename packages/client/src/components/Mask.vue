@@ -1,7 +1,7 @@
 <template>
   <Transition name="mask">
     <div
-      class="Mask-container fixed inset-0 z-[99] 
+      class="Mask-container fixed inset-0 z-[99]
         flex justify-center items-center
       bg-black/30 filter backdrop-blur">
       <slot></slot>

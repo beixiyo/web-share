@@ -134,9 +134,13 @@ export default defineConfig({
 
   // 配置内容扫描路径
   content: {
-    filesystem: [
-      './index.html',
-      './src/**/*.{vue}',
-    ],
+    pipeline: {
+      include: [
+        /\.(vue|svelte|[jt]sx|vine.ts|mdx?|astro|elm|php|phtml|html)($|\?)/,
+        // include js/ts files
+        'src/**/*.{js,ts}',
+      ],
+      // exclude: []
+    },
   },
 })

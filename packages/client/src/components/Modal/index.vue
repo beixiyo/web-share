@@ -1,43 +1,63 @@
 <template>
   <Teleport to="body">
-    <Mask v-show="show" class="Modal-container">
-      <Transition appear name="modal">
+    <Mask v-show="show" class="Modal-container" :style="{ zIndex }">
+      <Transition
+        appear
+        enter-active-class="transition duration-300"
+        enter-from-class="opacity-0 scale-50"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-300"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-50">
         <div
           v-show="show"
-          class="fixed left-1/2 top-1/2 z-50 origin-center rounded-md bg-white p-6 shadow-lg -translate-x-1/2 -translate-y-1/2"
-          :style="modalStyle"
-        >
-          <slot name="title">
-            <h4 :style="titleStyle">
-              {{ title }}
-            </h4>
-          </slot>
-
-          <div class="content mt-4">
-            <slot>
-              <p :style="contentStyle">
-                {{ content }}
-              </p>
+          class="rounded-xl shadow-xl shadow-black/10 bg-white"
+          :class="[variantStyles[variant].bg]"
+          :style="modalStyle">
+          <div class="h-full max-h-[90vh] flex flex-col gap-6 p-6">
+            <!-- 头部 -->
+            <slot name="header">
+              <div
+                class="flex items-start justify-between rounded-t"
+                :style="headerStyle">
+                <div class="flex items-center gap-3">
+                  <div
+                    :class="['rounded-lg p-1.5', variantStyles[variant].iconBg]">
+                    <component
+                      :is="variantStyles[variant].icon"
+                      :class="['h-4 w-4', variantStyles[variant].accent]" />
+                  </div>
+                  <h2 class="text-lg">{{ title }}</h2>
+                </div>
+              </div>
             </slot>
-          </div>
 
-          <div
-            class="footer absolute bottom-6 right-6 flex items-center justify-end gap-3"
-          >
+            <!-- 内容区域 -->
+            <div
+              class="flex-1 overflow-y-auto"
+              :style="bodyStyle">
+              <slot>
+                <p>{{ content }}</p>
+              </slot>
+            </div>
+
+            <!-- 底部 -->
             <slot name="footer">
-              <button
-                class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
-                @click="onClose"
-              >
-                取消
-              </Button>
+              <div
+                class="mt-auto flex items-center justify-end gap-4"
+                :style="footerStyle">
+                <button
+                  class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
+                  @click="onClose">
+                  {{ cancelText }}
+                </button>
 
-              <button
-                class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
-                @click="onConfirm"
-              >
-                确认
-              </button>
+                <button
+                  class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
+                  @click="onConfirm">
+                  {{ okText }}
+                </button>
+              </div>
             </slot>
           </div>
         </div>
@@ -47,52 +67,29 @@
 </template>
 
 <script setup lang="ts">
-import type { CompProps } from './compProps'
+import { defaultProps, type CompProps } from './types'
 import Mask from '@/components/Mask.vue'
-import { defaultProps } from './compProps'
-import type { CSSProperties } from 'vue'
+import { variantStyles } from './constants'
 
-defineOptions({
-  name: 'Modal',
-  inheritAttrs: true,
-})
+defineOptions({ name: 'Modal' })
+
 const props = withDefaults(
   defineProps<CompProps>(),
-  defaultProps,
+  {
+    ...defaultProps,
+  },
 )
+const show = defineModel<boolean>({ default: false })
+
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'confirm'): void
 }>()
 
-const show = defineModel<boolean>({
-  default: false,
-})
-
 const modalStyle = computed(() => ({
-  minWidth: props.width,
-  minHeight: props.height,
+  width: props.width ? `${props.width}px` : undefined,
+  height: props.height ? `${props.height}px` : undefined,
 }))
-
-const titleStyle = computed<CSSProperties>(() => ({
-  color: props.titleColor,
-  fontSize: props.titleSize,
-  fontWeight: props.titleWeight,
-  lineHeight: 1
-}))
-
-const contentStyle = computed(() => ({
-  color: props.color,
-  fontSize: props.fontSize,
-}))
-
-
-onMounted(() => {
-  window.addEventListener('keydown', onEscape)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onEscape)
-})
 
 /** =========================== 事件 ================================ */
 
@@ -100,6 +97,7 @@ function onClose() {
   emit('close')
   show.value = false
 }
+
 function onConfirm() {
   emit('confirm')
   show.value = false
@@ -110,15 +108,17 @@ function onEscape(e: KeyboardEvent) {
     onClose()
 }
 
+onMounted(() => {
+  window.addEventListener('keydown', onEscape)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onEscape)
+})
+
 defineExpose({
   close: onClose,
   confirm: onConfirm,
-  DURATION: 400,
+  duration: 300
 })
 </script>
-
-<style lang="scss" scoped>
-@include vue-transition('modal', .4s) {
-  transform: scale(0.1);
-}
-</style>
