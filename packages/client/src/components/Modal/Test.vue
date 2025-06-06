@@ -2,22 +2,20 @@
   <div class="p-4 space-y-4">
     <h1 class="text-xl font-bold">Modal Demo</h1>
     <div class="space-x-2 space-y-2">
-      <button
+      <Button
         v-for="type in modalTypes"
         :key="type"
-        class="rounded px-2 py-1 text-white transition duration-200"
         :class="buttonStyles[type]"
         @click="() => openModal(type)">
         Open {{ type.charAt(0).toUpperCase() + type.slice(1) }} Modal
-      </button>
+      </Button>
     </div>
 
     <h1 class="text-xl font-bold">Imperative Modal Demo</h1>
     <div class="space-x-2 space-y-2">
-      <button
+      <Button
         v-for="type in modalTypes.filter(t => t !== 'custom')"
         :key="type"
-        class="rounded px-2 py-1 text-white transition duration-200"
         :class="buttonStyles[type]"
         @click="() => modal[type]({
           content: `This is the ${type} of the Imperative modal`,
@@ -29,7 +27,7 @@
           },
         })">
         Open {{ type.charAt(0).toUpperCase() + type.slice(1) }} Modal
-      </button>
+      </Button>
     </div>
 
     <!-- Default Modal -->
@@ -91,22 +89,22 @@
       @confirm="handleCustomConfirm">
       <template #footer>
         <div class="w-full flex justify-between px-6 pb-6">
-          <button
+          <Button
             class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
             @click="isCustomModalOpen = false">
             Learn More
-          </button>
+          </Button>
           <div class="space-x-2">
-            <button
+            <Button
               class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
               @click="isCustomModalOpen = false">
               Dismiss
-            </button>
-            <button
+            </Button>
+            <Button
               class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
               @click="handleCustomConfirm">
               Confirm
-            </button>
+            </Button>
           </div>
         </div>
       </template>
@@ -127,6 +125,7 @@
 import { ref } from 'vue'
 import Modal from './index.vue'
 import { modal } from '@/utils'
+import Button from '@/components/Button/index.vue'
 
 defineOptions({ name: 'ModalTest' })
 
@@ -140,12 +139,12 @@ const isInfoModalOpen = ref(false)
 const isCustomModalOpen = ref(false)
 
 const buttonStyles = {
-  default: 'bg-gray-500 hover:bg-gray-600',
-  success: 'bg-green-500 hover:bg-green-600',
-  warning: 'bg-yellow-500 hover:bg-yellow-600',
-  error: 'bg-red-500 hover:bg-red-600',
+  default: 'text-white bg-gray-500 hover:bg-gray-600',
+  success: 'text-white bg-green-500 hover:bg-green-600',
+  warning: 'text-white bg-yellow-500 hover:bg-yellow-600',
+  error: 'text-white bg-red-500 hover:bg-red-600',
   info: 'bg-blue-500 hover:bg-blue-600',
-  custom: 'bg-purple-500 hover:bg-purple-600',
+  custom: 'text-white bg-purple-500 hover:bg-purple-600',
 } as const
 
 function openModal(type: typeof modalTypes[number]) {

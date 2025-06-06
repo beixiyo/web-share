@@ -1,6 +1,8 @@
 <template>
   <Teleport to="body">
     <Mask v-show="show" class="Modal-container" :style="{ zIndex }">
+      <div @click="onClose" class="z-[-1] inset-0 absolute"></div>
+
       <Transition
         appear
         enter-active-class="transition duration-300"
@@ -46,17 +48,16 @@
               <div
                 class="mt-auto flex items-center justify-end gap-4"
                 :style="footerStyle">
-                <button
-                  class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
+                <Button
                   @click="onClose">
                   {{ cancelText }}
-                </button>
+                </Button>
 
-                <button
-                  class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
+                <Button
+                  variant="primary"
                   @click="onConfirm">
                   {{ okText }}
-                </button>
+                </Button>
               </div>
             </slot>
           </div>
@@ -69,6 +70,7 @@
 <script setup lang="ts">
 import { defaultProps, type CompProps } from './types'
 import Mask from '@/components/Mask.vue'
+import Button from '@/components/Button/index.vue'
 import { variantStyles } from './constants'
 
 defineOptions({ name: 'Modal' })

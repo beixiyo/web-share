@@ -8,6 +8,7 @@
 <script setup lang="ts">
 import { type BaseType } from '@jl-org/tool'
 import LoadingIcon from './LoadingIcon.vue'
+import { defaultLoadingProps, type LoadingProps } from './types'
 
 
 defineOptions({
@@ -19,14 +20,13 @@ const props = withDefaults(
     loading?: boolean
     /** 指令调用给的值 */
     __loading?: boolean
-    size?: BaseType
-    bgc?: string
     zIndex?: BaseType
-  }>(),
+    bgc?: string
+  } & LoadingProps>(),
   {
-    size: '30px',
+    ...defaultLoadingProps,
+    zIndex: 999,
     bgc: '#0005',
-    zIndex: 999
   }
 )
 
@@ -37,7 +37,8 @@ let show: Ref<boolean>
 init()
 function init() {
   if (props.loading !== undefined) {
-    show = toRef(props, 'loading')
+    show = ref(props.loading)
+    return
   }
 
   if (props.__loading !== undefined) {
