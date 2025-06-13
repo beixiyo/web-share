@@ -8,12 +8,17 @@
     <div :class="[
       'group cursor-pointer p-4 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300',
       'hover:scale-110 hover:shadow-xl',
-      peer.peerId === info?.peerId ? 'bg-indigo-500/80' : 'bg-white/80'
+      'sm:p-3 sm:hover:scale-105',
+      peer.peerId === info?.peerId
+        ? 'bg-indigo-500/80 dark:bg-indigo-600/80'
+        : 'bg-white/80 dark:bg-gray-800/80 dark:shadow-gray-900/50'
     ]">
-      <div class="flex justify-center items-center size-14 text-center">
+      <div class="flex justify-center items-center size-14 text-center sm:size-12">
         <span :class="[
-          'font-bold line-clamp-1',
-          peer.peerId === info?.peerId ? 'text-white' : 'text-indigo-600'
+          'font-bold line-clamp-1 sm:text-sm',
+          peer.peerId === info?.peerId
+            ? 'text-white'
+            : 'text-indigo-600 dark:text-indigo-400'
         ]">
           {{ peer.name.displayName }}
         </span>

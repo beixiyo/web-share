@@ -1,12 +1,15 @@
 <template>
   <Modal class="ProgressModal-container" v-model="show">
-    <div class="p-6 w-[420px] bg-white rounded-2xl shadow-2xl">
+    <div class="p-6 w-[420px] bg-white rounded-2xl shadow-2xl
+                dark:bg-gray-800 dark:shadow-gray-900/50
+                sm:w-[90vw] sm:max-w-md sm:p-4">
       <!-- 头部信息 -->
-      <div class="flex items-center mb-6 space-x-4">
+      <div class="flex items-center mb-6 space-x-4 sm:mb-4 sm:space-x-3">
         <div
-          class="flex justify-center items-center w-12 h-12 bg-indigo-100 rounded-full">
+          class="flex justify-center items-center w-12 h-12 bg-indigo-100 rounded-full
+                 dark:bg-indigo-900/30 sm:w-10 sm:h-10">
           <svg xmlns="http://www.w3.org/2000/svg"
-            class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24"
+            class="w-6 h-6 text-indigo-600 dark:text-indigo-400 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round"
               stroke-width="2"
@@ -14,50 +17,50 @@
           </svg>
         </div>
         <div class="flex-1">
-          <h3 class="font-semibold text-lg text-gray-900">文件传输中</h3>
-          <div class="text-sm text-gray-500">
+          <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100 sm:text-base">文件传输中</h3>
+          <div class="text-sm text-gray-500 dark:text-gray-400 sm:text-xs">
             正在传输第 <span
-              class="font-medium text-indigo-600">{{ progress.curIndex + 1 }}</span>
+              class="font-medium text-indigo-600 dark:text-indigo-400">{{ progress.curIndex + 1 }}</span>
             个文件，共 <span class="font-medium">{{ progress.total }}</span> 个
           </div>
         </div>
       </div>
 
       <!-- 当前文件信息 -->
-      <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center space-x-2">
+      <div class="mb-4 p-3 bg-gray-50 rounded-lg dark:bg-gray-700 sm:mb-3 sm:p-2">
+        <div class="flex items-center justify-between mb-2 sm:mb-1">
+          <div class="flex items-center space-x-2 sm:space-x-1">
             <component :is="getFileIcon(progress.filename)"
-              class="w-4 h-4 text-gray-500" />
-            <span class="font-medium text-gray-900 truncate max-w-[200px]"
+              class="w-4 h-4 text-gray-500 dark:text-gray-400 sm:w-3 sm:h-3" />
+            <span class="font-medium text-gray-900 truncate max-w-[200px] dark:text-gray-100 sm:text-sm sm:max-w-[150px]"
               :title="progress.filename">
               {{ progress.filename }}
             </span>
           </div>
-          <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+          <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded dark:bg-gray-600 dark:text-gray-300 sm:text-[10px] sm:px-1">
             {{ progress.curIndex + 1 }}/{{ progress.total }}
           </span>
         </div>
 
         <!-- 文件大小信息 -->
-        <div v-if="currentFileSize" class="text-xs text-gray-500">
+        <div v-if="currentFileSize" class="text-xs text-gray-500 dark:text-gray-400 sm:text-[10px]">
           {{ formatByte(currentFileSize * progress.progress) }} /
           {{ formatByte(currentFileSize) }}
         </div>
       </div>
 
       <!-- 进度条 -->
-      <div class="mb-4">
+      <div class="mb-4 sm:mb-3">
         <!-- 单个文件进度 -->
-        <div class="mb-3">
+        <div class="mb-3 sm:mb-2">
           <div class="flex justify-between items-center mb-1">
-            <span class="text-sm font-medium text-gray-700">当前文件进度</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-xs">当前文件进度</span>
             <span
-              class="text-sm font-medium text-indigo-600">{{ numFixed(progress.progress * 100) }}%</span>
+              class="text-sm font-medium text-indigo-600 dark:text-indigo-400 sm:text-xs">{{ numFixed(progress.progress * 100) }}%</span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 sm:h-1.5">
             <div
-              class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+              class="bg-indigo-600 h-2 rounded-full transition-all duration-300 dark:bg-indigo-500 sm:h-1.5"
               :style="{ width: `${progress.progress * 100}%` }">
             </div>
           </div>
@@ -66,13 +69,13 @@
         <!-- 总体进度 -->
         <div>
           <div class="flex justify-between items-center mb-1">
-            <span class="text-sm font-medium text-gray-700">总体进度</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-xs">总体进度</span>
             <span
-              class="text-sm font-medium text-green-600">{{ numFixed(overallProgress * 100) }}%</span>
+              class="text-sm font-medium text-green-600 dark:text-green-400 sm:text-xs">{{ numFixed(overallProgress * 100) }}%</span>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 sm:h-1.5">
             <div
-              class="bg-green-500 h-2 rounded-full transition-all duration-300"
+              class="bg-green-500 h-2 rounded-full transition-all duration-300 dark:bg-green-400 sm:h-1.5"
               :style="{ width: `${overallProgress * 100}%` }">
             </div>
           </div>

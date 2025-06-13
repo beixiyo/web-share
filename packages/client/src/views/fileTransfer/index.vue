@@ -2,15 +2,28 @@
   <div v-loading="loading"
     :class="[
       'overflow-hidden relative h-screen',
-      'flex flex-col justify-center items-center'
+      'flex flex-col justify-center items-center',
+      'bg-gradient-to-br from-indigo-50 to-blue-100',
+      'dark:from-gray-900 dark:to-gray-800'
     ]">
+
+    <!-- 工具栏 -->
+    <ToolBar
+      :qr-code-value="qrCodeValue"
+      :show-qr-code-modal="showQrCodeModal"
+      @copy="copyLink"
+      @show-qr-modal="requestCreateDirectRoom"
+      v-model:show-qr-modal="showQrCodeModal" />
 
     <!-- 用户信息展示 -->
     <div v-if="info"
-      class="absolute top-4 left-4 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md">
+      class="absolute top-4 left-4 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
+             dark:bg-gray-800/80 dark:shadow-gray-700/50
+             sm:p-2 sm:space-x-1 sm:text-sm">
       <component :is="getDeviceIcon(info.name.type || info.name.os)"
-        class="w-6 h-6 text-indigo-600" />
-      <span class="font-semibold text-gray-700">你当前是:
+        class="w-6 h-6 text-indigo-600 dark:text-indigo-400 sm:w-5 sm:h-5" />
+      <span
+        class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs">你当前是:
         {{ info.name.displayName }}</span>
     </div>
 
@@ -18,14 +31,6 @@
     <User :info="info" v-model="onlineUsers"
       @click-peer="onClickPeer"
       @contextmenu-peer="onContextMenuPeer" />
-
-    <!-- 连接操作按钮 -->
-    <div class="flex space-x-4">
-      <button @click="requestCreateDirectRoom"
-        class="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
-        创建房间
-      </button>
-    </div>
 
     <!-- 二维码弹窗 -->
     <QrCodeModal
@@ -66,7 +71,8 @@
       @copy="onCopyText" />
 
     <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full
-      z-[-1] bg-gradient-to-br from-indigo-50 to-blue-100">
+      z-[-1] bg-gradient-to-br from-indigo-50 to-blue-100
+      dark:from-gray-900 dark:to-gray-800">
     </canvas>
   </div>
 </template>
@@ -74,13 +80,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type Name, type RoomInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
+import ToolBar from '@/components/ToolBar/index.vue'
+import Button from '@/components/Button/index.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
 import { Laptop, Smartphone, HelpCircle } from 'lucide-vue-next'
@@ -231,6 +239,7 @@ async function onDirectRoomCreated(data: RoomInfo) {
 function copyLink() {
   if (!qrData) return
   copyToClipboard(qrData)
+  Message.success('复制成功')
 }
 
 function handleQuery() {

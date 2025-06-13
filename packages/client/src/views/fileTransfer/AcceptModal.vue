@@ -2,42 +2,47 @@
   <Modal class="AcceptModal-container"
     v-model="show">
     <div
-      class="p-6 w-[480px] bg-white rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      class="p-6 w-[480px] bg-white rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col
+             dark:bg-gray-800 dark:shadow-gray-900/50
+             sm:w-[90vw] sm:max-w-md sm:p-4 sm:max-h-[85vh]">
       <!-- 头部信息 -->
-      <div class="flex items-center mb-4 space-x-4">
+      <div class="flex items-center mb-4 space-x-4 sm:space-x-3 sm:mb-3">
         <div
-          class="flex justify-center items-center size-12 bg-green-100 rounded-full">
-          <Blend color="green" />
+          class="flex justify-center items-center size-12 bg-green-100 rounded-full
+                 dark:bg-green-900/30 sm:size-10">
+          <Blend color="green" class="dark:text-green-400" />
         </div>
         <div class="flex-1">
-          <h3 class="font-semibold text-lg text-gray-900">接收文件</h3>
-          <div class="text-sm text-gray-500">
-            来自 <span class="font-medium text-indigo-600">{{ fromUser }}</span>
+          <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100 sm:text-base">接收文件</h3>
+          <div class="text-sm text-gray-500 dark:text-gray-400 sm:text-xs">
+            来自 <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ fromUser }}</span>
           </div>
         </div>
       </div>
 
       <!-- 文件列表 -->
-      <div class="flex-1 overflow-y-auto mb-4">
-        <div class="space-y-3 max-h-60">
+      <div class="flex-1 overflow-y-auto mb-4 sm:mb-3">
+        <div class="space-y-3 max-h-60 sm:max-h-48 sm:space-y-2">
           <div v-for="(file, index) in fileMetas" :key="index"
-            class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors
+                   dark:bg-gray-700 dark:hover:bg-gray-600
+                   sm:p-2">
             <!-- 文件图标 -->
-            <div class="flex-shrink-0 w-10 h-10 mr-3">
+            <div class="flex-shrink-0 w-10 h-10 mr-3 sm:w-8 sm:h-8 sm:mr-2">
               <div
                 class="w-full h-full rounded-lg flex items-center justify-center"
                 :class="getFileIconClass(file.type)">
-                <component :is="getFileIcon(file.type)" class="w-5 h-5" />
+                <component :is="getFileIcon(file.type)" class="w-5 h-5 sm:w-4 sm:h-4" />
               </div>
             </div>
 
             <!-- 文件信息 -->
             <div class="flex-1 min-w-0">
-              <div class="font-medium text-sm text-gray-900 truncate"
+              <div class="font-medium text-sm text-gray-900 truncate dark:text-gray-100 sm:text-xs"
                 :title="file.name">
                 {{ file.name }}
               </div>
-              <div class="text-xs text-gray-500 flex items-center space-x-2">
+              <div class="text-xs text-gray-500 flex items-center space-x-2 dark:text-gray-400 sm:text-[10px] sm:space-x-1">
                 <span>{{ formatByte(file.size) }}</span>
                 <span>•</span>
                 <span>{{ getFileTypeLabel(file.type) }}</span>
@@ -45,9 +50,11 @@
             </div>
 
             <!-- 文件序号 -->
-            <div class="flex-shrink-0 ml-2">
+            <div class="flex-shrink-0 ml-2 sm:ml-1">
               <span
-                class="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-indigo-600 bg-indigo-100 rounded-full">
+                class="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-indigo-600 bg-indigo-100 rounded-full
+                       dark:text-indigo-400 dark:bg-indigo-900/30
+                       sm:w-5 sm:h-5 sm:text-[10px]">
                 {{ index + 1 }}
               </span>
             </div>
@@ -56,35 +63,42 @@
       </div>
 
       <!-- 预览图 -->
-      <div v-if="previewSrc" class="mb-4">
-        <div class="text-sm font-medium text-gray-700 mb-2">预览</div>
+      <div v-if="previewSrc" class="mb-4 sm:mb-3">
+        <div class="text-sm font-medium text-gray-700 mb-2 dark:text-gray-300 sm:text-xs">预览</div>
         <img :src="previewSrc"
-          class="w-full max-h-72 object-contain rounded-lg border" alt="预览图" />
+          class="w-full max-h-72 object-contain rounded-lg border dark:border-gray-600 sm:max-h-48" alt="预览图" />
       </div>
 
       <!-- 统计信息 -->
-      <div class="bg-blue-50 rounded-lg p-3 mb-4">
-        <div class="flex justify-between items-center text-sm">
-          <span class="text-gray-600">总计</span>
-          <div class="flex items-center space-x-4">
-            <span class="font-medium text-blue-600">{{ fileMetas.length }}
+      <div class="bg-blue-50 rounded-lg p-3 mb-4 dark:bg-blue-900/20 sm:p-2 sm:mb-3">
+        <div class="flex justify-between items-center text-sm sm:text-xs">
+          <span class="text-gray-600 dark:text-gray-400">总计</span>
+          <div class="flex items-center space-x-4 sm:space-x-2">
+            <span class="font-medium text-blue-600 dark:text-blue-400">{{ fileMetas.length }}
               个文件</span>
             <span
-              class="font-medium text-blue-600">{{ formatByte(totalSize) }}</span>
+              class="font-medium text-blue-600 dark:text-blue-400">{{ formatByte(totalSize) }}</span>
           </div>
         </div>
       </div>
 
       <!-- 操作按钮 -->
-      <div class="flex justify-end space-x-3">
-        <button @click="emit('deny')"
-          class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+      <div class="flex justify-end space-x-3 sm:space-x-2 sm:flex-col-reverse sm:space-y-2 sm:space-y-reverse sm:space-x-0">
+        <Button
+          @click="emit('deny')"
+          design-style="ghost"
+          variant="default"
+          size="md"
+          class="sm:w-full">
           拒绝
-        </button>
-        <button @click="emit('accept')"
-          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium">
+        </Button>
+        <Button
+          @click="emit('accept')"
+          variant="success"
+          size="md"
+          class="sm:w-full">
           接收全部
-        </button>
+        </Button>
       </div>
     </div>
   </Modal>
@@ -95,6 +109,7 @@ import type { FileMeta } from 'web-share-common'
 import { FileText, Image, Video, Music, Archive, File, Blend } from 'lucide-vue-next'
 import { formatByte } from '@/utils'
 import Modal from '@/components/Modal/index.vue'
+import Button from '@/components/Button/index.vue'
 
 const show = defineModel<boolean>()
 defineOptions({ name: 'AcceptModal' })

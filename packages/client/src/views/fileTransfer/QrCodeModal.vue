@@ -1,32 +1,39 @@
 <template>
   <Modal class="QrCodeModal-container"
     v-model="show"
+    height="auto"
     title="请让对方扫描二维码">
-    <div class="flex flex-col items-center p-4">
+    <div class="flex flex-col items-center p-4 sm:p-3">
       <img v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
-        :src="qrCodeValue" alt="二维码" />
+        :src="qrCodeValue" alt="二维码"
+        class="max-w-full h-auto max-sm:max-w-[250px]" />
 
-      <p v-else-if="!qrCodeValue && showQrCodeModal" class="text-gray-500">
+      <p v-else-if="!qrCodeValue && showQrCodeModal"
+         class="text-gray-500 dark:text-gray-400 sm:text-sm">
         正在生成二维码...
       </p>
 
       <p
         v-else-if="qrCodeValue && !qrCodeValue.startsWith('data:image/png')"
-        class="text-gray-500">
+        class="text-gray-500 dark:text-gray-400 sm:text-sm">
         二维码内容已准备，等待扫码...
       </p>
 
-      <p class="mt-2 text-sm text-gray-600">扫描此二维码以建立连接</p>
-      <button @click="emit('copy')"
-        class="px-6 py-2 mt-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 sm:text-xs sm:mt-1">扫描此二维码以建立连接</p>
+      <Button
+        @click="emit('copy')"
+        variant="primary"
+        size="md"
+        class="mt-2 sm:mt-1 sm:text-sm">
         或者复制链接让对方打开
-      </button>
+      </Button>
     </div>
   </Modal>
 </template>
 
 <script setup lang="ts">
 import Modal from '@/components/Modal/index.vue'
+import Button from '@/components/Button/index.vue'
 
 defineOptions({ name: 'QrCodeModal' })
 
