@@ -17,11 +17,11 @@
       @join-with-code="handleJoinWithCode"
       v-model:show-qr-modal="showQrCodeModal" />
 
-    <!-- 用户信息展示 -->
+    <!-- 用户信息展示 - 移动到中心底部 -->
     <div v-if="info"
-      class="absolute top-4 left-4 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
+      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
              dark:bg-gray-800/80 dark:shadow-gray-700/50
-             sm:p-2 sm:space-x-1 sm:text-sm">
+             sm:p-2 sm:space-x-1 sm:text-sm sm:bottom-4">
       <component :is="getDeviceIcon(info.name.type || info.name.os)"
         class="w-6 h-6 text-indigo-600 dark:text-indigo-400 sm:w-5 sm:h-5" />
       <span

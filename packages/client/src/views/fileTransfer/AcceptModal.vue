@@ -2,11 +2,11 @@
   <Modal class="AcceptModal-container"
     v-model="show">
     <div
-      class="p-6 w-[480px] bg-white rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col
+      class="p-6 w-[480px] bg-white rounded-2xl shadow-2xl h-[80vh] flex flex-col
              dark:bg-gray-800 dark:shadow-gray-900/50
-             sm:w-[90vw] sm:max-w-md sm:p-4 sm:max-h-[85vh]">
+             sm:w-[90vw] sm:max-w-md sm:p-4 sm:h-[85vh]">
       <!-- 头部信息 -->
-      <div class="flex items-center mb-4 space-x-4 sm:space-x-3 sm:mb-3">
+      <div class="flex items-center mb-4 space-x-4 sm:space-x-3 sm:mb-3 flex-shrink-0">
         <div
           class="flex justify-center items-center size-12 bg-green-100 rounded-full
                  dark:bg-green-900/30 sm:size-10">
@@ -20,9 +20,9 @@
         </div>
       </div>
 
-      <!-- 文件列表 -->
-      <div class="flex-1 overflow-y-auto mb-4 sm:mb-3">
-        <div class="space-y-3 max-h-60 sm:max-h-48 sm:space-y-2">
+      <!-- 文件列表 - 固定高度，可滚动 -->
+      <div class="flex-1 overflow-y-auto mb-4 sm:mb-3 min-h-0">
+        <div class="space-y-3 sm:space-y-2">
           <div v-for="(file, index) in fileMetas" :key="index"
             class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors
                    dark:bg-gray-700 dark:hover:bg-gray-600
@@ -63,14 +63,14 @@
       </div>
 
       <!-- 预览图 -->
-      <div v-if="previewSrc" class="mb-4 sm:mb-3">
+      <div v-if="previewSrc" class="mb-4 sm:mb-3 flex-shrink-0">
         <div class="text-sm font-medium text-gray-700 mb-2 dark:text-gray-300 sm:text-xs">预览</div>
         <img :src="previewSrc"
           class="w-full max-h-72 object-contain rounded-lg border dark:border-gray-600 sm:max-h-48" alt="预览图" />
       </div>
 
       <!-- 统计信息 -->
-      <div class="bg-blue-50 rounded-lg p-3 mb-4 dark:bg-blue-900/20 sm:p-2 sm:mb-3">
+      <div class="bg-blue-50 rounded-lg p-3 mb-4 dark:bg-blue-900/20 sm:p-2 sm:mb-3 flex-shrink-0">
         <div class="flex justify-between items-center text-sm sm:text-xs">
           <span class="text-gray-600 dark:text-gray-400">总计</span>
           <div class="flex items-center space-x-4 sm:space-x-2">
@@ -82,8 +82,8 @@
         </div>
       </div>
 
-      <!-- 操作按钮 -->
-      <div class="flex justify-end space-x-3 sm:space-x-2 sm:flex-col-reverse sm:space-y-2 sm:space-y-reverse sm:space-x-0">
+      <!-- 操作按钮 - 固定在底部 -->
+      <div class="flex justify-end space-x-3 sm:space-x-2 sm:flex-col-reverse sm:space-y-2 sm:space-y-reverse sm:space-x-0 flex-shrink-0">
         <Button
           @click="emit('deny')"
           design-style="ghost"
