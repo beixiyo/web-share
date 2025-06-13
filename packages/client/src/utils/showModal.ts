@@ -1,7 +1,7 @@
 import type { ExtendedCompProps, ModalInstance, ModalVariant, ModelType } from '@/components/Modal/types'
-import { defaultProps } from '@/components/Modal/types'
-import ModalComp from '@/components/Modal/index.vue'
 import { variantStyles } from '@/components/Modal/constants'
+import ModalComp from '@/components/Modal/index.vue'
+import { defaultProps } from '@/components/Modal/types'
 
 export const modal: ModelType = (() => {
   const modalObj: ModelType = {} as ModelType

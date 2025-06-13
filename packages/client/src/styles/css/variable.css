@@ -1,0 +1,17 @@
+:root.light {
+  --bgColor: #fff;
+}
+
+:root.dark {
+  --bgColor: #000;
+}
+
+/** 
+ * arco
+ */
+body {
+  /* 常规 */
+  --primary-6: 41, 47, 55 !important;
+  /* hover */
+  --primary-5: 81 78 78 !important;
+}

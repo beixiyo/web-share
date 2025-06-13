@@ -28,28 +28,11 @@
     </div>
 
     <!-- 二维码弹窗 -->
-    <Modal v-model="showQrCodeModal" title="请让对方扫描二维码">
-      <div class="flex flex-col items-center p-4">
-        <img v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
-          :src="qrCodeValue" alt="二维码" />
-
-        <p v-else-if="!qrCodeValue && showQrCodeModal" class="text-gray-500">
-          正在生成二维码...
-        </p>
-
-        <p
-          v-else-if="qrCodeValue && !qrCodeValue.startsWith('data:image/png')"
-          class="text-gray-500">
-          二维码内容已准备，等待扫码...
-        </p>
-
-        <p class="mt-2 text-sm text-gray-600">扫描此二维码以建立连接</p>
-        <button @click="copyLink"
-          class="px-6 py-2 mt-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
-          或者复制链接让对方打开
-        </button>
-      </div>
-    </Modal>
+    <QrCodeModal
+      @copy="copyLink"
+      v-model="showQrCodeModal"
+      :qrCodeValue
+      :showQrCodeModal />
 
     <!-- 隐藏的文件输入 -->
     <input type="file" ref="fileInput" class="hidden"
@@ -57,27 +40,27 @@
       @change="handleFileSelect">
 
     <!-- 文件传输进度弹窗 -->
-    <ProgressModal v-if="progress.total > 0"
+    <ProgressModal :model-value="progress.total > 0"
       :progress="progress" :fileSizes="currentFileSizes" />
 
     <!-- 发送文本对话框 -->
     <SendTextModal
-      v-show="showTextInput"
       :to-name="selectedPeer?.name?.displayName || '--'"
       @close="showTextInput = false"
       @send="sendText"
-      v-model="text" />
+      v-model:text="text"
+      v-model="showTextInput" />
 
     <!-- 接收文件提示 -->
     <AcceptModal
-      v-if="showAcceptFile"
+      v-model="showAcceptFile"
       :fileMetas="currentFileMetas"
       :previewSrc="previewSrc"
       @accept="onAcceptFile" @deny="onDenyFile" />
 
     <!-- 接收文本弹窗 -->
     <AcceptTextModal
-      v-if="showAcceptText"
+      v-model="showAcceptText"
       :text="acceptText"
       @close="showAcceptText = false"
       @copy="onCopyText" />
@@ -91,17 +74,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { Action, SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type Name, type RoomInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type Name, type RoomInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
-import Modal from '@/components/Modal/index.vue'
+import QrCodeModal from './QrCodeModal.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
 import { Laptop, Smartphone, HelpCircle } from 'lucide-vue-next'
 import QRCode from 'qrcode'
+import { Message } from '@/utils'
 
 
 /***************************************************
@@ -129,7 +113,7 @@ const server = new ServerConnection({
 
   onError: (errorData) => {
     console.error('Server Error:', errorData.message)
-    alert(`发生错误: ${errorData.message}`)
+    Message.error(`发生错误: ${errorData.message}`)
     loading.value = false
     showQrCodeModal.value = false
   }
@@ -206,7 +190,7 @@ function getDeviceIcon(deviceType: string | undefined) {
  */
 async function requestCreateDirectRoom() {
   if (!info.value) {
-    alert('无法获取用户信息，请稍后再试')
+    Message.warning('无法获取用户信息，请稍后再试')
     return
   }
   if (qrCodeValue.value) {
@@ -237,7 +221,7 @@ async function onDirectRoomCreated(data: RoomInfo) {
     }
     catch (err) {
       console.error('生成二维码失败:', err)
-      alert('生成二维码失败，请稍后再试')
+      Message.error('生成二维码失败，请稍后再试')
     }
   }
 
@@ -357,6 +341,7 @@ function onCopyText() {
  */
 function onJoinRoom(data: UserInfo[]) {
   allUsers.value = data
+  showQrCodeModal.value = false
   for (const item of data) {
     peerManager.createPeer(item.peerId)
   }

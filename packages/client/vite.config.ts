@@ -33,11 +33,6 @@ export default defineConfig({
   },
   css: {
     preprocessorMaxWorkers: true,
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@use "@/styles/scss/index.scss" as *;`,
-      },
-    },
     postcss: {
       plugins: [
         postcssPreset({

@@ -1,3 +1,4 @@
+import type { RoundedStyle, SizeStyle } from '@/types'
 import type { ButtonProps, ButtonVariant } from './types'
 import { cva } from 'class-variance-authority'
 
@@ -10,24 +11,24 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500',
-        primary: 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 dark:active:bg-blue-800',
+        primary: 'bg-primary text-white hover:bg-gray-600 active:bg-gray-600 dark:bg-primary dark:hover:bg-gray-700 dark:active:bg-gray-800',
         success: 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 dark:active:bg-green-800',
         warning: 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 dark:active:bg-amber-800',
         danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 dark:active:bg-red-800',
         info: 'bg-sky-500 text-white hover:bg-sky-600 active:bg-sky-700 dark:bg-sky-600 dark:hover:bg-sky-700 dark:active:bg-sky-800',
-      },
+      } as Record<ButtonVariant, string>,
       size: {
         sm: 'h-8 px-3 text-xs',
         md: 'h-10 px-4 text-sm',
         lg: 'h-12 px-6 text-base',
-      },
+      } as SizeStyle,
       rounded: {
         none: 'rounded-none',
         sm: 'rounded-sm',
         md: 'rounded-md',
         lg: 'rounded-lg',
         full: 'rounded-full',
-      },
+      } as RoundedStyle,
     },
     defaultVariants: {
       variant: 'default',
@@ -115,7 +116,7 @@ export function getNeumorphicStyles(props: Props) {
 
   const neumorphicBase = `${baseNeumorphicLight} ${activeNeumorphicLight} ${disabledNeumorphicLight} ${hoverNeumorphicLight} ${baseNeumorphicDark} ${activeNeumorphicDark} ${disabledNeumorphicDark} ${hoverNeumorphicDark}`
 
-  const variantTextStyles: Record<string, string> = {
+  const variantTextStyles: Record<ButtonVariant, string> = {
     default: '',
     primary: 'text-blue-600 dark:text-blue-400',
     success: 'text-green-600 dark:text-green-400',

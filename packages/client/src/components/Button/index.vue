@@ -1,15 +1,16 @@
 <template>
   <button
-    ref="buttonRef"
     :class="cn(buttonStyles)"
     :disabled="disabled || loading"
-    @click="handleClick">
+    @click="handleClick"
+  >
     <div v-if="loading" class="flex items-center justify-center gap-2">
       <LoadingIcon
         :size="size === 'lg' ? 'md' : 'sm'"
-        :color="variant === 'primary' ? '#fff' : undefined" />
+        :color="variant === 'primary' ? '#fff' : undefined"
+      />
       <span v-if="!iconOnly && loadingText">{{ loadingText }}</span>
-      <slot v-else></slot>
+      <slot v-else />
     </div>
     <template v-else-if="iconOnly && (leftIcon || rightIcon)">
       <component :is="leftIcon || rightIcon" />
@@ -18,9 +19,11 @@
       <span v-if="leftIcon" :class="cn('mr-2', (iconOnly || noIconGap) && 'm-0')">
         <component :is="leftIcon" />
       </span>
-      <slot></slot>
-      <span v-if="rightIcon"
-        :class="cn('ml-2', (iconOnly || noIconGap) && 'm-0')">
+      <slot />
+      <span
+        v-if="rightIcon"
+        :class="cn('ml-2', (iconOnly || noIconGap) && 'm-0')"
+      >
         <component :is="rightIcon" />
       </span>
     </template>
@@ -28,11 +31,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import LoadingIcon from '@/components/Loading/LoadingIcon.vue'
-import { getFlatStyles, getGhostStyles, getIconButtonStyles, getNeumorphicStyles, getOutlinedStyles } from './styles'
 import type { ButtonDesignStyle, ButtonSize, ButtonVariant } from './types'
+import LoadingIcon from '@/components/Loading/LoadingIcon.vue'
 import { cn } from '@/utils'
+import { computed, ref } from 'vue'
+import { getFlatStyles, getGhostStyles, getIconButtonStyles, getNeumorphicStyles, getOutlinedStyles } from './styles'
 
 defineOptions({ name: 'Button' })
 
@@ -125,23 +128,21 @@ const props = withDefaults(
     variant: 'default',
     size: 'md',
     rounded: 'md',
-    block: false
-  }
+    block: false,
+  },
 )
 
 const emit = defineEmits<{
   (e: 'click', event: MouseEvent): void
 }>()
 
-const buttonRef = ref<HTMLButtonElement | null>(null)
-
-// 获取设计风格对应的样式
+/** 获取设计风格对应的样式 */
 const getStylesByDesign = computed(() => {
   const styleProps = {
     variant: props.variant,
     size: props.size,
     rounded: props.rounded,
-    className: props.className
+    className: props.className,
   }
 
   switch (props.designStyle) {
@@ -157,25 +158,37 @@ const getStylesByDesign = computed(() => {
   }
 })
 
-// 图标按钮的尺寸样式
+/** 图标按钮的尺寸样式 */
 const iconButtonSize = computed(() => {
-  return props.iconOnly ? getIconButtonStyles(props.size) : ''
+  return props.iconOnly
+    ? getIconButtonStyles(props.size)
+    : ''
 })
 
-// 最终的按钮样式
+/** 最终的按钮样式 */
 const buttonStyles = computed(() => {
   return [
     getStylesByDesign.value,
-    props.block ? 'w-full' : '',
-    props.iconOnly ? iconButtonSize.value : '',
-    props.iconOnly ? 'p-0' : '',
-    props.disabled ? props.disabledClassName : '',
-    props.loading ? props.loadingClassName : '',
+    props.block
+      ? 'w-full'
+      : '',
+    props.iconOnly
+      ? iconButtonSize.value
+      : '',
+    props.iconOnly
+      ? 'p-0'
+      : '',
+    props.disabled
+      ? props.disabledClassName
+      : '',
+    props.loading
+      ? props.loadingClassName
+      : '',
   ]
 })
 
-// 处理点击事件
-const handleClick = (e: MouseEvent) => {
+/** 处理点击事件 */
+function handleClick(e: MouseEvent) {
   if (props.loading || props.disabled) {
     e.preventDefault()
     return
@@ -189,13 +202,5 @@ const handleClick = (e: MouseEvent) => {
 button {
   position: relative;
   transition: all 0.2s;
-}
-
-button:not(:disabled):hover {
-  transform: scale(1.02);
-}
-
-button:not(:disabled):active {
-  transform: scale(0.98);
 }
 </style>

@@ -1,39 +1,42 @@
 <template>
   <div
-    :class="[
-      'relative flex items-center justify-center overflow-hidden rounded-full',
-      styles.classNames
+    class="relative flex items-center justify-center overflow-hidden rounded-full" :class="[
+      styles.classNames,
     ]"
-    :style="styles.styles">
-
+    :style="styles.styles"
+  >
     <!-- 蓝色渐变 loading 圆圈，铺满、旋转 -->
-    <div v-if="props.gradient"
-      class="absolute inset-0 rounded-full animate-spin"
+    <div
+      v-if="props.gradient"
+      class="absolute inset-0 animate-spin rounded-full"
       :style="{
         background: 'conic-gradient(from 0deg, transparent, #3b82f6)',
         mask: 'radial-gradient(circle, transparent 50%, black 58%)',
         WebkitMask: 'radial-gradient(circle, transparent 50%, black 58%)',
-      }">
-    </div>
-    <div v-else
-      class="border-2 rounded-full size-full animate-spin"
+      }"
+    />
+    <div
+      v-else
+      class="size-full animate-spin border-2 rounded-full"
       :style="{
         borderColor: color,
         borderRightColor: 'transparent',
         borderBottomColor: 'transparent',
-      }" />
+      }"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { handleCssUnit, isStr } from '@jl-org/tool'
 import type { CSSProperties } from 'vue'
-import { defaultLoadingProps, type LoadingProps } from './types'
+import type { LoadingProps } from './types'
+import { handleCssUnit, isStr } from '@jl-org/tool'
+import { defaultLoadingProps } from './types'
 
 defineOptions({ name: 'LoadingIcon' })
 const props = withDefaults(
   defineProps<LoadingProps>(),
-  defaultLoadingProps
+  defaultLoadingProps,
 )
 
 const styles = computed<{ classNames: string, styles: CSSProperties }>(() => {
@@ -58,7 +61,6 @@ const styles = computed<{ classNames: string, styles: CSSProperties }>(() => {
     classNames: '',
   }
 })
-
 </script>
 
 <style lang="scss" scoped></style>

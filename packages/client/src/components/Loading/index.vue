@@ -1,18 +1,26 @@
 <template>
-  <div class="Loading-container"
-    v-show="show">
+  <Mask
+    v-show="show"
+    class="Loading-container"
+    :style="{
+      zIndex,
+      background: bgc,
+    }"
+  >
     <LoadingIcon :size="size" />
-  </div>
+  </Mask>
 </template>
 
 <script setup lang="ts">
-import { type BaseType } from '@jl-org/tool'
+/* eslint-disable vue/prop-name-casing */
+import type { BaseType } from '@jl-org/tool'
+import type { LoadingProps } from './types'
+import Mask from '../Mask.vue'
 import LoadingIcon from './LoadingIcon.vue'
-import { defaultLoadingProps, type LoadingProps } from './types'
-
+import { defaultLoadingProps } from './types'
 
 defineOptions({
-  name: 'Loading'
+  name: 'Loading',
 })
 const props = withDefaults(
   defineProps<{
@@ -25,13 +33,15 @@ const props = withDefaults(
   } & LoadingProps>(),
   {
     ...defaultLoadingProps,
-    zIndex: 999,
+    loading: undefined,
+    __loading: undefined,
+    zIndex: 99,
     bgc: '#0005',
-  }
+    size: 'lg',
+  },
 )
 
 let show: Ref<boolean>
-
 
 /** 初始化入口 */
 init()
@@ -46,28 +56,17 @@ function init() {
   }
 }
 
-
 /** 只让指令调用 */
 function update(value: boolean) {
-  if (props.__loading === undefined) return
+  if (props.__loading === undefined)
+    return
   show.value = value
 }
 
 defineExpose({
-  update
+  update,
 })
 </script>
 
 <style lang="scss" scoped>
-.Loading-container {
-  @include flex(center, center);
-  position: absolute;
-  z-index: v-bind(zIndex);
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  cursor: not-allowed;
-  background: v-bind(bgc);
-}
 </style>

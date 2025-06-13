@@ -1,11 +1,11 @@
 <template>
-  <Mask class="TextModal-container">
+  <Modal class="TextModal-container" v-model="show">
     <div class="p-6 w-96 bg-white rounded-2xl shadow-2xl">
       <h3 class="mb-4 font-semibold text-gray-900">
         发送文本给
         {{ toName }}
       </h3>
-      <textarea v-model.trim="modelValue"
+      <textarea v-model.trim="textModel"
         class="p-3 w-full h-32 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500"
         placeholder="输入要发送的文本...">
         </textarea>
@@ -20,15 +20,17 @@
         </button>
       </div>
     </div>
-  </Mask>
+  </Modal>
 </template>
 
 <script setup lang="ts">
-import Mask from '@/components/Mask.vue'
+import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'SendTextModal' })
 
-const modelValue = defineModel({ default: '' })
+const show = defineModel<boolean>({ default: false, required: true })
+const textModel = defineModel<string>('text', { default: '' })
+
 const props = withDefaults(
   defineProps<{
     toName: string

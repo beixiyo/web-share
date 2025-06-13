@@ -1,15 +1,21 @@
 @import '@unocss/reset/tailwind-compat.css';
 
-#app,
+:root,
 body,
-:root {
-  width: 100%;
+#app {
   height: 100%;
+  width: 100%;
+}
 
-  ::selection {
-    background-color: #4f46e5;
-    color: #fff;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+ul,
+ol {
+  list-style: none;
 }
 
 button {

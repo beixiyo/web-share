@@ -1,5 +1,6 @@
 <template>
-  <Mask class="AcceptModal-container">
+  <Modal class="AcceptModal-container"
+    v-model="show">
     <div
       class="p-6 w-[480px] bg-white rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
       <!-- 头部信息 -->
@@ -86,15 +87,16 @@
         </button>
       </div>
     </div>
-  </Mask>
+  </Modal>
 </template>
 
 <script setup lang="ts">
 import type { FileMeta } from 'web-share-common'
 import { FileText, Image, Video, Music, Archive, File, Blend } from 'lucide-vue-next'
 import { formatByte } from '@/utils'
-import Mask from '@/components/Mask.vue'
+import Modal from '@/components/Modal/index.vue'
 
+const show = defineModel<boolean>()
 defineOptions({ name: 'AcceptModal' })
 
 const props = withDefaults(

@@ -16,7 +16,7 @@ scrollbar,
 /* Firefox浏览器滚动条滑块 */
 scrollbar-thumb {
   /* 滑块背景色 */
-  background-color: #4f46e5;
+  background-color: var(--primaryColor);
   transition: .3s;
   cursor: pointer;
   /* 滑块圆角 */
@@ -31,7 +31,7 @@ scrollbar-thumb {
 /* Firefox浏览器滚动条滑块悬停效果 */
 scrollbar-thumb:hover {
   /* 滑块悬停背景色 */
-  background-color: #4f46e5;
+  background-color: var(--primaryColor);
 }
 
 /* 滚动条按钮 */

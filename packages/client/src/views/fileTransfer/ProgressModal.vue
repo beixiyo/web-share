@@ -1,5 +1,5 @@
 <template>
-  <Mask class="ProgressModal-container">
+  <Modal class="ProgressModal-container" v-model="show">
     <div class="p-6 w-[420px] bg-white rounded-2xl shadow-2xl">
       <!-- 头部信息 -->
       <div class="flex items-center mb-6 space-x-4">
@@ -85,16 +85,17 @@
         <span>预计剩余: {{ estimatedTime }}</span>
       </div> -->
     </div>
-  </Mask>
+  </Modal>
 </template>
 
 <script setup lang="ts">
 import type { ProgressData } from 'web-share-common'
-import Mask from '@/components/Mask.vue'
 import { formatByte } from '@/utils'
 import { FileText, Image, Video, Music, Archive, File } from 'lucide-vue-next'
 import { numFixed } from '@jl-org/tool'
+import Modal from '@/components/Modal/index.vue'
 
+const show = defineModel<boolean>()
 defineOptions({ name: 'ProgressModal' })
 
 const props = withDefaults(

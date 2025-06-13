@@ -1,17 +1,22 @@
 <template>
   <div class="p-4 space-y-4">
-    <h1 class="text-xl font-bold">Modal Demo</h1>
+    <h1 class="text-xl font-bold">
+      Modal Demo
+    </h1>
     <div class="space-x-2 space-y-2">
       <Button
         v-for="type in modalTypes"
         :key="type"
         :class="buttonStyles[type]"
-        @click="() => openModal(type)">
+        @click="() => openModal(type)"
+      >
         Open {{ type.charAt(0).toUpperCase() + type.slice(1) }} Modal
       </Button>
     </div>
 
-    <h1 class="text-xl font-bold">Imperative Modal Demo</h1>
+    <h1 class="text-xl font-bold">
+      Imperative Modal Demo
+    </h1>
     <div class="space-x-2 space-y-2">
       <Button
         v-for="type in modalTypes.filter(t => t !== 'custom')"
@@ -25,7 +30,8 @@
           onClose() {
             console.log(`Imperative ${type} Modal Closed`)
           },
-        })">
+        })"
+      >
         Open {{ type.charAt(0).toUpperCase() + type.slice(1) }} Modal
       </Button>
     </div>
@@ -35,7 +41,8 @@
       v-model="isDefaultModalOpen"
       title="Default Modal"
       @close="isDefaultModalOpen = false"
-      @confirm="handleDefaultConfirm">
+      @confirm="handleDefaultConfirm"
+    >
       <p>This is the content of the default modal.</p>
     </Modal>
 
@@ -45,7 +52,8 @@
       variant="success"
       title="Success!"
       @close="isSuccessModalOpen = false"
-      @confirm="handleSuccessConfirm">
+      @confirm="handleSuccessConfirm"
+    >
       <p>Your operation was successful.</p>
     </Modal>
 
@@ -55,7 +63,8 @@
       variant="warning"
       title="Warning!"
       @close="isWarningModalOpen = false"
-      @confirm="handleWarningConfirm">
+      @confirm="handleWarningConfirm"
+    >
       <p>Please be cautious about this action.</p>
     </Modal>
 
@@ -65,7 +74,8 @@
       variant="error"
       title="Error!"
       @close="isErrorModalOpen = false"
-      @confirm="handleErrorConfirm">
+      @confirm="handleErrorConfirm"
+    >
       <p>An error occurred while processing your request.</p>
     </Modal>
 
@@ -75,7 +85,8 @@
       variant="info"
       title="Information"
       @close="isInfoModalOpen = false"
-      @confirm="handleInfoConfirm">
+      @confirm="handleInfoConfirm"
+    >
       <p>Here is some information for you.</p>
     </Modal>
 
@@ -86,23 +97,27 @@
       ok-text="Confirm"
       cancel-text="Dismiss"
       @close="isCustomModalOpen = false"
-      @confirm="handleCustomConfirm">
+      @confirm="handleCustomConfirm"
+    >
       <template #footer>
         <div class="w-full flex justify-between px-6 pb-6">
           <Button
             class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
-            @click="isCustomModalOpen = false">
+            @click="isCustomModalOpen = false"
+          >
             Learn More
           </Button>
           <div class="space-x-2">
             <Button
               class="rounded bg-gray-400 px-2 py-1 text-white transition duration-200 hover:bg-gray-500"
-              @click="isCustomModalOpen = false">
+              @click="isCustomModalOpen = false"
+            >
               Dismiss
             </Button>
             <Button
               class="rounded bg-blue-400 px-2 py-1 text-white transition duration-200 hover:bg-blue-500"
-              @click="handleCustomConfirm">
+              @click="handleCustomConfirm"
+            >
               Confirm
             </Button>
           </div>
@@ -113,8 +128,10 @@
         <p>This modal has custom content and a custom footer.</p>
         <p>You can put any content here.</p>
         <template v-for="i in 10" :key="i">
-          <p>This is a long content line {{ i }} to test scrolling behavior if
-            the content overflows.</p>
+          <p>
+            This is a long content line {{ i }} to test scrolling behavior if
+            the content overflows.
+          </p>
         </template>
       </div>
     </Modal>
@@ -122,10 +139,10 @@
 </template>
 
 <script setup lang="ts">
+import Button from '@/components/Button/index.vue'
+import { modal } from '@/utils'
 import { ref } from 'vue'
 import Modal from './index.vue'
-import { modal } from '@/utils'
-import Button from '@/components/Button/index.vue'
 
 defineOptions({ name: 'ModalTest' })
 

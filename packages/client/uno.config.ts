@@ -1,14 +1,13 @@
-import presetWind from '@unocss/preset-wind'
 import presetLegacyCompat from '@unocss/preset-legacy-compat'
+import presetWind3 from '@unocss/preset-wind3'
 import {
+  defineConfig,
   presetAttributify,
+  transformerAttributifyJsx,
   transformerVariantGroup,
-  transformerAttributifyJsx
 } from 'unocss'
 
-import { defineConfig } from 'unocss'
-import { borderColor, innerBg, lightBg, lightTextColor, primaryColor } from './src/styles/variable'
-
+import { borderColor, dangerColor, infoColor, innerBg, lightBg, lightTextColor, primaryColor, successColor } from './src/styles/variable'
 
 const shake = `
 {
@@ -35,23 +34,10 @@ const shake = `
 }
 `
 
-const float = `
-{
-  0%,
-  100% {
-    transform: translate(-12px, 10px);
-  }
-
-  50% {
-    transform: translate(10px, -15px);
-  }
-}
-`
-
 export default defineConfig({
   presets: [
-    // 使用 presetWind 插件以兼容 Tailwind CSS
-    presetWind(),
+    /** 使用 presetWind 插件以兼容 Tailwind CSS */
+    presetWind3(),
     /**
      * 属性化书写样式，要配合 transformerAttributifyJsx 使用
      * <div class="m-2 rounded text-teal-400" />
@@ -83,7 +69,7 @@ export default defineConfig({
     transformerVariantGroup(),
   ],
 
-  // 配置主题
+  /** 配置主题 */
   theme: {
     colors: {
       lightBg, /** 背景色 */
@@ -91,48 +77,42 @@ export default defineConfig({
       primary: primaryColor, /** 主色 */
       border: borderColor, /** 边框色 */
       light: lightTextColor, /** 文字浅色 */
+      success: successColor, /** 成功色 */
+      info: infoColor, /** 信息色 */
+      danger: dangerColor, /** 危险色 */
     },
 
     animation: {
       keyframes: {
         shake,
-        float,
       },
       durations: {
         shake: '.4s',
-        float: '5s'
       },
       timingFns: {
         shake: 'cubic-bezier(0.28, -0.44, 0.65, 1.55)',
-        float: 'ease-in-out',
       },
       properties: {
         shake: { 'animation-fill-mode': 'both' },
       },
       counts: {
         shake: '2',
-        float: 'infinite',
-      },
-    }
-  },
-
-  // 定义你的自定义工具类
-  shortcuts: {
-    'hide-scroll': {
-      // @ts-ignore
-      'scrollbar-width': 'none',
-      // IE and Edge
-      '-ms-overflow-style': 'none',
-      // Safari and Chrome (注意这里的 &::-webkit-scrollbar 语法)
-      '&::-webkit-scrollbar': {
-        'display': 'none',
       },
     },
   },
 
-  rules: [],
+  /** 自定义工具类 */
+  shortcuts: {
+    'hide-scroll': [
+      // Firefox
+      '[scrollbar-width:none]',
+      // IE and Edge
+      '[-ms-overflow-style:none]',
+      // Safari and Chrome (using variant group for pseudo-element)
+      '[&::-webkit-scrollbar]:hidden', // 'hidden' is a utility for 'display: none;'
+    ].join(' '),
+  },
 
-  // 配置内容扫描路径
   content: {
     pipeline: {
       include: [

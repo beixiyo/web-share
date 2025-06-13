@@ -1,5 +1,5 @@
 <template>
-  <Mask class="AcceptTextModal-container">
+  <Modal class="AcceptTextModal-container" v-model="show">
     <div class="p-6 w-96 bg-white rounded-2xl shadow-2xl">
       <h3 class="mb-4 font-semibold text-gray-900">
         接收文本
@@ -22,12 +22,13 @@
         </button>
       </div>
     </div>
-  </Mask>
+  </Modal>
 </template>
 
 <script setup lang="ts">
-import Mask from '@/components/Mask.vue'
+import Modal from '@/components/Modal/index.vue'
 
+const show = defineModel<boolean>()
 
 defineOptions({ name: 'AcceptTextModal' })
 const props = withDefaults(

@@ -11,7 +11,13 @@ export type ButtonSize = 'sm' | 'md' | 'lg'
 /**
  * 按钮变体
  */
-export type ButtonVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
+export type ButtonVariant =
+  | 'default'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
 
 /**
  * 按钮属性
