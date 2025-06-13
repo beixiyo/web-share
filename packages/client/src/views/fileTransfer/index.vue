@@ -9,8 +9,12 @@
     <ToolBar
       :qr-code-value="qrCodeValue"
       :show-qr-code-modal="showQrCodeModal"
+      :room-code="roomCode"
+      :show-code-modal="showCodeModal"
       @copy="copyLink"
       @show-qr-modal="requestCreateDirectRoom"
+      @show-code-modal="requestCreateRoomWithCode"
+      @join-with-code="handleJoinWithCode"
       v-model:show-qr-modal="showQrCodeModal" />
 
     <!-- 用户信息展示 -->
@@ -36,6 +40,12 @@
       v-model="showQrCodeModal"
       :qrCodeValue
       :showQrCodeModal />
+
+    <!-- 房间码弹窗 -->
+    <RoomCodeModal
+      v-model="showCodeModal"
+      :room-code="roomCode"
+      :show-room-code-modal="showCodeModal" />
 
     <!-- 隐藏的文件输入 -->
     <input type="file" ref="fileInput" class="hidden"
@@ -78,13 +88,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo, type RoomCodeInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
+import RoomCodeModal from './RoomCodeModal.vue'
 import ToolBar from '@/components/ToolBar/index.vue'
 import Button from '@/components/Button/index.vue'
 import { copyToClipboard } from '@jl-org/tool'
@@ -109,6 +120,8 @@ const selectedPeer = ref<UserInfo>()
  ***************************************************/
 const showQrCodeModal = ref(false)
 const qrCodeValue = ref('')
+const showCodeModal = ref(false)
+const roomCode = ref('')
 const currentFileSizes = ref<number[]>([]) // 用于ProgressModal显示文件大小
 
 const server = new ServerConnection({
@@ -116,12 +129,14 @@ const server = new ServerConnection({
   onJoinRoom,
   onLeaveRoom,
   onDirectRoomCreated,
+  onRoomCodeCreated,
 
   onError: (errorData) => {
     console.error('Server Error:', errorData.message)
     Message.error(`发生错误: ${errorData.message}`)
     loading.value = false
     showQrCodeModal.value = false
+    showCodeModal.value = false
   }
 })
 const peerManager = new PeerManager(server)
@@ -209,6 +224,23 @@ async function requestCreateDirectRoom() {
 }
 
 /**
+ * 请求创建带连接码的房间
+ */
+async function requestCreateRoomWithCode() {
+  if (!info.value) {
+    Message.warning('无法获取用户信息，请稍后再试')
+    return
+  }
+  if (roomCode.value) {
+    showCodeModal.value = true
+    return
+  }
+
+  loading.value = true
+  server.createRoomWithCode()
+}
+
+/**
  * 处理服务器创建直接房间的响应
  */
 async function onDirectRoomCreated(data: RoomInfo) {
@@ -232,6 +264,37 @@ async function onDirectRoomCreated(data: RoomInfo) {
   }
 
   loading.value = false
+}
+
+/**
+ * 处理服务器创建房间码的响应
+ */
+async function onRoomCodeCreated(data: RoomCodeInfo) {
+  if (data.roomCode) {
+    if (info.value) {
+      info.value.roomId = data.roomId
+      server.saveUserInfoToSession(info.value)
+    }
+
+    roomCode.value = data.roomCode
+    console.log('创建房间码成功:', data.roomCode)
+    showCodeModal.value = true
+  }
+
+  loading.value = false
+}
+
+/**
+ * 处理输入连接码加入房间
+ */
+function handleJoinWithCode(code: string) {
+  if (!code || code.length !== 6) {
+    Message.error('请输入6位数字连接码')
+    return
+  }
+
+  loading.value = true
+  server.joinRoomWithCode(code)
 }
 
 function copyLink() {
@@ -349,6 +412,7 @@ function onCopyText() {
 function onJoinRoom(data: UserInfo[]) {
   allUsers.value = data
   showQrCodeModal.value = false
+  showCodeModal.value = false
   for (const item of data) {
     peerManager.createPeer(item.peerId)
   }

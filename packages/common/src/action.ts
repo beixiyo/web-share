@@ -10,6 +10,10 @@ export enum Action {
   JoinDirectRoom = 'JoinDirectRoom',
   DirectRoomCreated = 'DirectRoomCreated',
 
+  CreateRoomWithCode = 'CreateRoomWithCode',
+  RoomCodeCreated = 'RoomCodeCreated',
+  JoinRoomWithCode = 'JoinRoomWithCode',
+
   Relay = 'Relay',
   Offer = 'Offer',
   Answer = 'Answer',

@@ -24,6 +24,16 @@ export type JoinRoomInfo = {
   peerId: string
 }
 
+export type RoomCodeInfo = {
+  roomCode: string
+  roomId: string
+  peerInfo: UserInfo
+}
+
+export type JoinRoomCodeInfo = {
+  roomCode: string
+}
+
 export type SendUserInfo = SendData<UserInfo>
 
 export type To = {

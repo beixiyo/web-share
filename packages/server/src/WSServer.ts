@@ -2,7 +2,7 @@ import type { Server } from 'node:http'
 import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo } from 'web-share-common'
+import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo, RoomCodeInfo, JoinRoomCodeInfo } from 'web-share-common'
 
 
 export class WSServer {
@@ -13,6 +13,10 @@ export class WSServer {
    * roomId -> Map<peerId, Peer>
    */
   roomMap = new Map<string, Map<string, Peer>>()
+  /**
+   * roomCode -> roomId 映射
+   */
+  roomCodeMap = new Map<string, string>()
 
   constructor(
     server: Server,
@@ -56,6 +60,21 @@ export class WSServer {
       room.delete(peer.id)
       if (room.size === 0) {
         this.roomMap.delete(peer.roomId)
+        // 清理对应的房间码映射
+        this.cleanupRoomCode(peer.roomId)
+      }
+    }
+  }
+
+  /**
+   * 清理房间码映射
+   */
+  private cleanupRoomCode(roomId: string) {
+    for (const [code, mappedRoomId] of this.roomCodeMap.entries()) {
+      if (mappedRoomId === roomId) {
+        this.roomCodeMap.delete(code)
+        console.log(`清理房间码映射: ${code} -> ${roomId}`)
+        break
       }
     }
   }
@@ -119,6 +138,17 @@ export class WSServer {
       type: Action.NotifyUserInfo
     }
     this.send(peer, data)
+  }
+
+  /**
+   * 生成6位随机数字房间码
+   */
+  private generateRoomCode(): string {
+    let code: string
+    do {
+      code = Math.floor(100000 + Math.random() * 900000).toString()
+    } while (this.roomCodeMap.has(code))
+    return code
   }
 
   private onMessage = (sender: Peer, data: RawData) => {
@@ -190,6 +220,51 @@ export class WSServer {
         }
         else {
           this.send(sender, { type: Action.Error, data: { message: '指定的房间或用户不存在' } })
+        }
+        break
+
+      // 用户请求创建带连接码的房间
+      case Action.CreateRoomWithCode:
+        const roomCode = this.generateRoomCode()
+        const codeRoomId = `code_${crypto.randomUUID()}`
+
+        // 建立房间码到房间ID的映射
+        this.roomCodeMap.set(roomCode, codeRoomId)
+
+        // 将用户移动到新房间
+        this.addToNewRoom(sender, codeRoomId)
+
+        // 通知用户房间码创建成功
+        const roomCodeInfo: RoomCodeInfo = {
+          roomCode,
+          roomId: codeRoomId,
+          peerInfo: sender.getInfo()
+        }
+        this.send(sender, { type: Action.RoomCodeCreated, data: roomCodeInfo })
+        console.log(`用户 ${sender.name.displayName} 创建房间码: ${roomCode}`)
+        break
+
+      // 用户通过房间码加入房间
+      case Action.JoinRoomWithCode:
+        const { roomCode: joinCode } = msg.data as JoinRoomCodeInfo
+        const targetRoomId = this.roomCodeMap.get(joinCode)
+
+        if (targetRoomId && this.roomMap.has(targetRoomId)) {
+          this.addToNewRoom(sender, targetRoomId)
+
+          // 通知加入者自己的信息
+          this.notifyUserInfo(sender)
+
+          // 通知房间内所有用户有新用户加入
+          this.broadcastToRoom(targetRoomId, {
+            type: Action.JoinRoom,
+            data: this.getRoomUsers(targetRoomId)
+          })
+
+          console.log(`用户 ${sender.name.displayName} 通过房间码 ${joinCode} 加入房间: ${targetRoomId}`)
+        }
+        else {
+          this.send(sender, { type: Action.Error, data: { message: '房间码不存在或已过期' } })
         }
         break
 

@@ -1,5 +1,5 @@
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
-import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo } from 'web-share-common'
+import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo, RoomCodeInfo, JoinRoomCodeInfo } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
 
@@ -79,6 +79,30 @@ export class ServerConnection {
 
     this.send({
       type: Action.JoinDirectRoom,
+      data
+    })
+  }
+
+  /**
+   * 创建带连接码的房间
+   */
+  createRoomWithCode() {
+    this.send({
+      type: Action.CreateRoomWithCode,
+      data: null
+    })
+  }
+
+  /**
+   * 通过房间码加入房间
+   */
+  joinRoomWithCode(roomCode: string) {
+    const data: JoinRoomCodeInfo = {
+      roomCode
+    }
+
+    this.send({
+      type: Action.JoinRoomWithCode,
       data
     })
   }
@@ -186,6 +210,14 @@ export class ServerConnection {
       case Action.DirectRoomCreated:
         this.opts.onDirectRoomCreated(data.data)
         break
+
+      /**
+       * 房间码连接
+       */
+      case Action.RoomCodeCreated:
+        this.opts.onRoomCodeCreated?.(data.data)
+        break
+
       case Action.Error:
         this.opts.onError?.(data.data)
         break
@@ -252,5 +284,6 @@ export type ServerConnectionOpts = {
   onLeaveRoom: (user: UserInfo) => void
 
   onDirectRoomCreated: (data: RoomInfo) => void
+  onRoomCodeCreated?: (data: RoomCodeInfo) => void
   onError?: (data: { message: string }) => void
 }
