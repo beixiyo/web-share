@@ -7,26 +7,26 @@
 
     <!-- 工具栏 -->
     <ToolBar
+      v-model:show-qr-modal="showQrCodeModal"
       :qr-code-value="qrCodeValue"
-      :show-qr-code-modal="showQrCodeModal"
       :room-code="roomCode"
-      :show-code-modal="showCodeModal"
+      @generate-code="requestCreateRoomWithCode"
       @copy="copyLink"
       @show-qr-modal="requestCreateDirectRoom"
-      @show-code-modal="requestCreateRoomWithCode"
-      @join-with-code="handleJoinWithCode"
-      v-model:show-qr-modal="showQrCodeModal" />
+      @join-with-code="handleJoinWithCode" />
 
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div v-if="info"
       class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
              dark:bg-gray-800/80 dark:shadow-gray-700/50
-             sm:p-2 sm:space-x-1 sm:text-sm sm:bottom-4">
+             sm:p-2 sm:space-x-1 sm:text-sm sm:bottom-4 sm:max-w-[calc(100vw-2rem)]">
       <component :is="getDeviceIcon(info.name.type || info.name.os)"
-        class="w-6 h-6 text-indigo-600 dark:text-indigo-400 sm:w-5 sm:h-5" />
+        class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5 flex-shrink-0" />
       <span
-        class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs">你当前是:
-        {{ info.name.displayName }}</span>
+        class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs truncate">
+        你当前是: <span
+          class="text-emerald-600 dark:text-emerald-400">{{ info.name.displayName }}</span>
+      </span>
     </div>
 
     <!-- 浮动小球 -->
@@ -40,12 +40,6 @@
       v-model="showQrCodeModal"
       :qrCodeValue
       :showQrCodeModal />
-
-    <!-- 房间码弹窗 -->
-    <RoomCodeModal
-      v-model="showCodeModal"
-      :room-code="roomCode"
-      :show-room-code-modal="showCodeModal" />
 
     <!-- 隐藏的文件输入 -->
     <input type="file" ref="fileInput" class="hidden"
@@ -95,8 +89,7 @@ import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
-import RoomCodeModal from './RoomCodeModal.vue'
-import ToolBar from '@/components/ToolBar/index.vue'
+import ToolBar from './ToolBar.vue'
 import Button from '@/components/Button/index.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
@@ -120,7 +113,6 @@ const selectedPeer = ref<UserInfo>()
  ***************************************************/
 const showQrCodeModal = ref(false)
 const qrCodeValue = ref('')
-const showCodeModal = ref(false)
 const roomCode = ref('')
 const currentFileSizes = ref<number[]>([]) // 用于ProgressModal显示文件大小
 
@@ -136,7 +128,6 @@ const server = new ServerConnection({
     Message.error(`发生错误: ${errorData.message}`)
     loading.value = false
     showQrCodeModal.value = false
-    showCodeModal.value = false
   }
 })
 const peerManager = new PeerManager(server)
@@ -231,10 +222,6 @@ async function requestCreateRoomWithCode() {
     Message.warning('无法获取用户信息，请稍后再试')
     return
   }
-  if (roomCode.value) {
-    showCodeModal.value = true
-    return
-  }
 
   loading.value = true
   server.createRoomWithCode()
@@ -278,7 +265,6 @@ async function onRoomCodeCreated(data: RoomCodeInfo) {
 
     roomCode.value = data.roomCode
     console.log('创建房间码成功:', data.roomCode)
-    showCodeModal.value = true
   }
 
   loading.value = false
@@ -288,6 +274,7 @@ async function onRoomCodeCreated(data: RoomCodeInfo) {
  * 处理输入连接码加入房间
  */
 function handleJoinWithCode(code: string) {
+  debugger
   if (!code || code.length !== 6) {
     Message.error('请输入6位数字连接码')
     return
@@ -412,7 +399,7 @@ function onCopyText() {
 function onJoinRoom(data: UserInfo[]) {
   allUsers.value = data
   showQrCodeModal.value = false
-  showCodeModal.value = false
+
   for (const item of data) {
     peerManager.createPeer(item.peerId)
   }
