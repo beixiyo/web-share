@@ -3,13 +3,14 @@
     v-model="show"
     height="auto"
     title="请让对方扫描二维码">
-    <div class="flex flex-col items-center p-4 sm:p-3">
+    <div
+      class="flex flex-col items-center p-4 sm:p-3">
       <img v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
         :src="qrCodeValue" alt="二维码"
         class="max-w-full h-auto max-sm:max-w-[250px]" />
 
       <p v-else-if="!qrCodeValue && showQrCodeModal"
-         class="text-gray-500 dark:text-gray-400 sm:text-sm">
+        class="text-gray-500 dark:text-gray-400 sm:text-sm">
         正在生成二维码...
       </p>
 
@@ -19,7 +20,9 @@
         二维码内容已准备，等待扫码...
       </p>
 
-      <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 sm:text-xs sm:mt-1">扫描此二维码以建立连接</p>
+      <p
+        class="mt-2 text-sm text-gray-600 dark:text-gray-300 sm:text-xs sm:mt-1">
+        扫描此二维码以建立连接</p>
       <Button
         @click="emit('copy')"
         variant="primary"

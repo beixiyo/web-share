@@ -1,7 +1,7 @@
+import type Modal from '@/components/Modal/index.vue'
 import type { BaseType } from '@jl-org/tool'
 import type { CSSProperties } from 'vue'
 import { handleCssUnit } from '@jl-org/tool'
-import type Modal from '@/components/Modal/index.vue'
 
 export interface CompProps {
   /**
@@ -90,6 +90,6 @@ export type ExtendedCompProps = CompProps & {
 
 export type ModalInstance = InstanceType<typeof Modal>
 
-export type ModelType =  typeof Modal & {
+export type ModelType = typeof Modal & {
   [K in ModalVariant]: (props: ExtendedCompProps) => void
 }

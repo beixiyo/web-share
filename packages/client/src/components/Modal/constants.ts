@@ -1,6 +1,6 @@
-import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-vue-next'
-import type { ModalVariant } from './types'
 import type { FunctionalComponent } from 'vue'
+import type { ModalVariant } from './types'
+import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-vue-next'
 
 export const variantStyles: Record<ModalVariant, {
   accent: string
@@ -10,38 +10,38 @@ export const variantStyles: Record<ModalVariant, {
   iconBg: string
 }> = {
   default: {
-    accent: 'text-slate-500', // 稍微柔和的灰色调
-    bg: 'from-white to-slate-50', // 浅色背景，增加层次感
-    border: 'border-slate-300', // 更柔和的边框
+    accent: 'text-slate-500 dark:text-slate-400',
+    bg: 'bg-white dark:bg-slate-800',
+    border: 'border-slate-300 dark:border-slate-600',
     icon: Info,
-    iconBg: 'bg-slate-100', // 图标背景更融入
+    iconBg: 'bg-slate-100 dark:bg-slate-700',
   },
   success: {
-    accent: 'text-green-600', // 更鲜明且专业的绿色
-    bg: 'from-green-50 to-green-100/60', // 清新的渐变背景
-    border: 'border-green-400/50', // 适当强度的边框
+    accent: 'text-green-600 dark:text-green-400',
+    bg: 'bg-white dark:bg-slate-800',
+    border: 'border-green-400/50 dark:border-green-600/50',
     icon: CheckCircle,
-    iconBg: 'bg-green-100', // 协调的图标背景
+    iconBg: 'bg-green-100 dark:bg-green-900/50',
   },
   warning: {
-    accent: 'text-yellow-600', // 更清晰的黄色警告
-    bg: 'from-yellow-50 to-yellow-100/60', // 温暖的渐变背景
-    border: 'border-yellow-400/50', // 适当强度的边框
+    accent: 'text-yellow-600 dark:text-yellow-400',
+    bg: 'bg-white dark:bg-slate-800',
+    border: 'border-yellow-400/50 dark:border-yellow-600/50',
     icon: AlertTriangle,
-    iconBg: 'bg-yellow-100', // 协调的图标背景
+    iconBg: 'bg-yellow-100 dark:bg-yellow-900/50',
   },
   error: {
-    accent: 'text-red-600', // 更醒目的红色错误提示
-    bg: 'from-red-50 to-red-100/60', // 警示性的渐变背景
-    border: 'border-red-400/50', // 适当强度的边框
+    accent: 'text-red-600 dark:text-red-400',
+    bg: 'bg-white dark:bg-slate-800',
+    border: 'border-red-400/50 dark:border-red-600/50',
     icon: AlertCircle,
-    iconBg: 'bg-red-100', // 协调的图标背景
+    iconBg: 'bg-red-100 dark:bg-red-900/50',
   },
   info: {
-    accent: 'text-blue-600', // 专业且友好的蓝色
-    bg: 'from-blue-50 to-blue-100/60', // 清爽的渐变背景
-    border: 'border-blue-400/50', // 适当强度的边框
+    accent: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-white dark:bg-slate-800',
+    border: 'border-blue-400/50 dark:border-blue-600/50',
     icon: Info,
-    iconBg: 'bg-blue-100', // 协调的图标背景
+    iconBg: 'bg-blue-100 dark:bg-blue-900/50',
   },
 } as const
