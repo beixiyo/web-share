@@ -3,8 +3,6 @@
     :class="[
       'overflow-hidden relative h-screen',
       'flex flex-col justify-center items-center',
-      'bg-gradient-to-br from-indigo-50 to-blue-100',
-      'dark:from-gray-900 dark:to-gray-800'
     ]">
 
     <!-- 工具栏 -->
@@ -71,7 +69,7 @@
       @copy="onCopyText" />
 
     <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full
-      z-[-1] bg-gradient-to-br from-indigo-50 to-blue-100
+      -z-1 bg-gradient-to-br from-indigo-50 to-blue-100
       dark:from-gray-900 dark:to-gray-800">
     </canvas>
   </div>

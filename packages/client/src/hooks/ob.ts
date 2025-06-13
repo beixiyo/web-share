@@ -1,4 +1,5 @@
-import { watchEffect, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
+import { toValue, watchEffect } from 'vue'
 
 /**
  * 观察元素交叉状态 (IntersectionObserver)
@@ -9,7 +10,7 @@ import { watchEffect, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 export function useIntersectionObserver<E extends HTMLElement>(
   els: MaybeRefOrGetter<(Ref<E | null | undefined> | E | null | undefined)[]>,
   callback: (entry: IntersectionObserverEntry) => void,
-  options?: IntersectionObserverInit
+  options?: IntersectionObserverInit,
 ) {
   return useOb(IntersectionObserver, els, callback, options)
 }
@@ -21,7 +22,7 @@ export function useIntersectionObserver<E extends HTMLElement>(
  */
 export function useResizeObserver<E extends HTMLElement>(
   els: MaybeRefOrGetter<(Ref<E | null | undefined> | E | null | undefined)[]>,
-  callback: (entry: ResizeObserverEntry) => void
+  callback: (entry: ResizeObserverEntry) => void,
 ) {
   return useOb(ResizeObserver, els, callback)
 }
@@ -39,33 +40,36 @@ export function useMutationObserver<E extends HTMLElement>(
     childList: true,
     subtree: true,
     characterData: true,
-    immediate: true
-  }
+    immediate: true,
+  },
 ) {
   const { immediate, ...obOptions } = options
   let observer: MutationObserver | null = null
 
   watchEffect((onCleanup) => {
     const element = toValue(el)
-    if (!element) return
+    if (!element)
+      return
 
-    // 创建观察器
+    /** 创建观察器 */
     observer = new MutationObserver((mutations, ob) => {
       callback(mutations, ob)
     })
 
-    // 立即执行一次回调
+    /** 立即执行一次回调 */
     if (immediate) {
       callback([], observer)
     }
 
-    // 开始观察
+    /** 开始观察 */
     observer.observe(
-      element instanceof HTMLElement ? element : element.value as HTMLElement,
-      obOptions
+      element instanceof HTMLElement
+        ? element
+        : element.value as HTMLElement,
+      obOptions,
     )
 
-    // 组件卸载时清理
+    /** 组件卸载时清理 */
     onCleanup(() => {
       observer?.disconnect()
     })
@@ -91,35 +95,36 @@ function useOb<
     disconnect: () => void
   },
   Entry,
-  E extends HTMLElement
+  E extends HTMLElement,
 >(
   ObserverClass: T,
   els: MaybeRefOrGetter<(Ref<E | null | undefined> | E | null | undefined)[]>,
   callback: (entry: Entry) => void,
-  options?: ConstructorParameters<T>[1]
+  options?: ConstructorParameters<T>[1],
 ) {
   let observer: InstanceType<T> | null = null
 
   watchEffect((onCleanup) => {
-    // 获取所有有效的 DOM 元素
+    /** 获取所有有效的 DOM 元素 */
     const elements = toValue(els)
       .map(el => toValue(el))
       .filter((el): el is E => el instanceof HTMLElement)
 
-    if (elements.length === 0) return
+    if (elements.length === 0)
+      return
 
     // @ts-ignore
     observer = new ObserverClass(
       (entries: Entry[]) => {
         entries.forEach(entry => callback(entry))
       },
-      options
+      options,
     )
 
-    // 观察所有元素
+    /** 观察所有元素 */
     elements.forEach(el => observer?.observe(el))
 
-    // 组件卸载时清理
+    /** 组件卸载时清理 */
     onCleanup(() => {
       observer?.disconnect()
     })

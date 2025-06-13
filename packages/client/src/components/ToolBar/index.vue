@@ -1,6 +1,15 @@
 <template>
   <div
     class="absolute top-4 right-4 z-10 flex items-center space-x-2 sm:space-x-1">
+    <!-- 主题切换按钮 -->
+    <Button
+      @click="handleThemeToggle"
+      variant="default"
+      size="md"
+      :icon-only="true"
+      :left-icon="theme === 'dark' ? Sun : Moon"
+      :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" />
+
     <!-- 生成二维码按钮 -->
     <Button
       @click="emit('showQrModal')"
@@ -25,7 +34,9 @@
 import { ref, watch } from 'vue'
 import Button from '@/components/Button/index.vue'
 import QrCodeModal from '@/views/fileTransfer/QrCodeModal.vue'
-import { QrCode } from 'lucide-vue-next'
+import { QrCode, Sun, Moon } from 'lucide-vue-next'
+import { useTheme } from '@/hooks/useTheme'
+import { toggleThemeWithTransition } from '@/utils/theme'
 
 defineOptions({ name: 'ToolBar' })
 
@@ -39,6 +50,10 @@ const props = withDefaults(
     showQrCodeModal: false
   }
 )
+
+// 主题相关逻辑
+const [theme, setTheme] = useTheme()
+const handleThemeToggle = toggleThemeWithTransition(theme.value, setTheme)
 
 const emit = defineEmits<{
   (e: 'copy'): void
