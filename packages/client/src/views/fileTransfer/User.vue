@@ -10,7 +10,7 @@
       'hover:scale-110 hover:shadow-xl',
       'sm:p-3 sm:hover:scale-105',
       peer.peerId === info?.peerId
-        ? 'bg-indigo-500/80 dark:bg-indigo-600/80'
+        ? 'bg-emerald-500/80 dark:bg-emerald-600/80'
         : 'bg-white/80 dark:bg-gray-800/80 dark:shadow-gray-900/50'
     ]">
       <div class="flex justify-center items-center size-14 text-center sm:size-12">
@@ -18,7 +18,7 @@
           'font-bold line-clamp-1 sm:text-sm',
           peer.peerId === info?.peerId
             ? 'text-white'
-            : 'text-indigo-600 dark:text-indigo-400'
+            : 'text-emerald-600 dark:text-emerald-400'
         ]">
           {{ peer.name.displayName }}
         </span>

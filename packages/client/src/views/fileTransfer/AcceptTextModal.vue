@@ -8,8 +8,8 @@
       </h3>
 
       <div
-        class="p-2 w-full h-40 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500 overflow-y-auto
-               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-indigo-400
+        class="p-2 w-full h-40 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500 overflow-y-auto
+               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-emerald-400
                sm:h-32 sm:text-sm">
         {{ props.text }}
       </div>

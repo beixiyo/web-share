@@ -8,8 +8,8 @@
         {{ toName }}
       </h3>
       <textarea v-model.trim="textModel"
-        class="p-3 w-full h-32 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500
-               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-indigo-400
+        class="p-3 w-full h-32 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500
+               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-emerald-400
                dark:placeholder-gray-400
                sm:h-24 sm:p-2 sm:text-sm"
         placeholder="输入要发送的文本...">

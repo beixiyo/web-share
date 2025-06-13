@@ -12,7 +12,7 @@
       :room-code="roomCode"
       @generate-code="requestCreateRoomWithCode"
       @copy="copyLink"
-      @show-qr-modal="requestCreateDirectRoom"
+      @generate-qr-code="requestCreateDirectRoom"
       @join-with-code="handleJoinWithCode" />
 
     <!-- 用户信息展示 - 移动到中心底部 -->

@@ -6,10 +6,10 @@
       <!-- 头部信息 -->
       <div class="flex items-center mb-6 space-x-4 sm:mb-4 sm:space-x-3">
         <div
-          class="flex justify-center items-center w-12 h-12 bg-indigo-100 rounded-full
-                 dark:bg-indigo-900/30 sm:w-10 sm:h-10">
+          class="flex justify-center items-center w-12 h-12 bg-emerald-100 rounded-full
+                 dark:bg-emerald-900/30 sm:w-10 sm:h-10">
           <svg xmlns="http://www.w3.org/2000/svg"
-            class="w-6 h-6 text-indigo-600 dark:text-indigo-400 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24"
+            class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round"
               stroke-width="2"
@@ -20,7 +20,7 @@
           <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100 sm:text-base">文件传输中</h3>
           <div class="text-sm text-gray-500 dark:text-gray-400 sm:text-xs">
             正在传输第 <span
-              class="font-medium text-indigo-600 dark:text-indigo-400">{{ progress.curIndex + 1 }}</span>
+              class="font-medium text-emerald-600 dark:text-emerald-400">{{ progress.curIndex + 1 }}</span>
             个文件，共 <span class="font-medium">{{ progress.total }}</span> 个
           </div>
         </div>
@@ -56,11 +56,11 @@
           <div class="flex justify-between items-center mb-1">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-xs">当前文件进度</span>
             <span
-              class="text-sm font-medium text-indigo-600 dark:text-indigo-400 sm:text-xs">{{ numFixed(progress.progress * 100) }}%</span>
+              class="text-sm font-medium text-emerald-600 dark:text-emerald-400 sm:text-xs">{{ numFixed(progress.progress * 100) }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600 sm:h-1.5">
             <div
-              class="bg-indigo-600 h-2 rounded-full transition-all duration-300 dark:bg-indigo-500 sm:h-1.5"
+              class="bg-emerald-600 h-2 rounded-full transition-all duration-300 dark:bg-emerald-500 sm:h-1.5"
               :style="{ width: `${progress.progress * 100}%` }">
             </div>
           </div>

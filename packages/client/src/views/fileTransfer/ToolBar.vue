@@ -14,7 +14,7 @@
     <!-- 生成二维码按钮 -->
     <Button
       variant="default"
-      @click="showQrModal = true"
+      @click="emit('generateQrCode')"
       size="md"
       :icon-only="true"
       :left-icon="QrCode"
@@ -78,6 +78,7 @@ const emit = defineEmits<{
   (e: 'copy'): void
   (e: 'joinWithCode', code: string): void
   (e: 'generateCode'): void
+  (e: 'generateQrCode'): void
 }>()
 
 const showQrModal = defineModel<boolean>('showQrModal', { default: false })
