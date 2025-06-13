@@ -16,6 +16,8 @@ export function useInsertStyle(styleStrOrUrl: string) {
     onBeforeUnmount(() => {
       document.head.removeChild(link)
     })
+
+    return
   }
   catch (error) {
     /** 是字符串 */

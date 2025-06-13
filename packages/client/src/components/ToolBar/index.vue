@@ -53,7 +53,7 @@ const props = withDefaults(
 
 // 主题相关逻辑
 const [theme, setTheme] = useTheme()
-const handleThemeToggle = toggleThemeWithTransition(theme.value, setTheme)
+const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
 
 const emit = defineEmits<{
   (e: 'copy'): void

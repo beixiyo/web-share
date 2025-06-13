@@ -1,7 +1,8 @@
 import type { Theme } from '@jl-org/tool'
+import type { Ref } from 'vue'
 import { THEME_KEY } from '@/config'
-import { getCurTheme } from '@jl-org/tool'
 import { useInsertStyle } from '@/hooks'
+import { getCurTheme } from '@jl-org/tool'
 
 /**
  * 获取当前主题
@@ -67,7 +68,7 @@ export function setHTMLTheme(theme: Theme) {
  * <Button onClick={ toggleTheme }>Toggle</Button>
  */
 export function toggleThemeWithTransition(
-  theme: Theme,
+  theme: Ref<Theme>,
   setTheme: VoidFunction,
 ) {
   useInsertStyle(new URL('@/styles/transition/theme.css', import.meta.url).href)
@@ -75,7 +76,7 @@ export function toggleThemeWithTransition(
   return (event: MouseEvent) => {
     const x = event.clientX
     const y = event.clientY
-    const isDark = theme === 'dark'
+    const isDark = theme.value === 'dark'
     const endRadius = Math.hypot(
       Math.max(x, innerWidth - x),
       Math.max(y, innerHeight - y),
