@@ -12,17 +12,21 @@
       <span v-if="!iconOnly && loadingText">{{ loadingText }}</span>
       <slot v-else />
     </div>
-    <template v-else-if="iconOnly && (leftIcon || rightIcon)">
+
+    <template v-else-if="noChild && (leftIcon || rightIcon)">
       <component :is="leftIcon || rightIcon" />
     </template>
+
     <template v-else>
-      <span v-if="leftIcon" :class="cn('mr-2', (iconOnly || noIconGap) && 'm-0')">
+      <span v-if="leftIcon" :class="cn('mr-2', noChild && 'm-0')">
         <component :is="leftIcon" />
       </span>
+
       <slot />
+
       <span
         v-if="rightIcon"
-        :class="cn('ml-2', (iconOnly || noIconGap) && 'm-0')"
+        :class="cn('ml-2', noChild && 'm-0')"
       >
         <component :is="rightIcon" />
       </span>
@@ -54,11 +58,6 @@ const props = withDefaults(
      * @default false
      */
     iconOnly?: boolean
-    /**
-     * 不显示图标间距
-     * @default false
-     */
-    noIconGap?: boolean
     /**
      * 加载状态
      * @default false
@@ -136,6 +135,11 @@ const emit = defineEmits<{
   (e: 'click', event: MouseEvent): void
 }>()
 
+const slots = useSlots()
+const noChild = computed(() => {
+  return !slots.default || props.iconOnly
+})
+
 /** 获取设计风格对应的样式 */
 const getStylesByDesign = computed(() => {
   const styleProps = {
@@ -160,7 +164,7 @@ const getStylesByDesign = computed(() => {
 
 /** 图标按钮的尺寸样式 */
 const iconButtonSize = computed(() => {
-  return props.iconOnly
+  return noChild.value
     ? getIconButtonStyles(props.size)
     : ''
 })
@@ -172,10 +176,10 @@ const buttonStyles = computed(() => {
     props.block
       ? 'w-full'
       : '',
-    props.iconOnly
+    noChild.value
       ? iconButtonSize.value
       : '',
-    props.iconOnly
+    noChild.value
       ? 'p-0'
       : '',
     props.disabled
