@@ -10,9 +10,11 @@ export function useModalStates() {
   const showAcceptFile = ref(false)
   const showAcceptText = ref(false)
   const showTextInput = ref(false)
+  const showUserSelector = ref(false)
 
   // 加载状态
   const loading = ref(false)
+  const loadingMessage = ref('')
 
   // 文本相关状态
   const text = ref('')
@@ -20,6 +22,9 @@ export function useModalStates() {
 
   // 预览相关状态
   const previewSrc = ref('')
+
+  // 加载超时定时器
+  let loadingTimeout: NodeJS.Timeout | null = null
 
   /**
    * 关闭所有模态框
@@ -30,19 +35,47 @@ export function useModalStates() {
     showAcceptFile.value = false
     showAcceptText.value = false
     showTextInput.value = false
+    showUserSelector.value = false
     previewSrc.value = ''
   }
 
   /**
    * 设置加载状态
    */
-  function setLoading(state: boolean) {
+  function setLoading(state: boolean, message = '') {
     loading.value = state
+    loadingMessage.value = message
+
+    // 清除之前的超时定时器
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout)
+      loadingTimeout = null
+    }
+
     if (state === false) {
       // 加载结束时关闭相关模态框
       showQrCodeModal.value = false
       showKeyManagementModal.value = false
+    } else if (state === true) {
+      // 设置30秒超时
+      loadingTimeout = setTimeout(() => {
+        loading.value = false
+        loadingMessage.value = ''
+        console.warn('操作超时，自动关闭loading状态')
+      }, 30000)
     }
+  }
+
+  /**
+   * 强制关闭加载状态（用于错误处理）
+   */
+  function forceCloseLoading() {
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout)
+      loadingTimeout = null
+    }
+    loading.value = false
+    loadingMessage.value = ''
   }
 
   /**
@@ -84,7 +117,9 @@ export function useModalStates() {
     showAcceptFile,
     showAcceptText,
     showTextInput,
+    showUserSelector,
     loading,
+    loadingMessage,
     text,
     acceptText,
     previewSrc,
@@ -92,6 +127,7 @@ export function useModalStates() {
     // 方法
     closeAllModals,
     setLoading,
+    forceCloseLoading,
     showTextReceiveModal,
     showTextSendModal,
     closeTextSendModal,

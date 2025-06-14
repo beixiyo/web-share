@@ -53,7 +53,8 @@ export function useFileTransfer() {
   function createSendFilesToPeer(
     me: { value: RTCPeer | undefined },
     setSelectedPeer: (peer: UserInfo) => void,
-    setLoading: (state: boolean) => void
+    setLoading: (state: boolean, message?: string) => void,
+    forceCloseLoading: () => void
   ) {
     return async function sendFilesToPeer(
       targetPeer: UserInfo,
@@ -65,7 +66,7 @@ export function useFileTransfer() {
 
       // 设置选中的用户
       setSelectedPeer(targetPeer)
-      setLoading(true)
+      setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文件...`)
 
       try {
         // 建立连接
@@ -76,12 +77,20 @@ export function useFileTransfer() {
         // 更新文件大小数组
         currentFileSizes.value = files.map(f => f.size)
 
-        // 发送文件
+        // 发送文件元数据
         await me.value.sendFileMetas(files)
+
+        // 发送文件，处理拒绝情况
         await me.value.sendFiles(files, () => {
           console.log('对方拒绝了你的文件')
-          Message.warning('对方拒绝了文件传输')
+          Message.warning(`${targetPeer.name.displayName} 拒绝了文件传输`)
+          forceCloseLoading() // 确保关闭loading状态
         })
+      } catch (error) {
+        console.error('发送文件时出错:', error)
+        Message.error('发送文件时发生错误')
+        forceCloseLoading() // 确保关闭loading状态
+        throw error
       } finally {
         setLoading(false)
       }

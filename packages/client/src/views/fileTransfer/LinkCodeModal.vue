@@ -80,17 +80,21 @@
             @keyup.enter="handleJoinWithCode"
             @input="joinCode = joinCode.replace(/[^0-9]/g, '')" />
         </div>
-        <div class="flex justify-end space-x-2">
-          <Button
-            @click="handleJoinWithCode"
-            variant="primary"
-            size="md"
-            :disabled="joinCode.length !== 6">
-            加入房间
-          </Button>
-        </div>
       </div>
     </div>
+
+    <template #footer>
+      <div class="flex justify-end space-x-2">
+        <Button
+          v-if="activeTab === 'input'"
+          @click="handleJoinWithCode"
+          variant="primary"
+          size="md"
+          :disabled="joinCode.length !== 6">
+          加入房间
+        </Button>
+      </div>
+    </template>
   </Modal>
 </template>
 

@@ -1,5 +1,6 @@
 <template>
   <div v-loading="loading"
+    :loading-text="loadingMessage"
     :class="[
       'overflow-hidden relative h-screen',
       'flex flex-col justify-center items-center',
@@ -86,6 +87,15 @@
       @close="showAcceptText = false"
       @copy="onCopyText" />
 
+    <!-- 用户选择器弹窗 -->
+    <UserSelectorModal
+      v-model="showUserSelector"
+      :online-users="onlineUsers"
+      :content-type="clipboardContentType"
+      :content-count="clipboardFiles?.length || 0"
+      @confirm="onUserSelectorConfirm"
+      @cancel="onUserSelectorCancel" />
+
     <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full
       -z-1 bg-gradient-to-br from-indigo-50 to-blue-100
       dark:from-gray-900 dark:to-gray-800">
@@ -106,6 +116,7 @@ import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
 import LinkCodeModal from './LinkCodeModal.vue'
 import ToolBar from './ToolBar.vue'
+import UserSelectorModal from './UserSelectorModal.vue'
 import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
 import { Message } from '@/utils'
@@ -145,11 +156,14 @@ const {
   showAcceptFile,
   showAcceptText,
   showTextInput,
+  showUserSelector,
   loading,
+  loadingMessage,
   text,
   acceptText,
   previewSrc,
   setLoading,
+  forceCloseLoading,
   showTextReceiveModal,
   showTextSendModal,
   closeTextSendModal,
@@ -184,11 +198,21 @@ const {
   handleQuery
 } = serverConnection
 
-const { createPasteHandler } = clipboard
+const {
+  createPasteHandler,
+  sendFilesToMultipleUsers,
+  sendTextToMultipleUsers,
+  pendingTransfer
+} = clipboard
 
 // 其他状态
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
+
+// 剪贴板相关状态
+const clipboardContentType = ref<'files' | 'text'>('files')
+const clipboardFiles = ref<File[]>()
+const clipboardText = ref<string>()
 
 // 初始化服务器连接
 const { server, peerManager } = initializeServer({
@@ -222,7 +246,8 @@ onMounted(() => {
   const setupPasteHandler = createPasteHandler(
     () => onlineUsers.value,
     sendFilesToPeerFunc,
-    sendTextToPeer
+    sendTextToPeer,
+    showUserSelectorForClipboard
   )
   setupPasteHandler()
 })
@@ -230,7 +255,7 @@ onMounted(() => {
 
 
 // 创建发送文件函数
-const sendFilesToPeerFunc = fileTransfer.createSendFilesToPeer(me, setSelectedPeer, setLoading)
+const sendFilesToPeerFunc = fileTransfer.createSendFilesToPeer(me, setSelectedPeer, setLoading, forceCloseLoading)
 
 /**
  * 向指定用户发送文本
@@ -242,7 +267,7 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 
   // 设置选中的用户
   setSelectedPeer(targetPeer)
-  setLoading(true)
+  setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文本...`)
 
   try {
     // 建立连接
@@ -252,6 +277,11 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 
     // 发送文本
     me.value.sendText(textContent)
+  } catch (error) {
+    console.error('发送文本时出错:', error)
+    Message.error('发送文本时发生错误')
+    forceCloseLoading()
+    throw error
   } finally {
     setLoading(false)
   }
@@ -303,16 +333,22 @@ function onCopyLink() {
 const onContextMenuPeer = async (peer: UserInfo) => {
   if (!me.value) return
   setSelectedPeer(peer)
-  setLoading(true)
+  setLoading(true, `正在连接 ${peer.name.displayName}...`)
 
-  const { promise, resolve } = Promise.withResolvers()
-  await me.value.sendOffer(peer.peerId, resolve)
-  await promise
+  try {
+    const { promise, resolve } = Promise.withResolvers()
+    await me.value.sendOffer(peer.peerId, resolve)
+    await promise
 
-  setLoading(false)
-
-  // 打开文本输入框
-  showTextSendModal()
+    // 打开文本输入框
+    showTextSendModal()
+  } catch (error) {
+    console.error('连接用户失败:', error)
+    Message.error('连接失败，请重试')
+    forceCloseLoading()
+  } finally {
+    setLoading(false)
+  }
 }
 
 /**
@@ -332,27 +368,79 @@ const onClickPeer = async (peer: UserInfo) => {
   setSelectedPeer(peer)
   if (!me.value) return
 
-  setLoading(true)
+  setLoading(true, `正在连接 ${peer.name.displayName}...`)
 
-  const { promise, resolve } = Promise.withResolvers()
-  await me.value.sendOffer(peer.peerId, resolve)
-  await promise
+  try {
+    const { promise, resolve } = Promise.withResolvers()
+    await me.value.sendOffer(peer.peerId, resolve)
+    await promise
 
-  setLoading(false)
-  fileInput.value?.click()
+    fileInput.value?.click()
+  } catch (error) {
+    console.error('连接用户失败:', error)
+    Message.error('连接失败，请重试')
+    forceCloseLoading()
+  } finally {
+    setLoading(false)
+  }
 }
 
 function onAcceptFile() {
   acceptFile(showAcceptFile, previewSrc)
+  // 确保关闭loading状态
+  forceCloseLoading()
 }
 
 function onDenyFile() {
   denyFile(showAcceptFile, previewSrc)
+  // 确保关闭loading状态
+  forceCloseLoading()
 }
 
 function onCopyText() {
   copyToClipboard(acceptText.value)
   closeTextReceiveModal()
+}
+
+/**
+ * 显示用户选择器（用于剪贴板内容）
+ */
+function showUserSelectorForClipboard(contentType: 'files' | 'text', files?: File[], textContent?: string) {
+  clipboardContentType.value = contentType
+  clipboardFiles.value = files
+  clipboardText.value = textContent
+  showUserSelector.value = true
+}
+
+/**
+ * 用户选择器确认
+ */
+async function onUserSelectorConfirm(selectedUsers: UserInfo[]) {
+  showUserSelector.value = false
+
+  try {
+    if (clipboardContentType.value === 'files' && clipboardFiles.value) {
+      await sendFilesToMultipleUsers(clipboardFiles.value, selectedUsers, sendFilesToPeerFunc)
+    } else if (clipboardContentType.value === 'text' && clipboardText.value) {
+      await sendTextToMultipleUsers(clipboardText.value, selectedUsers, sendTextToPeer)
+    }
+  } catch (error) {
+    console.error('多用户发送失败:', error)
+    Message.error('发送失败，请重试')
+  } finally {
+    // 清理状态
+    clipboardFiles.value = undefined
+    clipboardText.value = undefined
+  }
+}
+
+/**
+ * 用户选择器取消
+ */
+function onUserSelectorCancel() {
+  showUserSelector.value = false
+  clipboardFiles.value = undefined
+  clipboardText.value = undefined
 }
 
 
@@ -361,8 +449,6 @@ function onCopyText() {
  */
 function onJoinRoom(data: UserInfo[]) {
   handleJoinRoom(data)
-  showQrCodeModal.value = false
-  showKeyManagementModal.value = false
 
   for (const item of data) {
     peerManager.createPeer(item.peerId)

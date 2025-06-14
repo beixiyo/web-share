@@ -1,11 +1,23 @@
-import { onUnmounted } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import type { UserInfo } from 'web-share-common'
 import { Message } from '@/utils'
+
+/**
+ * 多用户传输状态
+ */
+interface MultiUserTransferState {
+  targetUsers: UserInfo[]
+  files?: File[]
+  textContent?: string
+  results: Map<string, 'pending' | 'success' | 'failed' | 'rejected'>
+}
 
 /**
  * 剪贴板处理Hook
  */
 export function useClipboard() {
+  // 待发送的内容状态
+  const pendingTransfer = ref<MultiUserTransferState | null>(null)
   /**
    * 处理剪贴板数据
    */
@@ -13,7 +25,8 @@ export function useClipboard() {
     clipboardData: DataTransfer,
     onlineUsers: UserInfo[],
     sendFilesToPeer: (targetPeer: UserInfo, files: File[]) => Promise<void>,
-    sendTextToPeer: (targetPeer: UserInfo, textContent: string) => Promise<void>
+    sendTextToPeer: (targetPeer: UserInfo, textContent: string) => Promise<void>,
+    showUserSelector?: (contentType: 'files' | 'text', files?: File[], textContent?: string) => void
   ) {
     try {
       // 检查是否有在线用户可以发送
@@ -43,13 +56,25 @@ export function useClipboard() {
       // 处理内容
       if (files.length > 0 && textContent.trim()) {
         // 混合内容：优先发送文件
-        await handleMixedClipboardContent(files, onlineUsers, sendFilesToPeer)
+        if (onlineUsers.length > 1 && showUserSelector) {
+          showUserSelector('files', files)
+        } else {
+          await handleClipboardFiles(files, onlineUsers, sendFilesToPeer)
+        }
       } else if (files.length > 0) {
         // 只有文件
-        await handleClipboardFiles(files, onlineUsers, sendFilesToPeer)
+        if (onlineUsers.length > 1 && showUserSelector) {
+          showUserSelector('files', files)
+        } else {
+          await handleClipboardFiles(files, onlineUsers, sendFilesToPeer)
+        }
       } else if (textContent.trim()) {
         // 只有文本
-        await handleClipboardText(textContent.trim(), onlineUsers, sendTextToPeer)
+        if (onlineUsers.length > 1 && showUserSelector) {
+          showUserSelector('text', undefined, textContent.trim())
+        } else {
+          await handleClipboardText(textContent.trim(), onlineUsers, sendTextToPeer)
+        }
       } else {
         Message.warning('剪贴板中没有可发送的内容')
       }
@@ -100,21 +125,107 @@ export function useClipboard() {
   }
 
   /**
-   * 处理混合剪贴板内容（文件+文本）
+   * 发送文件给多个用户
    */
-  async function handleMixedClipboardContent(
+  async function sendFilesToMultipleUsers(
     files: File[],
-    onlineUsers: UserInfo[],
+    targetUsers: UserInfo[],
     sendFilesToPeer: (targetPeer: UserInfo, files: File[]) => Promise<void>
   ) {
-    try {
-      // 简化处理：优先发送文件
-      Message.info('检测到文件和文本内容，优先发送文件')
-      await handleClipboardFiles(files, onlineUsers, sendFilesToPeer)
-    } catch (error) {
-      console.error('处理混合剪贴板内容时出错:', error)
-      Message.error('处理混合内容时发生错误')
+    const results = new Map<string, 'pending' | 'success' | 'failed' | 'rejected'>()
+
+    // 初始化所有用户状态为pending
+    targetUsers.forEach(user => {
+      results.set(user.peerId, 'pending')
+    })
+
+    // 更新待发送状态
+    pendingTransfer.value = {
+      targetUsers,
+      files,
+      results
     }
+
+    const promises = targetUsers.map(async (user) => {
+      try {
+        await sendFilesToPeer(user, files)
+        results.set(user.peerId, 'success')
+      } catch (error) {
+        console.error(`发送文件给 ${user.name.displayName} 失败:`, error)
+        results.set(user.peerId, 'failed')
+      }
+    })
+
+    await Promise.allSettled(promises)
+
+    // 统计结果
+    const successCount = Array.from(results.values()).filter(status => status === 'success').length
+    const failedCount = Array.from(results.values()).filter(status => status === 'failed').length
+    const rejectedCount = Array.from(results.values()).filter(status => status === 'rejected').length
+
+    // 显示结果消息
+    if (successCount === targetUsers.length) {
+      Message.success(`已成功发送文件给 ${successCount} 个用户`)
+    } else if (successCount > 0) {
+      Message.warning(`发送完成：${successCount} 个成功，${failedCount} 个失败，${rejectedCount} 个拒绝`)
+    } else {
+      Message.error('文件发送失败')
+    }
+
+    // 清除待发送状态
+    pendingTransfer.value = null
+  }
+
+  /**
+   * 发送文本给多个用户
+   */
+  async function sendTextToMultipleUsers(
+    textContent: string,
+    targetUsers: UserInfo[],
+    sendTextToPeer: (targetPeer: UserInfo, textContent: string) => Promise<void>
+  ) {
+    const results = new Map<string, 'pending' | 'success' | 'failed' | 'rejected'>()
+
+    // 初始化所有用户状态为pending
+    targetUsers.forEach(user => {
+      results.set(user.peerId, 'pending')
+    })
+
+    // 更新待发送状态
+    pendingTransfer.value = {
+      targetUsers,
+      textContent,
+      results
+    }
+
+    const promises = targetUsers.map(async (user) => {
+      try {
+        await sendTextToPeer(user, textContent)
+        results.set(user.peerId, 'success')
+      } catch (error) {
+        console.error(`发送文本给 ${user.name.displayName} 失败:`, error)
+        results.set(user.peerId, 'failed')
+      }
+    })
+
+    await Promise.allSettled(promises)
+
+    // 统计结果
+    const successCount = Array.from(results.values()).filter(status => status === 'success').length
+    const failedCount = Array.from(results.values()).filter(status => status === 'failed').length
+    const rejectedCount = Array.from(results.values()).filter(status => status === 'rejected').length
+
+    // 显示结果消息
+    if (successCount === targetUsers.length) {
+      Message.success(`已成功发送文本给 ${successCount} 个用户`)
+    } else if (successCount > 0) {
+      Message.warning(`发送完成：${successCount} 个成功，${failedCount} 个失败，${rejectedCount} 个拒绝`)
+    } else {
+      Message.error('文本发送失败')
+    }
+
+    // 清除待发送状态
+    pendingTransfer.value = null
   }
 
   /**
@@ -123,7 +234,8 @@ export function useClipboard() {
   function createPasteHandler(
     getOnlineUsers: () => UserInfo[],
     sendFilesToPeer: (targetPeer: UserInfo, files: File[]) => Promise<void>,
-    sendTextToPeer: (targetPeer: UserInfo, textContent: string) => Promise<void>
+    sendTextToPeer: (targetPeer: UserInfo, textContent: string) => Promise<void>,
+    showUserSelector?: (contentType: 'files' | 'text', files?: File[], textContent?: string) => void
   ) {
     return function setupPasteHandler() {
       const handlePaste = async (event: ClipboardEvent) => {
@@ -141,7 +253,7 @@ export function useClipboard() {
         }
 
         const currentOnlineUsers = getOnlineUsers()
-        await handleClipboardData(event.clipboardData, currentOnlineUsers, sendFilesToPeer, sendTextToPeer)
+        await handleClipboardData(event.clipboardData, currentOnlineUsers, sendFilesToPeer, sendTextToPeer, showUserSelector)
       }
 
       document.addEventListener('paste', handlePaste)
@@ -154,7 +266,13 @@ export function useClipboard() {
   }
 
   return {
+    // 状态
+    pendingTransfer,
+
+    // 方法
     createPasteHandler,
-    handleClipboardData
+    handleClipboardData,
+    sendFilesToMultipleUsers,
+    sendTextToMultipleUsers
   }
 }
