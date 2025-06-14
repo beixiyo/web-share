@@ -4,15 +4,14 @@ import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import { FileDownloadManager, FileSendManager } from '@/utils'
 import { Peer, type PeerOpts } from './Peer'
+import { RTCConnect, type RTCConnectConfig } from './RTCConnect'
 
 export class RTCPeer extends Peer {
-  private isCaller = false
   private opts: PeerOpts & RTCPeerOpts
   onChannelReady?: Function
-  private remotePeerId?: string
 
-  declare pc: RTCPeerConnection | null
-  channel: RTCDataChannel | null = null
+  /** RTC 连接管理器 */
+  private rtcConnect: RTCConnect
 
   /** 文件传输管理器 */
   private fileDownloadManager: FileDownloadManager
@@ -21,6 +20,38 @@ export class RTCPeer extends Peer {
   constructor(opts: PeerOpts & RTCPeerOpts) {
     super(opts)
     this.opts = opts
+
+    /** 初始化 RTC 连接管理器 */
+    this.rtcConnect = new RTCConnect({
+      peerId: this.peerId,
+      chunkSize: this.chunkSize,
+      onChannelOpen: (channel) => {
+        console.log('RTC: channel 已打开，对端ID:', this.peerId)
+        this.onChannelReady?.()
+      },
+      onChannelClose: () => {
+        console.log('RTC: channel 已关闭', this.peerId)
+      },
+      onChannelError: (error) => {
+        console.warn('RTC Channel: 对方关闭了连接', error)
+        this.broadcastRTCError(`数据通道错误: ${error.type}`, 'CHANNEL_ERROR')
+        this.opts.onOtherChannelClose?.(error)
+      },
+      onMessage: this.onMessage,
+      onIceCandidate: (candidateData) => {
+        this.server.relay(candidateData)
+        console.log(`向 ${candidateData.toId} 发送 ICE candidate`, candidateData.candidate)
+      },
+      onConnectionStateChange: (state) => {
+        console.log('RTC: 连接状态:', state)
+        if (state === 'failed') {
+          this.broadcastRTCError('RTC连接失败', 'CONNECTION_FAILED')
+        }
+      },
+      onError: (error) => {
+        this.broadcastRTCError(error, 'RTC_CONNECT_ERROR')
+      },
+    })
 
     /** 初始化文件下载管理器 */
     this.fileDownloadManager = new FileDownloadManager({
@@ -44,76 +75,41 @@ export class RTCPeer extends Peer {
       onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_SEND_ERROR'),
     })
-
-    this.connect()
   }
 
+  /**
+   * 连接到远程对等方
+   * 如果是重连，会自动发送 offer
+   */
   connect() {
-    if (this.pc) {
-      this.close()
-    }
-
-    if (!this.pc || this.isSignalClose) {
-      this.pc = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls: 'stun:stun.l.google.com:19302',
-          },
-        ],
-      })
-
-      this.pc.ondatachannel = this.onChannelOpened
-      this.pc.onicecandidate = this.onIceCandidate
-
-      this.pc.onconnectionstatechange = () => {
-        console.log('RTC: 连接状态:', this.pc?.connectionState)
-        if (this.pc?.connectionState === 'failed') {
-          this.broadcastRTCError('RTC连接失败', 'CONNECTION_FAILED')
-        }
-      }
-
-      this.pc.oniceconnectionstatechange = () => {
-        console.log('ICE 连接状态:', this.pc?.iceConnectionState)
-        if (this.pc?.iceConnectionState === 'failed') {
-          this.broadcastRTCError('ICE连接失败', 'ICE_CONNECTION_FAILED')
-        }
-      }
-    }
-
-    /**
-     * 重连
-     */
-    if (this.isCaller) {
-      const targetId = this.toId
-      if (!targetId)
-        return
-      this.sendOffer(targetId)
+    // RTCConnect 会自动处理连接初始化
+    /** 如果需要重连，检查是否有目标 ID */
+    if (this.rtcConnect.remoteId) {
+      this.sendOffer(this.rtcConnect.remoteId)
     }
   }
 
   get isSignalClose() {
-    return this.pc?.signalingState === 'closed'
+    return this.rtcConnect.isSignalClose
   }
 
   get isChannelClose() {
-    return this.channel?.readyState === 'closed'
+    return this.rtcConnect.isChannelClose
   }
 
   get channelAmountIsHigh() {
-    if (!this.channelIsReady(this.channel))
-      return false
-    return this.channel.bufferedAmount > this.channel.bufferedAmountLowThreshold
+    return this.rtcConnect.channelAmountIsHigh
   }
 
   get toId() {
-    return this.remotePeerId || sessionStorage.getItem(SELECTED_PEER_ID)
+    return this.rtcConnect.remoteId || sessionStorage.getItem(SELECTED_PEER_ID)
   }
 
   /**
    * Channel 是否已连接上
    */
   get isChannelOpen() {
-    return this.channel?.readyState === 'open'
+    return this.rtcConnect.isChannelOpen
   }
 
   channelIsReady(channel: RTCDataChannel | null): channel is RTCDataChannel {
@@ -121,28 +117,8 @@ export class RTCPeer extends Peer {
   }
 
   close() {
-    if (this.channel) {
-      this.channel.onclose = null // 移除事件处理器，防止意外调用
-      this.channel.onmessage = null
-      this.channel.onerror = null
-      this.channel.onopen = null
-      if (this.channel.readyState !== 'closed') {
-        this.channel.close()
-      }
-      this.channel = null
-    }
-
-    if (this.pc) {
-      this.pc.onicecandidate = null
-      this.pc.ondatachannel = null
-      this.pc.oniceconnectionstatechange = null
-      this.pc.onconnectionstatechange = null
-      this.pc.onsignalingstatechange = null
-      if (this.pc.signalingState !== 'closed') {
-        this.pc.close()
-      }
-      this.pc = null
-    }
+    /** 关闭 RTC 连接 */
+    this.rtcConnect.close()
 
     /** 清理文件传输管理器 */
     this.fileDownloadManager.cleanup()
@@ -190,38 +166,30 @@ export class RTCPeer extends Peer {
    * @param onChannelReady 通道连接成功回调，你可以用 Promise.withResolvers
    */
   async sendOffer(toId: string, onChannelReady?: Function) {
-    if (!this.pc) {
-      this.connect()
-      this.broadcastRTCError('PeerConnection 为空，无法发送 offer', 'SEND_OFFER_ERROR')
-      return
-    }
-
     if (this.isChannelOpen) {
       console.log('RTC: channel 已经打开，无法发送 offer')
       onChannelReady?.()
       return
     }
 
-    if (!this.channel || this.isChannelClose) {
-      this.openChannel()
-    }
-
-    this.remotePeerId = toId
     this.onChannelReady = onChannelReady
 
     try {
-      const offer = await this.pc.createOffer()
-      await this.pc.setLocalDescription(offer)
+      const offer = await this.rtcConnect.createOffer(toId)
+      if (!offer) {
+        this.broadcastRTCError('创建 offer 失败', 'SEND_OFFER_ERROR')
+        return
+      }
 
       const data: To & Sdp = {
         toId,
         fromId: this.peerId,
-        sdp: this.pc.localDescription!,
+        sdp: offer,
         type: Action.Offer,
       }
       this.server.relay(data)
 
-      console.log(`向 ${toId} 发送 offer`, this.pc.localDescription)
+      console.log(`向 ${toId} 发送 offer`, offer)
     }
     catch (error) {
       this.broadcastRTCError(`创建或发送 offer 失败: ${error}`, 'SEND_OFFER_ERROR')
@@ -229,30 +197,23 @@ export class RTCPeer extends Peer {
   }
 
   async handleOffer(offer: Sdp & To) {
-    if (!this.pc) {
-      this.connect()
-      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 offer', 'HANDLE_OFFER_ERROR')
-      return
-    }
-
-    this.isCaller = false // 标记为接收方
-    this.remotePeerId = offer.fromId
-
     try {
-      await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
-      const answer = await this.pc.createAnswer()
-      await this.pc.setLocalDescription(answer)
+      const answer = await this.rtcConnect.handleOffer(offer)
+      if (!answer) {
+        this.broadcastRTCError('处理 offer 失败', 'HANDLE_OFFER_ERROR')
+        return
+      }
 
       const data: To & Sdp = {
         toId: offer.fromId,
         fromId: this.peerId,
-        sdp: this.pc.localDescription!,
+        sdp: answer,
         type: Action.Answer,
       }
       this.server.relay(data)
 
       console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
-      console.log(`发送 answer 给 ${data.toId}`, this.pc.localDescription)
+      console.log(`发送 answer 给 ${data.toId}`, answer)
     }
     catch (error) {
       this.broadcastRTCError(`处理 offer 失败: ${error}`, 'HANDLE_OFFER_ERROR')
@@ -260,15 +221,12 @@ export class RTCPeer extends Peer {
   }
 
   async handleAnswer(answer: Sdp & To) {
-    if (!this.pc) {
-      this.connect()
-      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 answer', 'HANDLE_ANSWER_ERROR')
-      return
-    }
-
     try {
       console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
-      await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
+      const success = await this.rtcConnect.handleAnswer(answer)
+      if (!success) {
+        this.broadcastRTCError('处理 answer 失败', 'HANDLE_ANSWER_ERROR')
+      }
     }
     catch (error) {
       this.broadcastRTCError(`处理 answer 失败: ${error}`, 'HANDLE_ANSWER_ERROR')
@@ -276,15 +234,12 @@ export class RTCPeer extends Peer {
   }
 
   async handleCandidate(candidate: Candidate & To) {
-    if (!this.pc) {
-      this.connect()
-      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 ICE candidate', 'HANDLE_CANDIDATE_ERROR')
-      return
-    }
-
     try {
       console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
-      await this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
+      const success = await this.rtcConnect.handleCandidate(candidate)
+      if (!success) {
+        this.broadcastRTCError('处理 ICE candidate 失败', 'HANDLE_CANDIDATE_ERROR')
+      }
     }
     catch (error) {
       this.broadcastRTCError(`处理 ICE candidate 失败: ${error}`, 'HANDLE_CANDIDATE_ERROR')
@@ -341,72 +296,19 @@ export class RTCPeer extends Peer {
     setTimeout(() => {
       window.location.reload()
       console.log('RTC错误导致页面刷新')
-    }, 40)
+    }, 30)
   }
 
   private sendJSON<T>(data: RTCBaseData<T>) {
-    if (!this.channelIsReady(this.channel))
-      return
-    this.channel.send(JSON.stringify(data))
+    this.rtcConnect.sendJSON(data)
   }
 
   private send(data: any) {
-    if (!this.channelIsReady(this.channel))
-      return
-    this.channel.send(data)
+    this.rtcConnect.send(data)
   }
 
-  private openChannel() {
-    if (!this.pc) {
-      this.connect()
-      return
-    }
-
-    const channel = this.pc.createDataChannel('data-channel', {
-      ordered: true,
-    })
-    channel.onopen = this.onChannelOpened as any
-
-    this.isCaller = true
-  }
-
-  private onChannelOpened = (e: RTCDataChannelEvent) => {
-    if (!this.pc) {
-      this.connect()
-      return
-    }
-    console.log('RTC: channel 已打开，对端ID:', this.peerId)
-
-    const channel = e.channel || e.target
-    this.channel = channel
-
-    channel.binaryType = 'arraybuffer'
-    /**
-     * maxMessageSize = 256KB
-     * 设置阈值为可以容纳分块大小多一点
-     */
-    channel.bufferedAmountLowThreshold = this.pc.sctp!.maxMessageSize - this.chunkSize - 50
-
-    channel.onclose = this.onClose
-    channel.onerror = this.onChannelError
-    channel.onmessage = this.onMessage
-    this.onChannelReady?.()
-  }
-
-  private onIceCandidate = (e: RTCPeerConnectionIceEvent) => {
-    const toId = this.toId
-    if (!e.candidate || !toId)
-      return
-
-    const data: To & Candidate = {
-      toId,
-      fromId: this.peerId,
-      candidate: e.candidate,
-      type: Action.Candidate,
-    }
-    this.server.relay(data)
-
-    console.log(`向 ${toId} 发送 ICE candidate`, e.candidate)
+  private waitUntilChannelIdle() {
+    return this.rtcConnect.waitUntilChannelIdle()
   }
 
   private onMessage = async (e: MessageEvent) => {
@@ -462,27 +364,6 @@ export class RTCPeer extends Peer {
       /** 接收二进制数据，传递给文件下载管理器 */
       this.fileDownloadManager.receiveDataChunk(new Uint8Array(e.data))
     }
-  }
-
-  private onClose = () => {
-    console.log('RTC: channel 已关闭', this.peerId)
-    if (!this.isCaller)
-      return
-    this.connect() // reopen the channel
-  }
-
-  private onChannelError = (error: Event) => {
-    console.warn('RTC Channel: 对方关闭了连接', error)
-    this.broadcastRTCError(`数据通道错误: ${error.type}`, 'CHANNEL_ERROR')
-    this.opts.onOtherChannelClose?.(error)
-  }
-
-  private waitUntilChannelIdle() {
-    return new Promise<void>((resolve) => {
-      this.channel!.onbufferedamountlow = () => {
-        resolve()
-      }
-    })
   }
 }
 
