@@ -130,6 +130,39 @@
       @cleanup-expired="handleCleanupExpiredResumeCache"
     />
 
+    <!-- 拖拽覆盖层 -->
+    <div :class="dragOverlayClass">
+      <div :class="dropZoneClass">
+        <div v-if="isDropZoneActive" class="space-y-4">
+          <div class="text-6xl">📁</div>
+          <div class="text-xl font-semibold">释放文件开始传输</div>
+          <div class="text-sm opacity-75">
+            支持多文件同时传输
+          </div>
+        </div>
+        <div v-else class="space-y-4">
+          <div class="text-6xl opacity-50">🚫</div>
+          <div class="text-xl font-semibold">不支持的内容类型</div>
+          <div class="text-sm opacity-75">
+            请拖拽文件到此区域
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 拖拽状态指示器 -->
+    <div
+      v-if="isDragging"
+      class="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg dark:bg-gray-800/90"
+    >
+      <div class="flex items-center space-x-2">
+        <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+        <span class="text-sm font-medium dark:text-gray-200">
+          {{ isDragFile ? '检测到文件' : '拖拽中...' }}
+        </span>
+      </div>
+    </div>
+
     <canvas
       ref="canvas"
       class="absolute left-0 top-0 h-full w-full from-[#e8e8e8] to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800"
@@ -141,7 +174,7 @@
 import type { UserInfo } from 'web-share-common'
 import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
-import { onMounted, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useResumeCache } from '@/hooks/useResumeCache'
 import { formatByte, Message } from '@/utils'
@@ -152,6 +185,7 @@ import CacheDetectionModal from './CacheDetectionModal.vue'
 import ClearCacheModal from './ClearCacheModal.vue'
 import { getDeviceIcon } from './hooks/tools'
 import { useClipboard } from './hooks/useClipboard'
+import { createDragDropHandler } from './hooks/useDragDrop'
 import { useFileTransfer } from './hooks/useFileTransfer'
 import { useModalStates } from './hooks/useModalStates'
 import { usePageVisibility } from './hooks/usePageVisibility'
@@ -256,6 +290,8 @@ const {
   formatCacheInfo,
 } = resumeCache
 
+
+
 /** 其他状态 */
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
@@ -353,6 +389,69 @@ onMounted(() => {
 
 /** 创建发送文件函数 */
 const sendFilesToPeerFunc = fileTransfer.createSendFilesToPeer(me, setSelectedPeer, setLoading, forceCloseLoading)
+
+/** 设置拖拽功能 */
+const setupDragDropHandler = createDragDropHandler(
+  () => onlineUsers.value,
+  sendFilesToPeerFunc,
+  showUserSelectorForClipboard,
+)
+
+const dragDrop = setupDragDropHandler({
+  enabled: true,
+  onDrop: (files) => {
+    console.log(`通过拖拽接收到 ${files.length} 个文件`)
+  },
+})
+
+/** 导出拖拽状态 */
+const {
+  isDragging,
+  isDragFile,
+  isDropZoneActive,
+} = dragDrop
+
+/** 拖拽样式计算 */
+const dragOverlayClass = computed(() => {
+  if (!isDragging.value) return 'hidden'
+
+  return [
+    'fixed inset-0 z-50 flex items-center justify-center',
+    'bg-black/20 backdrop-blur-sm',
+    isDropZoneActive.value
+      ? 'bg-emerald-500/20'
+      : 'bg-gray-500/20',
+  ].join(' ')
+})
+
+const dropZoneClass = computed(() => {
+  return [
+    'border-4 border-dashed rounded-2xl p-8 m-8',
+    'flex flex-col items-center justify-center text-center',
+    'transition-all duration-200',
+    isDropZoneActive.value
+      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+      : 'border-gray-400 bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  ].join(' ')
+})
+
+/** 条件性启用拖拽功能 */
+watch(onlineUsers, (users) => {
+  if (users.length > 0) {
+    dragDrop.enableDragDrop()
+  } else {
+    dragDrop.disableDragDrop()
+  }
+}, { immediate: true })
+
+/** 在模态框打开时禁用拖拽 */
+watch([showAcceptFile, showTextInput, loading], ([acceptFile, textInput, isLoading]) => {
+  if (acceptFile || textInput || isLoading) {
+    dragDrop.disableDragDrop()
+  } else if (onlineUsers.value.length > 0) {
+    dragDrop.enableDragDrop()
+  }
+})
 
 /**
  * 向指定用户发送文本
