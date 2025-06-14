@@ -4,7 +4,7 @@ import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import { FileDownloadManager, FileSendManager } from '@/utils'
 import { Peer, type PeerOpts } from './Peer'
-import { RTCConnect, type RTCConnectConfig } from './RTCConnect'
+import { RTCConnect } from './RTCConnect'
 
 export class RTCPeer extends Peer {
   private opts: PeerOpts & RTCPeerOpts

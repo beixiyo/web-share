@@ -1,6 +1,6 @@
 import type { FileMeta, ProgressData, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { compressImg, FileChunker, getImg, type MIMEType, wait } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 

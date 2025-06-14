@@ -3,23 +3,25 @@
     v-model="show"
     title="清理缓存"
     width="500"
-    height="400">
+    height="400"
+  >
     <div class="space-y-4">
       <!-- 清理选项 -->
       <div class="space-y-3">
-        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h3 class="text-sm text-gray-700 font-medium dark:text-gray-300">
           选择清理类型
         </h3>
 
         <div class="space-y-2">
-          <label class="flex items-center space-x-3 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-3">
             <input
               v-model="cleanupType"
               type="radio"
               value="expired"
-              class="w-4 h-4 text-blue-600">
+              class="h-4 w-4 text-blue-600"
+            >
             <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-sm text-gray-900 font-medium dark:text-gray-100">
                 清理过期数据
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -28,14 +30,15 @@
             </div>
           </label>
 
-          <label class="flex items-center space-x-3 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-3">
             <input
               v-model="cleanupType"
               type="radio"
               value="failed"
-              class="w-4 h-4 text-blue-600">
+              class="h-4 w-4 text-blue-600"
+            >
             <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-sm text-gray-900 font-medium dark:text-gray-100">
                 清理失败数据
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -44,14 +47,15 @@
             </div>
           </label>
 
-          <label class="flex items-center space-x-3 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-3">
             <input
               v-model="cleanupType"
               type="radio"
               value="completed"
-              class="w-4 h-4 text-blue-600">
+              class="h-4 w-4 text-blue-600"
+            >
             <div class="flex-1">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-sm text-gray-900 font-medium dark:text-gray-100">
                 清理已完成数据
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -60,14 +64,15 @@
             </div>
           </label>
 
-          <label class="flex items-center space-x-3 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-3">
             <input
               v-model="cleanupType"
               type="radio"
               value="all"
-              class="w-4 h-4 text-red-600">
+              class="h-4 w-4 text-red-600"
+            >
             <div class="flex-1">
-              <div class="text-sm font-medium text-red-600 dark:text-red-400">
+              <div class="text-sm text-red-600 font-medium dark:text-red-400">
                 清理所有数据
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
@@ -80,7 +85,7 @@
 
       <!-- 过期天数设置 -->
       <div v-if="cleanupType === 'expired'" class="space-y-2">
-        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label class="text-sm text-gray-700 font-medium dark:text-gray-300">
           过期天数
         </label>
         <input
@@ -88,31 +93,34 @@
           type="number"
           min="1"
           max="365"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+          class="w-full border border-gray-300 rounded-md px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
       </div>
 
       <!-- 清理选项 -->
       <div class="space-y-2">
-        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h3 class="text-sm text-gray-700 font-medium dark:text-gray-300">
           清理内容
         </h3>
 
         <div class="space-y-2">
-          <label class="flex items-center space-x-2 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-2">
             <input
               v-model="includeFileData"
               type="checkbox"
-              class="w-4 h-4 text-blue-600">
+              class="h-4 w-4 text-blue-600"
+            >
             <span class="text-sm text-gray-700 dark:text-gray-300">
               清理文件缓存数据
             </span>
           </label>
 
-          <label class="flex items-center space-x-2 cursor-pointer">
+          <label class="flex cursor-pointer items-center space-x-2">
             <input
               v-model="includeTransferRecords"
               type="checkbox"
-              class="w-4 h-4 text-blue-600">
+              class="h-4 w-4 text-blue-600"
+            >
             <span class="text-sm text-gray-700 dark:text-gray-300">
               清理传输记录
             </span>
@@ -121,11 +129,15 @@
       </div>
 
       <!-- 清理结果 -->
-      <div v-if="cleanupResult"
-        class="p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+      <div
+        v-if="cleanupResult"
+        class="rounded-md bg-green-50 p-3 dark:bg-green-900/20"
+      >
         <div class="text-sm text-green-800 dark:text-green-200">
-          <div class="font-medium mb-1">清理完成</div>
-          <div class="space-y-1 text-xs">
+          <div class="mb-1 font-medium">
+            清理完成
+          </div>
+          <div class="text-xs space-y-1">
             <div>清理会话: {{ cleanupResult.cleanedSessions }} 个</div>
             <div>清理文件: {{ cleanupResult.cleanedFiles }} 个</div>
             <div>释放空间: {{ formatBytes(cleanupResult.freedBytes) }}</div>
@@ -139,14 +151,16 @@
       <div class="flex justify-end space-x-2">
         <Button
           variant="default"
-          @click="show = false">
+          @click="show = false"
+        >
           取消
         </Button>
         <Button
           variant="danger"
           :loading="isClearing"
           loading-text="清理中..."
-          @click="handleClearCache">
+          @click="handleClearCache"
+        >
           {{ cleanupType === 'all' ? '清理所有数据' : '开始清理' }}
         </Button>
       </div>
@@ -173,13 +187,13 @@ const emit = defineEmits<{
 
 const show = defineModel<boolean>()
 
-// 清理选项
+/** 清理选项 */
 const cleanupType = ref<'all' | 'expired' | 'failed' | 'completed'>('expired')
 const expireDays = ref(7)
 const includeFileData = ref(true)
 const includeTransferRecords = ref(true)
 
-// 状态
+/** 状态 */
 const isClearing = ref(false)
 const cleanupResult = ref<CleanupResult | null>(null)
 
@@ -187,7 +201,8 @@ const cleanupResult = ref<CleanupResult | null>(null)
  * 处理清理缓存
  */
 async function handleClearCache() {
-  if (isClearing.value) return
+  if (isClearing.value)
+    return
 
   isClearing.value = true
   cleanupResult.value = null
@@ -195,18 +210,22 @@ async function handleClearCache() {
   try {
     const options = {
       type: cleanupType.value,
-      expireDays: cleanupType.value === 'expired' ? expireDays.value : undefined,
+      expireDays: cleanupType.value === 'expired'
+        ? expireDays.value
+        : undefined,
       includeFileData: includeFileData.value,
-      includeTransferRecords: includeTransferRecords.value
+      includeTransferRecords: includeTransferRecords.value,
     }
 
     const result = await emit('clear', options)
     cleanupResult.value = result
 
     show.value = false
-  } catch (error) {
+  }
+  catch (error) {
     console.error('清理缓存失败:', error)
-  } finally {
+  }
+  finally {
     isClearing.value = false
   }
 }
@@ -218,7 +237,7 @@ function formatBytes(bytes: number): string {
   return formatByte(bytes)
 }
 
-// 重置状态
+/** 重置状态 */
 watch(show, (newShow) => {
   if (newShow) {
     cleanupResult.value = null

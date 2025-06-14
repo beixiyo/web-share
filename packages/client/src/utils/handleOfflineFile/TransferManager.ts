@@ -1,6 +1,6 @@
 import type { CleanupOptions, CleanupResult, TransferManagerConfig, TransferProgress, TransferSession, TransferStatus } from './types'
-import { TransferStore } from './TransferStore'
 import { ResumeManager } from './ResumeManager'
+import { TransferStore } from './TransferStore'
 
 /**
  * 传输管理器
