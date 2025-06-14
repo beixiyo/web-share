@@ -42,8 +42,8 @@ importers:
   packages/client:
     dependencies:
       '@jl-org/cvs':
-        specifier: ^1.0.13
-        version: 1.0.52
+        specifier: ^1.0.53
+        version: 1.0.53
       '@jl-org/tool':
         specifier: ^2.0.8
         version: 2.0.8
@@ -893,8 +893,8 @@ packages:
   '@iconify/utils@2.3.0':
     resolution: {integrity: sha512-GmQ78prtwYW6EtzXRU1rY+KwOKfz32PD7iJh6Iyqw68GiKuoZ2A6pRtzWONz5VQJbp50mEjXh/7NkumtrAgRKA==}
 
-  '@jl-org/cvs@1.0.52':
-    resolution: {integrity: sha512-yHqQmR7WuI/TiJrf9xmghXc4jz+zkBT53wakwSqymqTJMtAv+iPaimcdiwy5sefLcE6SvFQS86F44mh7WMIEGg==}
+  '@jl-org/cvs@1.0.53':
+    resolution: {integrity: sha512-QSF6LuX4MC7HLsyzBi6NlmN/In94mVlhKCxWbeJJ2BwjSzenK3dMnHWtPX1/JnNK8JnXNVFHyiW0AVMsP86YCQ==}
 
   '@jl-org/eslint-plugins@1.0.0':
     resolution: {integrity: sha512-mntGFsumnV/KZowqM6CCjsmRbYdx6RN3UaJSTu6PoOHynfr5ihAMXEAmUumW3uQ6ZK6yDgzWu21iIJXw84DIuQ==}
@@ -4644,7 +4644,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@jl-org/cvs@1.0.52':
+  '@jl-org/cvs@1.0.53':
     dependencies:
       '@jl-org/tool': 2.0.8
 

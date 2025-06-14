@@ -12,7 +12,7 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
-    "@jl-org/cvs": "^1.0.13",
+    "@jl-org/cvs": "^1.0.53",
     "@jl-org/tool": "^2.0.8",
     "@jl-org/vite-auto-route": "1.0.6",
     "class-variance-authority": "^0.7.1",
