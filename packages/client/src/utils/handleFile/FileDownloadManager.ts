@@ -10,9 +10,11 @@ import { ResumeManager } from '@/utils/handleOfflineFile'
  */
 export class FileDownloadManager {
   private config: FileDownloadConfig
+
   private downloader?: StreamDownloader
   private downloadRafId: number[] = []
   private downloadBuffer: Uint8Array[] = []
+
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
   private currentFileHash?: string
@@ -33,6 +35,11 @@ export class FileDownloadManager {
         contentLength: fileInfo.size,
         mimeType: fileInfo.type,
       })
+
+      /** 如果有缓存数据，恢复到下载缓冲区 */
+      if (this.currentFileHash) {
+        await this.restoreCachedData()
+      }
 
       /** 开始处理缓冲区 */
       this.appendDownloadBuffer()
@@ -168,6 +175,32 @@ export class FileDownloadManager {
   }
 
   /**
+   * 处理文件元数据并立即返回断点续传信息
+   */
+  async handleFileMetasForResume(fileMetas: FileMeta[]): Promise<void> {
+    for (const fileMeta of fileMetas) {
+      if (fileMeta.fileHash) {
+        /** 检查是否有缓存并返回断点续传信息 */
+        const resumeInfo = await this.resumeManager.getResumeInfo(fileMeta.fileHash)
+
+        const response: ResumeInfo = {
+          fileHash: fileMeta.fileHash,
+          startOffset: resumeInfo.startOffset,
+          hasCache: resumeInfo.hasCache,
+          fromId: fileMeta.fromId, // 返回给发送方
+        }
+
+        this.config.sendJSON({
+          type: Action.ResumeInfo,
+          data: response,
+        })
+
+        console.warn(`文件元数据断点续传检查: ${fileMeta.name}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
+      }
+    }
+  }
+
+  /**
    * 设置文件元数据缓存
    */
   setFileMetaCache(fileMetas: FileMeta[]): void {
@@ -182,6 +215,34 @@ export class FileDownloadManager {
   }
 
   /**
+   * 恢复缓存的数据到下载缓冲区
+   */
+  private async restoreCachedData(): Promise<void> {
+    if (!this.currentFileHash) {
+      return
+    }
+
+    try {
+      const cachedChunks = await this.resumeManager.getCachedChunks(this.currentFileHash)
+
+      if (cachedChunks.length > 0) {
+        console.warn(`恢复缓存数据: ${this.currentFileHash}, 数据块数量: ${cachedChunks.length}`)
+
+        /** 将缓存的数据块写入 StreamDownloader */
+        for (const chunk of cachedChunks) {
+          await this.writeFileBuffer(new Uint8Array(chunk))
+        }
+
+        console.warn(`缓存数据恢复完成: ${this.currentFileHash}`)
+      }
+    }
+    catch (error) {
+      console.error('恢复缓存数据失败:', error)
+      /** 恢复失败不应该阻止文件下载，只是记录错误 */
+    }
+  }
+
+  /**
    * 清理资源
    */
   cleanup(): void {
@@ -189,6 +250,7 @@ export class FileDownloadManager {
     this.downloadBuffer = []
     this.fileMetaCache = []
     this.downloader = undefined
+    this.currentFileHash = undefined
   }
 
   /**

@@ -185,14 +185,20 @@ export class ResumeManager {
    * 获取缓存的所有数据块
    */
   async getCachedChunks(fileHash: string): Promise<ArrayBuffer[]> {
-    const cacheKey = this.getCacheKey(fileHash)
-    const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
+    try {
+      const cacheKey = this.getCacheKey(fileHash)
+      const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
 
-    if (!cacheItem) {
+      if (!cacheItem || !cacheItem.chunks) {
+        return []
+      }
+
+      console.warn(`获取缓存数据块: ${fileHash}, 数量: ${cacheItem.chunks.length}`)
+      return cacheItem.chunks
+    } catch (error) {
+      console.error(`获取缓存数据块失败: ${fileHash}`, error)
       return []
     }
-
-    return cacheItem.chunks
   }
 
   /**

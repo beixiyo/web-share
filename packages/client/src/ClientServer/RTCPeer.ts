@@ -170,12 +170,6 @@ export class RTCPeer extends Peer {
     files: File[],
     onDenyFile?: VoidFunction,
   ) {
-    /** 先请求断点续传信息 */
-    await this.fileSendManager.requestResumeInfo(files)
-
-    /** 等待一段时间收集断点续传响应 */
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
     return this.fileSendManager.sendFiles(files, onDenyFile)
   }
 
@@ -297,9 +291,12 @@ export class RTCPeer extends Peer {
     }
   }
 
-  handleFileMetas(fileMeta: FileMeta[]) {
+  async handleFileMetas(fileMeta: FileMeta[]) {
     /** 将文件元数据传递给下载管理器 */
     this.fileDownloadManager.setFileMetaCache(fileMeta)
+
+    /** 立即处理断点续传信息并返回给发送方 */
+    await this.fileDownloadManager.handleFileMetasForResume(fileMeta)
 
     this.opts.onFileMetas?.(fileMeta, (data) => {
       const { promise } = data
@@ -344,7 +341,7 @@ export class RTCPeer extends Peer {
     setTimeout(() => {
       window.location.reload()
       console.log('RTC错误导致页面刷新')
-    }, 100)
+    }, 40)
   }
 
   private sendJSON<T>(data: RTCBaseData<T>) {

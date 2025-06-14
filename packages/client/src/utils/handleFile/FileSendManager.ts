@@ -15,6 +15,7 @@ export class FileSendManager {
   private onDenyFile?: Function
   private resumeManager: ResumeManager
   private resumeInfoMap: Map<string, { startOffset: number, hasCache: boolean }> = new Map()
+  private pendingResumeRequests: Set<string> = new Set()
 
   constructor(config: FileSendConfig) {
     this.config = config
@@ -103,6 +104,9 @@ export class FileSendManager {
 
       const data = await Promise.all(metaPromises)
 
+      /** 发送断点续传请求，获取接收方的缓存信息 */
+      await this.requestResumeInfo(files)
+
       /** 通过 WebSocket 发送，因为 WebRTC 接收文件大小有限 */
       this.config.relay({
         data,
@@ -147,8 +151,14 @@ export class FileSendManager {
       return
     }
 
+    /** 清空之前的请求记录 */
+    this.pendingResumeRequests.clear()
+    this.resumeInfoMap.clear()
+
     for (const file of files) {
       const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
+      this.pendingResumeRequests.add(fileHash)
+
       const resumeRequest: ResumeRequest = {
         fileHash,
         fileName: file.name,
@@ -161,6 +171,24 @@ export class FileSendManager {
         data: resumeRequest,
       })
     }
+
+    /** 等待所有断点续传响应（最多等待3秒） */
+    await this.waitForResumeResponses(3000)
+  }
+
+  /**
+   * 等待断点续传响应
+   */
+  private async waitForResumeResponses(timeoutMs: number): Promise<void> {
+    const startTime = Date.now()
+
+    while (this.pendingResumeRequests.size > 0 && (Date.now() - startTime) < timeoutMs) {
+      await new Promise(resolve => setTimeout(resolve, 50)) // 每50ms检查一次
+    }
+
+    if (this.pendingResumeRequests.size > 0) {
+      console.warn(`断点续传响应超时，未收到 ${this.pendingResumeRequests.size} 个文件的响应`)
+    }
   }
 
   /**
@@ -171,6 +199,11 @@ export class FileSendManager {
       startOffset: resumeInfo.startOffset,
       hasCache: resumeInfo.hasCache,
     })
+
+    /** 从待处理列表中移除 */
+    this.pendingResumeRequests.delete(resumeInfo.fileHash)
+
+    console.warn(`收到断点续传响应: ${resumeInfo.fileHash}, 偏移: ${resumeInfo.startOffset}, 缓存: ${resumeInfo.hasCache}`)
   }
 
   /**
@@ -181,6 +214,7 @@ export class FileSendManager {
     this.onAcceptFile = undefined
     this.onDenyFile = undefined
     this.resumeInfoMap.clear()
+    this.pendingResumeRequests.clear()
   }
 
   /**
