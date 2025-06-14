@@ -203,8 +203,54 @@ export function useDragDrop(options: DragDropOptions = {}) {
   }
 
   /**
+   * 文件去重函数
+   * 基于文件名和文件大小的组合进行去重
+   */
+  function deduplicateFiles(files: File[]): { uniqueFiles: File[], duplicateCount: number } {
+    const fileMap = new Map<string, File>()
+    let duplicateCount = 0
+
+    for (const file of files) {
+      /** 生成基于文件名和大小的唯一键 */
+      const fileKey = `${file.name}_${file.size}`
+
+      if (fileMap.has(fileKey)) {
+        duplicateCount++
+        console.warn(`检测到重复文件: ${file.name} (${file.size} bytes)`)
+      }
+      else {
+        fileMap.set(fileKey, file)
+      }
+    }
+
+    return {
+      uniqueFiles: Array.from(fileMap.values()),
+      duplicateCount,
+    }
+  }
+
+  /**
+   * 重置相关DOM元素状态
+   */
+  function resetDOMState() {
+    /** 重置可能存在的文件输入元素 */
+    const fileInputs = document.querySelectorAll('input[type="file"]')
+    fileInputs.forEach((input) => {
+      if (input instanceof HTMLInputElement) {
+        input.value = ''
+      }
+    })
+
+    /** 清理可能的拖拽相关样式 */
+    document.body.classList.remove('dragging', 'drag-over')
+
+    /** 重置拖拽状态计数器（防止状态异常） */
+    dragState.value.dragCounter = 0
+  }
+
+  /**
    * 处理拖拽的文件
-   * 复用 useClipboard 中的文件处理逻辑
+   * 复用 useClipboard 中的文件处理逻辑，添加文件去重和状态重置
    */
   async function handleDraggedFiles(
     files: File[],
@@ -225,22 +271,42 @@ export function useDragDrop(options: DragDropOptions = {}) {
         return
       }
 
+      /** 文件去重处理 */
+      const { uniqueFiles, duplicateCount } = deduplicateFiles(files)
+
+      if (duplicateCount > 0) {
+        Message.warning(`检测到 ${duplicateCount} 个重复文件，已自动去重`)
+      }
+
+      if (uniqueFiles.length === 0) {
+        Message.warning('去重后没有可发送的文件')
+        return
+      }
+
       /** 处理文件发送 */
       if (onlineUsers.length > 1 && showUserSelector) {
         /** 多个用户在线，显示用户选择器 */
-        showUserSelector('files', files)
+        showUserSelector('files', uniqueFiles)
       }
       else {
         /** 只有一个用户在线，直接发送 */
         const targetPeer = onlineUsers[0]
-        await sendFilesToPeer(targetPeer, files)
+        await sendFilesToPeer(targetPeer, uniqueFiles)
 
-        Message.success(`已通过拖拽发送 ${files.length} 个文件给 ${targetPeer.name.displayName}`)
+        const fileCountText = duplicateCount > 0
+          ? `${uniqueFiles.length} 个文件（已去重 ${duplicateCount} 个）`
+          : `${uniqueFiles.length} 个文件`
+
+        Message.success(`已通过拖拽发送 ${fileCountText} 给 ${targetPeer.name.displayName}`)
       }
     }
     catch (error) {
       console.error('处理拖拽文件时出错:', error)
       Message.error('处理拖拽文件时发生错误')
+    }
+    finally {
+      /** 重置DOM状态 */
+      resetDOMState()
     }
   }
 

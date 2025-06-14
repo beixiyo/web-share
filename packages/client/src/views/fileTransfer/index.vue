@@ -130,38 +130,12 @@
       @cleanup-expired="handleCleanupExpiredResumeCache"
     />
 
-    <!-- 拖拽覆盖层 -->
-    <div :class="dragOverlayClass">
-      <div :class="dropZoneClass">
-        <div v-if="isDropZoneActive" class="space-y-4">
-          <div class="text-6xl">📁</div>
-          <div class="text-xl font-semibold">释放文件开始传输</div>
-          <div class="text-sm opacity-75">
-            支持多文件同时传输
-          </div>
-        </div>
-        <div v-else class="space-y-4">
-          <div class="text-6xl opacity-50">🚫</div>
-          <div class="text-xl font-semibold">不支持的内容类型</div>
-          <div class="text-sm opacity-75">
-            请拖拽文件到此区域
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 拖拽状态指示器 -->
-    <div
-      v-if="isDragging"
-      class="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg dark:bg-gray-800/90"
-    >
-      <div class="flex items-center space-x-2">
-        <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-        <span class="text-sm font-medium dark:text-gray-200">
-          {{ isDragFile ? '检测到文件' : '拖拽中...' }}
-        </span>
-      </div>
-    </div>
+    <!-- 拖拽覆盖层组件 -->
+    <DragDropOverlay
+      :is-dragging="isDragging"
+      :is-drag-file="isDragFile"
+      :is-drop-zone-active="isDropZoneActive"
+    />
 
     <canvas
       ref="canvas"
@@ -183,6 +157,7 @@ import AcceptModal from './AcceptModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import CacheDetectionModal from './CacheDetectionModal.vue'
 import ClearCacheModal from './ClearCacheModal.vue'
+import DragDropOverlay from './components/DragDropOverlay.vue'
 import { getDeviceIcon } from './hooks/tools'
 import { useClipboard } from './hooks/useClipboard'
 import { createDragDropHandler } from './hooks/useDragDrop'
@@ -411,29 +386,7 @@ const {
   isDropZoneActive,
 } = dragDrop
 
-/** 拖拽样式计算 */
-const dragOverlayClass = computed(() => {
-  if (!isDragging.value) return 'hidden'
 
-  return [
-    'fixed inset-0 z-50 flex items-center justify-center',
-    'bg-black/20 backdrop-blur-sm',
-    isDropZoneActive.value
-      ? 'bg-emerald-500/20'
-      : 'bg-gray-500/20',
-  ].join(' ')
-})
-
-const dropZoneClass = computed(() => {
-  return [
-    'border-4 border-dashed rounded-2xl p-8 m-8',
-    'flex flex-col items-center justify-center text-center',
-    'transition-all duration-200',
-    isDropZoneActive.value
-      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
-      : 'border-gray-400 bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  ].join(' ')
-})
 
 /** 条件性启用拖拽功能 */
 watch(onlineUsers, (users) => {
