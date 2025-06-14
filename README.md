@@ -1,6 +1,6 @@
 # 🔗 Web Airdrop
 
-在浏览器实现文件传输，无服务器收集信息，让浏览器再次伟大！！
+在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />

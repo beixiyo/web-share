@@ -36,6 +36,6 @@
     "nodemon": "^3.1.9",
     "npm-run-all2": "^7.0.1",
     "typescript": "~5.7.2",
-    "vite": "npm:rolldown-vite@latest"
+    "vite": "6.0.4"
   }
 }
