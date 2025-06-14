@@ -91,16 +91,27 @@ export function useDragDrop(options: DragDropOptions = {}) {
 
   /**
    * 从拖拽事件中提取文件
+   * 优先使用 dataTransfer.files，回退到 dataTransfer.items
+   * 确保每个文件只被添加一次，避免重复提取
    */
   function extractFilesFromDragEvent(event: DragEvent): File[] {
     const files: File[] = []
 
-    if (event.dataTransfer?.files) {
-      files.push(...Array.from(event.dataTransfer.files))
+    if (!event.dataTransfer) {
+      return files
     }
 
-    if (event.dataTransfer?.items) {
+    /** 方法1：优先使用 dataTransfer.files（直接提供 File 对象数组） */
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      /** 使用 files 属性，这是最直接和可靠的方式 */
+      files.push(...Array.from(event.dataTransfer.files))
+      return files
+    }
+
+    /** 方法2：回退到 dataTransfer.items（用于兼容性或特殊情况） */
+    if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
       for (const item of Array.from(event.dataTransfer.items)) {
+        /** 只处理文件类型的项目 */
         if (item.kind === 'file') {
           const file = item.getAsFile()
           if (file) {
