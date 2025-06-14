@@ -1,12 +1,9 @@
-import { numFixed } from '@jl-org/tool'
+export function formatByte(bytes: number): string {
+  if (bytes === 0)
+    return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
 
-export function formatByte(byteLength: number): string {
-  if (byteLength < 1000) {
-    return `${byteLength} B`
-  }
-  if (byteLength < 1024 * 1024) {
-    return `${numFixed(byteLength / 1024)} KB`
-  }
-
-  return `${numFixed(byteLength / 1024 / 1024)} MB`
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
 }

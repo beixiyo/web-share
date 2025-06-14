@@ -35,12 +35,23 @@
       @click="emit('showKeyManagement')"
     />
 
+    <!-- 清理缓存按钮 -->
+    <Button
+      variant="default"
+      design-style="neumorphic"
+      size="md"
+      :icon-only="true"
+      :left-icon="Trash2"
+      title="清理缓存"
+      @click="emit('clearCache')"
+    />
+
     <!-- 其他工具按钮可以在这里添加 -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { KeyRound, Moon, QrCode, Sun } from 'lucide-vue-next'
+import { KeyRound, Moon, QrCode, Sun, Trash2 } from 'lucide-vue-next'
 import Button from '@/components/Button/index.vue'
 import { useTheme } from '@/hooks/useTheme'
 import { toggleThemeWithTransition } from '@/utils/theme'
@@ -59,6 +70,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'generateQrCode'): void
   (e: 'showKeyManagement'): void
+  (e: 'clearCache'): void
 }>()
 /** 主题相关逻辑 */
 const [theme, setTheme] = useTheme()
