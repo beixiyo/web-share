@@ -1,90 +1,106 @@
 <template>
-  <div v-loading="{ loading, text: loadingMessage }"
-    :class="[
-      'overflow-hidden relative h-screen',
-      'flex flex-col justify-center items-center',
-    ]">
-
+  <div
+    v-loading="{ loading, text: loadingMessage }"
+    class="relative h-screen flex flex-col items-center justify-center overflow-hidden"
+  >
     <!-- 工具栏 -->
     <ToolBar
       :qr-code-value="qrCodeValue"
       @generate-qr-code="onRequestCreateDirectRoom"
-      @show-key-management="showKeyManagementModal = true" />
+      @show-key-management="showKeyManagementModal = true"
+    />
 
     <!-- 用户信息展示 - 移动到中心底部 -->
-    <div v-if="info"
-      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2">
+    <div
+      v-if="info"
+      class="absolute bottom-8 left-1/2 flex flex-col transform items-center -translate-x-1/2 space-y-2"
+    >
       <!-- 主要用户信息 -->
-      <div class="flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
-                  dark:bg-gray-800/80 dark:shadow-gray-700/50
-                  sm:p-2 sm:space-x-1 sm:text-sm sm:max-w-[calc(100vw-2rem)]">
-        <component :is="getDeviceIcon(info.name.type || info.name.os)"
-          class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5 flex-shrink-0" />
+      <div
+        class="flex items-center rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm sm:max-w-[calc(100vw-2rem)] space-x-2 dark:bg-gray-800/80 sm:p-2 sm:text-sm dark:shadow-gray-700/50 sm:space-x-1"
+      >
+        <component
+          :is="getDeviceIcon(info.name.type || info.name.os)"
+          class="h-6 w-6 flex-shrink-0 text-emerald-600 sm:h-5 sm:w-5 dark:text-emerald-400"
+        />
         <span
-          class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs truncate">
+          class="truncate text-gray-700 font-semibold sm:text-xs dark:text-gray-200"
+        >
           你当前是: <span
-            class="text-emerald-600 dark:text-emerald-400">{{ info.name.displayName }}</span>
+            class="text-emerald-600 dark:text-emerald-400"
+          >{{ info.name.displayName }}</span>
         </span>
       </div>
 
       <!-- 粘贴提示 -->
-      <div v-if="onlineUsers.length > 0"
-        class="text-xs text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60
-               backdrop-blur-sm px-2 py-1 rounded-md shadow-sm
-               sm:text-[10px] sm:px-1.5 sm:py-0.5">
+      <div
+        v-if="onlineUsers.length > 0"
+        class="rounded-md bg-white/60 px-2 py-1 text-xs text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400"
+      >
         💡 按 Ctrl+V 粘贴文件或文本快速发送
       </div>
     </div>
 
     <!-- 浮动小球 -->
-    <User :info="info" v-model="onlineUsers"
+    <User
+      v-model="onlineUsers" :info="info"
       @click-peer="onClickPeer"
-      @contextmenu-peer="onContextMenuPeer" />
+      @contextmenu-peer="onContextMenuPeer"
+    />
 
     <!-- 二维码弹窗 -->
     <QrCodeModal
-      @copy="onCopyLink"
       v-model="showQrCodeModal"
       :qr-code-value="qrCodeValue"
-      :show-qr-code-modal="showQrCodeModal" />
+      :show-qr-code-modal="showQrCodeModal"
+      @copy="onCopyLink"
+    />
 
     <!-- 连接码管理弹窗 -->
     <LinkCodeModal
       v-model="showKeyManagementModal"
       :room-code="roomCode"
       @generate-code="onRequestCreateRoomWithCode"
-      @join-with-code="onJoinWithCode" />
+      @join-with-code="onJoinWithCode"
+    />
 
     <!-- 隐藏的文件输入 -->
-    <input type="file" ref="fileInput" class="hidden"
+    <input
+      ref="fileInput" type="file" class="hidden"
       multiple
-      @change="onHandleFileSelect">
+      @change="onHandleFileSelect"
+    >
 
     <!-- 文件传输进度弹窗 -->
-    <ProgressModal :model-value="progress.total > 0"
-      :progress="progress" :fileSizes="currentFileSizes" />
+    <ProgressModal
+      :model-value="progress.total > 0"
+      :progress="progress" :file-sizes="currentFileSizes"
+    />
 
     <!-- 发送文本对话框 -->
     <SendTextModal
+      v-model:text="text"
+      v-model="showTextInput"
       :to-name="selectedPeer?.name?.displayName || '--'"
       @close="showTextInput = false"
       @send="sendText"
-      v-model:text="text"
-      v-model="showTextInput" />
+    />
 
     <!-- 接收文件提示 -->
     <AcceptModal
       v-model="showAcceptFile"
-      :fileMetas="currentFileMetas"
-      :previewSrc="previewSrc"
-      @accept="onAcceptFile" @deny="onDenyFile" />
+      :file-metas="currentFileMetas"
+      :preview-src="previewSrc"
+      @accept="onAcceptFile" @deny="onDenyFile"
+    />
 
     <!-- 接收文本弹窗 -->
     <AcceptTextModal
       v-model="showAcceptText"
       :text="acceptText"
       @close="showAcceptText = false"
-      @copy="onCopyText" />
+      @copy="onCopyText"
+    />
 
     <!-- 用户选择器弹窗 -->
     <UserSelectorModal
@@ -93,48 +109,47 @@
       :content-type="clipboardContentType"
       :content-count="clipboardFiles?.length || 0"
       @confirm="onUserSelectorConfirm"
-      @cancel="onUserSelectorCancel" />
+      @cancel="onUserSelectorCancel"
+    />
 
-    <canvas ref="canvas" class="absolute top-0 left-0 w-full h-full
-      -z-1 bg-gradient-to-br from-indigo-50 to-blue-100
-      dark:from-gray-900 dark:to-gray-800">
-    </canvas>
+    <canvas
+      ref="canvas" class="absolute left-0 top-0 h-full w-full from-indigo-50 to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, useTemplateRef } from 'vue'
-import { useRoute } from 'vue-router'
-import { SELECTED_PEER_ID } from 'web-share-common'
 import type { UserInfo } from 'web-share-common'
-import User from './User.vue'
-import AcceptModal from './AcceptModal.vue'
-import SendTextModal from './SendTextModal.vue'
-import AcceptTextModal from './AcceptTextModal.vue'
-import ProgressModal from './ProgressModal.vue'
-import QrCodeModal from './QrCodeModal.vue'
-import LinkCodeModal from './LinkCodeModal.vue'
-import ToolBar from './ToolBar.vue'
-import UserSelectorModal from './UserSelectorModal.vue'
 import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
+import { onMounted, useTemplateRef } from 'vue'
+import { useRoute } from 'vue-router'
 import { Message } from '@/utils'
-import { useUserManagement } from './hooks/useUserManagement'
-import { useServerConnection } from './hooks/useServerConnection'
-import { useFileTransfer } from './hooks/useFileTransfer'
+import AcceptModal from './AcceptModal.vue'
+import AcceptTextModal from './AcceptTextModal.vue'
+import { getDeviceIcon } from './hooks/tools'
 import { useClipboard } from './hooks/useClipboard'
+import { useFileTransfer } from './hooks/useFileTransfer'
 import { useModalStates } from './hooks/useModalStates'
 import { usePageVisibility } from './hooks/usePageVisibility'
-import { getDeviceIcon } from './hooks/tools'
+import { useServerConnection } from './hooks/useServerConnection'
+import { useUserManagement } from './hooks/useUserManagement'
+import LinkCodeModal from './LinkCodeModal.vue'
+import ProgressModal from './ProgressModal.vue'
+import QrCodeModal from './QrCodeModal.vue'
+import SendTextModal from './SendTextModal.vue'
+import ToolBar from './ToolBar.vue'
+import User from './User.vue'
+import UserSelectorModal from './UserSelectorModal.vue'
 
-// 使用各种hooks
+/** 使用各种hooks */
 const userManagement = useUserManagement()
 const modalStates = useModalStates()
 const fileTransfer = useFileTransfer()
 const serverConnection = useServerConnection()
 const clipboard = useClipboard()
 
-// 从hooks中解构需要的状态和方法
+/** 从hooks中解构需要的状态和方法 */
 const {
   me,
   info,
@@ -146,7 +161,7 @@ const {
   setSelectedPeer,
   handleJoinRoom,
   handleLeaveRoom,
-  handleUserReconnected
+  handleUserReconnected,
 } = userManagement
 
 const {
@@ -167,7 +182,7 @@ const {
   showTextSendModal,
   closeTextSendModal,
   closeTextReceiveModal,
-  closeAllModals
+  closeAllModals,
 } = modalStates
 
 const {
@@ -181,7 +196,7 @@ const {
   acceptFile,
   denyFile,
   handleProgress,
-  resetProgress
+  resetProgress,
 } = fileTransfer
 
 const {
@@ -194,26 +209,26 @@ const {
   handleRoomCodeCreated,
   handleJoinWithCode,
   copyLink,
-  handleQuery
+  handleQuery,
 } = serverConnection
 
 const {
   createPasteHandler,
   sendFilesToMultipleUsers,
   sendTextToMultipleUsers,
-  pendingTransfer
+  pendingTransfer,
 } = clipboard
 
-// 其他状态
+/** 其他状态 */
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
 
-// 剪贴板相关状态
+/** 剪贴板相关状态 */
 const clipboardContentType = ref<'files' | 'text'>('files')
 const clipboardFiles = ref<File[]>()
 const clipboardText = ref<string>()
 
-// 初始化服务器连接
+/** 初始化服务器连接 */
 const { server, peerManager } = initializeServer({
   onNotifyUserInfo,
   onJoinRoom,
@@ -222,10 +237,10 @@ const { server, peerManager } = initializeServer({
   onRoomCodeCreated,
   onUserReconnected,
   setLoading,
-  closeAllModals
+  closeAllModals,
 })
 
-// 设置页面可见性处理
+/** 设置页面可见性处理 */
 const pageVisibility = usePageVisibility(server)
 const { setupVisibilityHandling } = pageVisibility
 
@@ -235,25 +250,23 @@ onMounted(() => {
       ripple.setSize(window.innerWidth, window.innerHeight)
     },
     circleCount: 20,
-    canvas: canvas.value!
+    canvas: canvas.value!,
   })
 
   handleQuery(route)
   setupVisibilityHandling()
 
-  // 设置剪贴板处理
+  /** 设置剪贴板处理 */
   const setupPasteHandler = createPasteHandler(
     () => onlineUsers.value,
     sendFilesToPeerFunc,
     sendTextToPeer,
-    showUserSelectorForClipboard
+    showUserSelectorForClipboard,
   )
   setupPasteHandler()
 })
 
-
-
-// 创建发送文件函数
+/** 创建发送文件函数 */
 const sendFilesToPeerFunc = fileTransfer.createSendFilesToPeer(me, setSelectedPeer, setLoading, forceCloseLoading)
 
 /**
@@ -264,30 +277,31 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
     throw new Error('未初始化连接')
   }
 
-  // 设置选中的用户
+  /** 设置选中的用户 */
   setSelectedPeer(targetPeer)
   setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文本...`)
 
   try {
-    // 建立连接
+    /** 建立连接 */
     const { promise, resolve } = Promise.withResolvers()
     await me.value.sendOffer(targetPeer.peerId, resolve)
     await promise
 
-    // 发送文本
+    /** 发送文本 */
     me.value.sendText(textContent)
-  } catch (error) {
+  }
+  catch (error) {
     console.error('发送文本时出错:', error)
     Message.error('发送文本时发生错误')
     forceCloseLoading()
     throw error
-  } finally {
+  }
+  finally {
     setLoading(false)
   }
 }
 
-
-// 事件处理函数
+/** 事件处理函数 */
 async function onRequestCreateDirectRoom() {
   const shouldShowModal = await requestCreateDirectRoom(info.value, setLoading)
   if (shouldShowModal) {
@@ -329,8 +343,9 @@ function onCopyLink() {
 /**
  * 显示右键菜单
  */
-const onContextMenuPeer = async (peer: UserInfo) => {
-  if (!me.value) return
+async function onContextMenuPeer(peer: UserInfo) {
+  if (!me.value)
+    return
   setSelectedPeer(peer)
   setLoading(true, `正在连接 ${peer.name.displayName}...`)
 
@@ -339,13 +354,15 @@ const onContextMenuPeer = async (peer: UserInfo) => {
     await me.value.sendOffer(peer.peerId, resolve)
     await promise
 
-    // 打开文本输入框
+    /** 打开文本输入框 */
     showTextSendModal()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('连接用户失败:', error)
     Message.error('连接失败，请重试')
     forceCloseLoading()
-  } finally {
+  }
+  finally {
     setLoading(false)
   }
 }
@@ -353,8 +370,9 @@ const onContextMenuPeer = async (peer: UserInfo) => {
 /**
  * 发送文本
  */
-const sendText = async () => {
-  if (!text.value || !me.value) return
+async function sendText() {
+  if (!text.value || !me.value)
+    return
 
   me.value.sendText(text.value)
   closeTextSendModal()
@@ -363,9 +381,10 @@ const sendText = async () => {
 /**
  * 单击发送文件
  */
-const onClickPeer = async (peer: UserInfo) => {
+async function onClickPeer(peer: UserInfo) {
   setSelectedPeer(peer)
-  if (!me.value) return
+  if (!me.value)
+    return
 
   setLoading(true, `正在连接 ${peer.name.displayName}...`)
 
@@ -375,24 +394,26 @@ const onClickPeer = async (peer: UserInfo) => {
     await promise
 
     fileInput.value?.click()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('连接用户失败:', error)
     Message.error('连接失败，请重试')
     forceCloseLoading()
-  } finally {
+  }
+  finally {
     setLoading(false)
   }
 }
 
 function onAcceptFile() {
   acceptFile(showAcceptFile, previewSrc)
-  // 确保关闭loading状态
+  /** 确保关闭loading状态 */
   forceCloseLoading()
 }
 
 function onDenyFile() {
   denyFile(showAcceptFile, previewSrc)
-  // 确保关闭loading状态
+  /** 确保关闭loading状态 */
   forceCloseLoading()
 }
 
@@ -420,14 +441,17 @@ async function onUserSelectorConfirm(selectedUsers: UserInfo[]) {
   try {
     if (clipboardContentType.value === 'files' && clipboardFiles.value) {
       await sendFilesToMultipleUsers(clipboardFiles.value, selectedUsers, sendFilesToPeerFunc)
-    } else if (clipboardContentType.value === 'text' && clipboardText.value) {
+    }
+    else if (clipboardContentType.value === 'text' && clipboardText.value) {
       await sendTextToMultipleUsers(clipboardText.value, selectedUsers, sendTextToPeer)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('多用户发送失败:', error)
     Message.error('发送失败，请重试')
-  } finally {
-    // 清理状态
+  }
+  finally {
+    /** 清理状态 */
     clipboardFiles.value = undefined
     clipboardText.value = undefined
   }
@@ -441,7 +465,6 @@ function onUserSelectorCancel() {
   clipboardFiles.value = undefined
   clipboardText.value = undefined
 }
-
 
 /**
  * 添加用户
@@ -464,7 +487,7 @@ function onLeaveRoom(data: UserInfo) {
  */
 function onUserReconnected(data: any) {
   handleUserReconnected(data)
-  // 使用PeerManager处理重连
+  /** 使用PeerManager处理重连 */
   peerManager.handleUserReconnection(data)
 }
 
@@ -495,16 +518,17 @@ function onNotifyUserInfo(data: UserInfo) {
 
       onProgress(data: any) {
         handleProgress(data)
-      }
+      },
     })
     setMe(peer)
   }
   else {
     const peer = peerManager.getPeer(data.peerId)
-    if (peer) setMe(peer)
+    if (peer)
+      setMe(peer)
   }
 
-  // 如果是通过扫码加入的房间，并且当前用户不是房主，则主动向房主发起连接
+  /** 如果是通过扫码加入的房间，并且当前用户不是房主，则主动向房主发起连接 */
   if (qrCodeValue.value) {
     try {
       const qrData = JSON.parse(qrCodeValue.value)
@@ -521,8 +545,9 @@ function onNotifyUserInfo(data: UserInfo) {
           promise.then(() => console.log('Offer sent to room owner after scan join'))
         }
       }
-    } catch (e) {
-      // 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略
+    }
+    catch (e) {
+      /** 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略 */
     }
   }
 
@@ -531,7 +556,6 @@ function onNotifyUserInfo(data: UserInfo) {
   }
   setLoading(false)
 }
-
 </script>
 
 <style scoped></style>

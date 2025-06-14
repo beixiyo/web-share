@@ -5,11 +5,14 @@
     :style="{
       zIndex,
       background: bgc,
-    }">
+    }"
+  >
     <div class="flex flex-col items-center space-y-4">
       <LoadingIcon :size="size" />
-      <div v-if="displayText"
-        class="text-gray-900 dark:text-gray-300 text-sm font-medium text-center px-4">
+      <div
+        v-if="displayText"
+        class="px-4 text-center text-sm text-gray-900 font-medium dark:text-gray-300"
+      >
         {{ displayText }}
       </div>
     </div>
@@ -53,7 +56,7 @@ let show: Ref<boolean>
 
 /** 计算显示的文本 */
 const displayText = computed(() => {
-  // 优先使用指令传递的文本，然后是组件属性，最后是默认值
+  /** 优先使用指令传递的文本，然后是组件属性，最后是默认值 */
   return props.__loadingText || props.loadingText || defaultLoadingProps.loadingText
 })
 

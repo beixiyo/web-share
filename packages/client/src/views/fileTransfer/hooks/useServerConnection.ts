@@ -1,19 +1,19 @@
-import { ref } from 'vue'
-import { ServerConnection, PeerManager } from '@/ClientServer'
-import type { RoomInfo, RoomCodeInfo, UserInfo } from 'web-share-common'
+import type { RoomCodeInfo, RoomInfo, UserInfo } from 'web-share-common'
 import QRCode from 'qrcode'
+import { ref } from 'vue'
+import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 
 /**
  * 服务器连接管理Hook
  */
 export function useServerConnection() {
-  // 二维码和房间码相关状态
+  /** 二维码和房间码相关状态 */
   const qrCodeValue = ref('')
   const roomCode = ref('')
   let qrData: string
 
-  // 服务器连接实例
+  /** 服务器连接实例 */
   let server: ServerConnection
   let peerManager: PeerManager
 
@@ -43,7 +43,7 @@ export function useServerConnection() {
         Message.error(`发生错误: ${errorData.message}`)
         callbacks.setLoading(false)
         callbacks.closeAllModals()
-      }
+      },
     })
 
     peerManager = new PeerManager(server)
@@ -56,7 +56,7 @@ export function useServerConnection() {
    */
   async function requestCreateDirectRoom(
     info: UserInfo | undefined,
-    setLoading: (state: boolean) => void
+    setLoading: (state: boolean) => void,
   ) {
     if (!info) {
       Message.warning('无法获取用户信息，请稍后再试')
@@ -76,7 +76,7 @@ export function useServerConnection() {
    */
   async function requestCreateRoomWithCode(
     info: UserInfo | undefined,
-    setLoading: (state: boolean) => void
+    setLoading: (state: boolean) => void,
   ) {
     if (!info) {
       Message.warning('无法获取用户信息，请稍后再试')
@@ -93,7 +93,7 @@ export function useServerConnection() {
   async function handleDirectRoomCreated(
     data: RoomInfo,
     info: UserInfo | undefined,
-    setLoading: (state: boolean) => void
+    setLoading: (state: boolean) => void,
   ) {
     if (data.roomId) {
       if (info) {
@@ -124,7 +124,7 @@ export function useServerConnection() {
   async function handleRoomCodeCreated(
     data: RoomCodeInfo,
     info: UserInfo | undefined,
-    setLoading: (state: boolean) => void
+    setLoading: (state: boolean) => void,
   ) {
     if (data.roomCode) {
       if (info) {
@@ -156,7 +156,8 @@ export function useServerConnection() {
    * 复制链接
    */
   function copyLink() {
-    if (!qrData) return
+    if (!qrData)
+      return
     return qrData
   }
 
@@ -174,11 +175,11 @@ export function useServerConnection() {
   }
 
   return {
-    // 状态
+    /** 状态 */
     qrCodeValue,
     roomCode,
 
-    // 方法
+    /** 方法 */
     initializeServer,
     requestCreateDirectRoom,
     requestCreateRoomWithCode,
@@ -186,6 +187,6 @@ export function useServerConnection() {
     handleRoomCodeCreated,
     handleJoinWithCode,
     copyLink,
-    handleQuery
+    handleQuery,
   }
 }

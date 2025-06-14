@@ -1,7 +1,6 @@
 import type { App } from 'vue'
 import Loading from '@/components/Loading/index.vue'
 
-
 const map = new WeakMap<HTMLElement, LoadingData>()
 
 /**
@@ -19,11 +18,12 @@ export function loading(app: App<HTMLElement>) {
       let loadingValue: boolean
       let loadingText: string | undefined
 
-      // 支持两种格式：boolean 或 { loading: boolean, text?: string }
+      /** 支持两种格式：boolean 或 { loading: boolean, text?: string } */
       if (typeof value === 'object' && value !== null) {
         loadingValue = value.loading
         loadingText = value.text
-      } else {
+      }
+      else {
         loadingValue = value
       }
 
@@ -41,7 +41,7 @@ export function loading(app: App<HTMLElement>) {
         opts.__loadingText = loadingText
       }
 
-      if (getComputedStyle(el)['position'] === 'static') {
+      if (getComputedStyle(el).position === 'static') {
         el.style.position = 'relative'
       }
 
@@ -54,23 +54,25 @@ export function loading(app: App<HTMLElement>) {
 
     updated(el, { value }) {
       const data = map.get(el)
-      if (!data) return
+      if (!data)
+        return
 
       let loadingValue: boolean
       let loadingText: string | undefined
 
-      // 支持两种格式：boolean 或 { loading: boolean, text?: string }
+      /** 支持两种格式：boolean 或 { loading: boolean, text?: string } */
       if (typeof value === 'object' && value !== null) {
         loadingValue = value.loading
         loadingText = value.text
-      } else {
+      }
+      else {
         loadingValue = value
       }
 
-      // 更新loading状态
+      /** 更新loading状态 */
       data.vm.update?.(loadingValue)
 
-      // 如果文本发生变化，重新创建组件
+      /** 如果文本发生变化，重新创建组件 */
       if (loadingText !== data.lastLoadingText) {
         data.lastLoadingText = loadingText
         data.comp.unmount()
@@ -92,13 +94,12 @@ export function loading(app: App<HTMLElement>) {
 
     beforeUnmount(el) {
       map.get(el)?.comp.unmount()
-    }
+    },
   })
 }
 
-
 interface LoadingData {
-  comp: App<Element>,
+  comp: App<Element>
   vm: InstanceType<typeof Loading>
   lastLoadingText?: string | null
 }

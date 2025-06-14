@@ -1,12 +1,11 @@
 import type { Server } from 'node:http'
-import { WebSocketServer, RawData, WebSocket } from 'ws'
-import { Peer } from '@/Peer'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { RawData } from 'ws'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo, RoomCodeInfo, JoinRoomCodeInfo, UserReconnectedInfo } from 'web-share-common'
-
+import { WebSocket, WebSocketServer } from 'ws'
+import { Peer } from '@/Peer'
 
 export class WSServer {
-
   ws: WebSocketServer
   opts: Required<WSServerOpts>
   /**
@@ -30,10 +29,10 @@ export class WSServer {
 
   constructor(
     server: Server,
-    opts: WSServerOpts = {}
+    opts: WSServerOpts = {},
   ) {
     const defaultOpts: Required<WSServerOpts> = {
-      clearTime: HEART_BEAT_TIME
+      clearTime: HEART_BEAT_TIME,
     }
     this.opts = Object.assign(opts, defaultOpts)
 
@@ -41,7 +40,7 @@ export class WSServer {
     this.ws.on('connection', (socket, request) => {
       const peer = new Peer(socket, request)
 
-      // 将用户添加到对应房间
+      /** 将用户添加到对应房间 */
       this.addPeerToRoom(peer)
       this.onConnection(peer)
     })
@@ -53,7 +52,7 @@ export class WSServer {
    * 生成设备唯一标识
    */
   private generateDeviceKey(peer: Peer): string {
-    // 使用IP + 设备名称 + 浏览器信息生成唯一标识
+    /** 使用IP + 设备名称 + 浏览器信息生成唯一标识 */
     return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}`.replace(/\s+/g, '_')
   }
 
@@ -65,12 +64,12 @@ export class WSServer {
     const existingDevice = this.deviceMap.get(deviceKey)
 
     if (existingDevice && existingDevice.peerId !== peer.id) {
-      // 检查旧连接是否仍然活跃（5分钟内有活动）
+      /** 检查旧连接是否仍然活跃（5分钟内有活动） */
       const now = Date.now()
       const timeSinceLastSeen = now - existingDevice.lastSeen
 
       if (timeSinceLastSeen < 5 * 60 * 1000) { // 5分钟内
-        // 找到旧的peer并移除
+        /** 找到旧的peer并移除 */
         const oldRoom = this.roomMap.get(existingDevice.roomId)
         const oldPeer = oldRoom?.get(existingDevice.peerId)
 
@@ -78,21 +77,21 @@ export class WSServer {
           console.log(`检测到用户重连: ${peer.name.displayName} (${peer.ip})`)
           console.log(`旧peerId: ${existingDevice.peerId}, 新peerId: ${peer.id}`)
 
-          // 移除旧连接
+          /** 移除旧连接 */
           this.removePeerFromRoom(oldPeer)
 
-          // 返回旧的peerId用于通知其他用户
+          /** 返回旧的peerId用于通知其他用户 */
           return existingDevice.peerId
         }
       }
     }
 
-    // 更新设备映射
+    /** 更新设备映射 */
     this.deviceMap.set(deviceKey, {
       peerId: peer.id,
       roomId: peer.roomId,
       displayName: peer.name.displayName,
-      lastSeen: Date.now()
+      lastSeen: Date.now(),
     })
 
     return null
@@ -102,7 +101,7 @@ export class WSServer {
    * 将用户添加到对应房间
    */
   private addPeerToRoom(peer: Peer) {
-    // 检测重连
+    /** 检测重连 */
     const oldPeerId = this.detectAndHandleReconnection(peer)
 
     if (!this.roomMap.has(peer.roomId)) {
@@ -112,17 +111,17 @@ export class WSServer {
 
     console.log(`用户 ${peer.name.displayName} (${peer.ip}) 加入房间: ${peer.roomId}`)
 
-    // 如果检测到重连，通知房间内其他用户
+    /** 如果检测到重连，通知房间内其他用户 */
     if (oldPeerId) {
       const reconnectionInfo: UserReconnectedInfo = {
         oldPeerId,
         newPeerId: peer.id,
-        userInfo: peer.getInfo()
+        userInfo: peer.getInfo(),
       }
 
       this.broadcastToRoom(peer.roomId, {
         type: Action.UserReconnected,
-        data: reconnectionInfo
+        data: reconnectionInfo,
       }, peer.id) // 排除重连的用户自己
     }
   }
@@ -136,12 +135,12 @@ export class WSServer {
       room.delete(peer.id)
       if (room.size === 0) {
         this.roomMap.delete(peer.roomId)
-        // 清理对应的房间码映射
+        /** 清理对应的房间码映射 */
         this.cleanupRoomCode(peer.roomId)
       }
     }
 
-    // 清理设备映射
+    /** 清理设备映射 */
     this.cleanupDeviceMapping(peer)
   }
 
@@ -152,7 +151,7 @@ export class WSServer {
     const deviceKey = this.generateDeviceKey(peer)
     const existingDevice = this.deviceMap.get(deviceKey)
 
-    // 只有当映射的peerId匹配时才删除
+    /** 只有当映射的peerId匹配时才删除 */
     if (existingDevice && existingDevice.peerId === peer.id) {
       this.deviceMap.delete(deviceKey)
       console.log(`清理设备映射: ${deviceKey}`)
@@ -189,7 +188,8 @@ export class WSServer {
    */
   private getRoomUsers(roomId: string) {
     const room = this.roomMap.get(roomId)
-    if (!room) return []
+    if (!room)
+      return []
     return Array.from(room.values()).map(peer => peer.getInfo())
   }
 
@@ -207,17 +207,19 @@ export class WSServer {
     console.log(`广播到房间 ${roomId}: ${data.type}`)
 
     const room = this.roomMap.get(roomId)
-    if (!room) return
+    if (!room)
+      return
 
-    room.forEach(peer => {
-      if (peer.id === excludeId) return
+    room.forEach((peer) => {
+      if (peer.id === excludeId)
+        return
       this.send(peer, data)
     })
   }
 
   private onConnection = (peer: Peer) => {
     const { socket } = peer
-    socket.on('message', (data) => this.onMessage(peer, data))
+    socket.on('message', data => this.onMessage(peer, data))
   }
 
   private send<T = any>(sender: Peer, data: SendData<T>) {
@@ -242,7 +244,7 @@ export class WSServer {
   private notifyUserInfo(peer: Peer) {
     const data: SendUserInfo = {
       data: peer.getInfo(),
-      type: Action.NotifyUserInfo
+      type: Action.NotifyUserInfo,
     }
     this.send(peer, data)
   }
@@ -264,7 +266,7 @@ export class WSServer {
       msg = JSON.parse(data.toString())
     }
     catch (e) {
-      console.warn("WS: Received JSON is malformed")
+      console.warn('WS: Received JSON is malformed')
       return
     }
 
@@ -274,7 +276,7 @@ export class WSServer {
         break
       case Action.Ping:
         sender[HEART_BEAT] = Date.now()
-        // 更新设备映射的最后活跃时间
+        /** 更新设备映射的最后活跃时间 */
         this.updateDeviceLastSeen(sender)
         this.send(sender, { type: Action.Ping, data: null })
         break
@@ -289,7 +291,7 @@ export class WSServer {
         this.notifyUserInfo(sender)
         this.broadcastToRoom(sender.roomId, {
           type: Action.JoinRoom,
-          data: this.getRoomUsers(sender.roomId)
+          data: this.getRoomUsers(sender.roomId),
         })
         break
 
@@ -297,24 +299,24 @@ export class WSServer {
         console.log(`${sender.name.displayName} 离开房间`)
         this.broadcastToRoom(sender.roomId, {
           type: Action.LeaveRoom,
-          data: msg.data
+          data: msg.data,
         })
         break
 
-      // 用户 A 请求创建一个用于直接连接的房间
+      /** 用户 A 请求创建一个用于直接连接的房间 */
       case Action.CreateDirectRoom:
         const directRoomId = `direct_${crypto.randomUUID()}`
-        // 将用户 A 移动到这个新房间
+        /** 将用户 A 移动到这个新房间 */
         this.addToNewRoom(sender, directRoomId)
-        // 通知用户 A 新的房间 ID，以便生成二维码
+        /** 通知用户 A 新的房间 ID，以便生成二维码 */
         const roomInfo: RoomInfo = {
           roomId: directRoomId,
-          peerInfo: sender.getInfo()
+          peerInfo: sender.getInfo(),
         }
         this.send(sender, { type: Action.DirectRoomCreated, data: roomInfo })
         break
 
-      // 用户 B 通过扫码请求加入指定房间
+      /** 用户 B 通过扫码请求加入指定房间 */
       case Action.JoinDirectRoom:
         const { roomId, peerId } = msg.data as JoinRoomInfo
         const roomToJoin = this.roomMap.get(roomId)
@@ -322,11 +324,11 @@ export class WSServer {
         if (roomToJoin?.has(peerId)) {
           this.addToNewRoom(sender, roomId)
 
-          // 通知房间内的所有用户（主要是用户 A 和用户 B）有新用户加入
+          /** 通知房间内的所有用户（主要是用户 A 和用户 B）有新用户加入 */
           this.notifyUserInfo(sender) // 通知 B 自己的信息
           this.broadcastToRoom(roomId, {
             type: Action.JoinRoom,
-            data: this.getRoomUsers(roomId)
+            data: this.getRoomUsers(roomId),
           })
         }
         else {
@@ -334,28 +336,28 @@ export class WSServer {
         }
         break
 
-      // 用户请求创建带连接码的房间
+      /** 用户请求创建带连接码的房间 */
       case Action.CreateRoomWithCode:
         const roomCode = this.generateRoomCode()
         const codeRoomId = `code_${crypto.randomUUID()}`
 
-        // 建立房间码到房间ID的映射
+        /** 建立房间码到房间ID的映射 */
         this.roomCodeMap.set(roomCode, codeRoomId)
 
-        // 将用户移动到新房间
+        /** 将用户移动到新房间 */
         this.addToNewRoom(sender, codeRoomId)
 
-        // 通知用户房间码创建成功
+        /** 通知用户房间码创建成功 */
         const roomCodeInfo: RoomCodeInfo = {
           roomCode,
           roomId: codeRoomId,
-          peerInfo: sender.getInfo()
+          peerInfo: sender.getInfo(),
         }
         this.send(sender, { type: Action.RoomCodeCreated, data: roomCodeInfo })
         console.log(`用户 ${sender.name.displayName} 创建房间码: ${roomCode}`)
         break
 
-      // 用户通过房间码加入房间
+      /** 用户通过房间码加入房间 */
       case Action.JoinRoomWithCode:
         const { roomCode: joinCode } = msg.data as JoinRoomCodeInfo
         const targetRoomId = this.roomCodeMap.get(joinCode)
@@ -363,13 +365,13 @@ export class WSServer {
         if (targetRoomId && this.roomMap.has(targetRoomId)) {
           this.addToNewRoom(sender, targetRoomId)
 
-          // 通知加入者自己的信息
+          /** 通知加入者自己的信息 */
           this.notifyUserInfo(sender)
 
-          // 通知房间内所有用户有新用户加入
+          /** 通知房间内所有用户有新用户加入 */
           this.broadcastToRoom(targetRoomId, {
             type: Action.JoinRoom,
-            data: this.getRoomUsers(targetRoomId)
+            data: this.getRoomUsers(targetRoomId),
           })
 
           console.log(`用户 ${sender.name.displayName} 通过房间码 ${joinCode} 加入房间: ${targetRoomId}`)
@@ -381,16 +383,16 @@ export class WSServer {
 
       case Action.Relay:
         const relayData = msg.data
-        // 确保只能向同一房间的用户发送
+        /** 确保只能向同一房间的用户发送 */
         this.sendTo(sender, relayData.toId, relayData)
         break
 
       case Action.RTCError:
-        // 处理 RTC 错误，广播给房间内所有其他成员
+        /** 处理 RTC 错误，广播给房间内所有其他成员 */
         console.log(`收到来自 ${sender.name.displayName} 的RTC错误:`, msg.data)
         this.broadcastToRoom(sender.roomId, {
           type: Action.RTCErrorBroadcast,
-          data: msg.data
+          data: msg.data,
         }, sender.id) // 排除发送错误的用户
         break
 
@@ -400,9 +402,9 @@ export class WSServer {
   }
 
   private addToNewRoom(peer: Peer, roomId: string) {
-    this.removePeerFromRoom(peer)   // 从旧房间移除
-    peer.roomId = roomId      // 更新用户的 roomId
-    this.addPeerToRoom(peer)        // 加入新房间
+    this.removePeerFromRoom(peer) // 从旧房间移除
+    peer.roomId = roomId // 更新用户的 roomId
+    this.addPeerToRoom(peer) // 加入新房间
   }
 
   /**
@@ -410,7 +412,7 @@ export class WSServer {
    */
   private keepAliveClear() {
     setInterval(() => {
-      // 按房间显示客户端信息
+      /** 按房间显示客户端信息 */
       this.roomMap.forEach((room, roomId) => {
         if (room.size > 0) {
           const clients = Array.from(room.values())
@@ -423,7 +425,7 @@ export class WSServer {
       const peersToRemove: Peer[] = []
 
       this.roomMap.forEach((room, roomId) => {
-        room.forEach(peer => {
+        room.forEach((peer) => {
           const now = Date.now()
           let shouldRemove = false
           let reason = ''
@@ -448,18 +450,17 @@ export class WSServer {
         })
       })
 
-      // 移除离线用户并通知房间内其他用户
-      peersToRemove.forEach(peer => {
+      /** 移除离线用户并通知房间内其他用户 */
+      peersToRemove.forEach((peer) => {
         this.removePeerFromRoom(peer)
         this.broadcastToRoom(peer.roomId, {
           type: Action.LeaveRoom,
-          data: peer.getInfo()
+          data: peer.getInfo(),
         })
       })
     }, this.opts.clearTime)
   }
 }
-
 
 export type WSServerOpts = {
   /**

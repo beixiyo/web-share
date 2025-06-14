@@ -1,26 +1,24 @@
+import type { Candidate, FileMeta, Sdp, To, UserReconnectedInfo } from 'web-share-common'
+import type { ServerConnection } from './ServerConnection'
 import { Action, USER_INFO } from 'web-share-common'
-import type { To, Sdp, Candidate, FileMeta, UserReconnectedInfo } from 'web-share-common'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
-import type { ServerConnection } from './ServerConnection'
-
 
 /**
  * 管理所有对等方连接
  */
 export class PeerManager {
-
   peerMap: Map<string, RTCPeer> = new Map()
 
   constructor(
-    public server: ServerConnection
+    public server: ServerConnection,
   ) {
     Events.on(Action.Offer, this.onOffer)
     Events.on(Action.Answer, this.onAnswer)
     Events.on(Action.Candidate, this.onCandidate)
     Events.on(Action.FileMetas, this.onFileMetas)
 
-    // 监听页面可见性变化，而不是页面隐藏
+    /** 监听页面可见性变化，而不是页面隐藏 */
     this.setupVisibilityHandling()
   }
 
@@ -30,28 +28,30 @@ export class PeerManager {
   private setupVisibilityHandling() {
     let isPageHidden = false
 
-    // 监听页面可见性变化
+    /** 监听页面可见性变化 */
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         isPageHidden = true
         console.log('页面切换到后台，标记为隐藏状态')
-      } else if (document.visibilityState === 'visible' && isPageHidden) {
+      }
+      else if (document.visibilityState === 'visible' && isPageHidden) {
         isPageHidden = false
         console.log('页面从后台恢复，重新同步用户状态')
-        // 页面恢复时重新同步用户状态
+        /** 页面恢复时重新同步用户状态 */
         this.syncUserStatusOnResume()
       }
     })
 
-    // 只在真正关闭页面时发送离开消息
+    /** 只在真正关闭页面时发送离开消息 */
     window.addEventListener('beforeunload', () => {
       const userInfo = sessionStorage.getItem(USER_INFO)
       console.log('页面即将关闭，发送离开消息', userInfo)
-      if (!userInfo) return
+      if (!userInfo)
+        return
 
       this.server.send({
         type: Action.LeaveRoom,
-        data: JSON.parse(userInfo)
+        data: JSON.parse(userInfo),
       })
     })
   }
@@ -60,14 +60,15 @@ export class PeerManager {
    * 页面恢复时同步用户状态
    */
   private syncUserStatusOnResume() {
-    // 重新请求房间用户列表
+    /** 重新请求房间用户列表 */
     const userInfo = sessionStorage.getItem(USER_INFO)
-    if (!userInfo) return
+    if (!userInfo)
+      return
 
     const parsedUserInfo = JSON.parse(userInfo)
     this.server.send({
       type: Action.JoinRoom,
-      data: parsedUserInfo
+      data: parsedUserInfo,
     })
   }
 
@@ -82,7 +83,7 @@ export class PeerManager {
     const peer = new RTCPeer({
       peerId,
       server: this.server,
-      ...opts
+      ...opts,
     })
 
     this.peerMap.set(peerId, peer)
@@ -111,10 +112,10 @@ export class PeerManager {
     console.log(`处理用户重连: ${userInfo.name.displayName}`)
     console.log(`旧peerId: ${oldPeerId}, 新peerId: ${newPeerId}`)
 
-    // 清理旧连接
+    /** 清理旧连接 */
     this.rmPeer(oldPeerId)
 
-    // 创建新连接
+    /** 创建新连接 */
     const newPeer = this.createPeer(newPeerId)
 
     console.log(`用户 ${userInfo.name.displayName} 重连完成，新连接已建立`)
@@ -153,5 +154,4 @@ export class PeerManager {
       peer.handleFileMetas(data.data)
     }
   }
-
 }

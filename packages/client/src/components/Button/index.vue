@@ -36,9 +36,9 @@
 
 <script setup lang="ts">
 import type { ButtonDesignStyle, ButtonSize, ButtonVariant } from './types'
+import { computed } from 'vue'
 import LoadingIcon from '@/components/Loading/LoadingIcon.vue'
 import { cn } from '@/utils'
-import { computed, ref } from 'vue'
 import { getFlatStyles, getGhostStyles, getIconButtonStyles, getNeumorphicStyles, getOutlinedStyles } from './styles'
 
 defineOptions({ name: 'Button' })

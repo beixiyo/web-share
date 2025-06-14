@@ -1,6 +1,6 @@
 import type { Theme } from '@jl-org/tool'
-import { getCurrentTheme, setHTMLTheme, toggleTheme } from '@/utils'
 import { onChangeTheme } from '@jl-org/tool'
+import { getCurrentTheme, setHTMLTheme, toggleTheme } from '@/utils'
 import { useMutationObserver } from './ob'
 
 /**

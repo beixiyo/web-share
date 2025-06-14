@@ -1,9 +1,8 @@
+import { fileURLToPath } from 'node:url'
+import history from 'connect-history-api-fallback'
 import express from 'express'
 import { cors } from '@/middleware'
 import { WSServer } from '@/WSServer'
-import { fileURLToPath } from 'node:url'
-import history from 'connect-history-api-fallback'
-
 
 const PORT = process.env.PORT || 3001
 

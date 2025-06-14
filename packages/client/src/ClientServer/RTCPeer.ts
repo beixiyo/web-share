@@ -1,12 +1,10 @@
-import { Peer, type PeerOpts } from './Peer'
-import { Action, SELECTED_PEER_ID } from 'web-share-common'
-import type { To, Sdp, Candidate, RTCTextData, RTCBaseData, SendData, FileMeta, ProgressData } from 'web-share-common'
-import { compressImg, FileChunker, getImg, isStr, wait, type MIMEType } from '@jl-org/tool'
+import type { Candidate, FileMeta, ProgressData, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-
+import { compressImg, FileChunker, getImg, isStr, type MIMEType } from '@jl-org/tool'
+import { Action, SELECTED_PEER_ID } from 'web-share-common'
+import { Peer, type PeerOpts } from './Peer'
 
 export class RTCPeer extends Peer {
-
   private isCaller = false
   private opts: PeerOpts & RTCPeerOpts
   onChannelReady?: Function
@@ -43,10 +41,10 @@ export class RTCPeer extends Peer {
 
     if (!this.pc || this.isSignalClose) {
       this.pc = new RTCPeerConnection({
-        'iceServers': [
+        iceServers: [
           {
-            'urls': 'stun:stun.l.google.com:19302'
-          }
+            urls: 'stun:stun.l.google.com:19302',
+          },
         ],
       })
 
@@ -73,7 +71,8 @@ export class RTCPeer extends Peer {
      */
     if (this.isCaller) {
       const targetId = this.toId
-      if (!targetId) return
+      if (!targetId)
+        return
       this.sendOffer(targetId)
     }
   }
@@ -87,7 +86,8 @@ export class RTCPeer extends Peer {
   }
 
   get channelAmountIsHigh() {
-    if (!this.channelIsReady(this.channel)) return false
+    if (!this.channelIsReady(this.channel))
+      return false
     return this.channel.bufferedAmount > this.channel.bufferedAmountLowThreshold
   }
 
@@ -140,7 +140,7 @@ export class RTCPeer extends Peer {
   sendText(text: string) {
     const data: RTCTextData = {
       data: text,
-      type: Action.Text
+      type: Action.Text,
     }
     this.sendJSON(data)
   }
@@ -152,7 +152,7 @@ export class RTCPeer extends Peer {
    */
   async sendFiles(
     files: File[],
-    onDenyFile?: VoidFunction
+    onDenyFile?: VoidFunction,
   ) {
     /**
      * 发送文件后，复制 resolve，等待被调用后执行下载文件
@@ -238,7 +238,7 @@ export class RTCPeer extends Peer {
             return reject('文件预览失败')
           }
 
-          const base64 = await compressImg(img, 'base64', .1, 'image/webp')
+          const base64 = await compressImg(img, 'base64', 0.1, 'image/webp')
           res.base64 = base64
         }
 
@@ -255,7 +255,7 @@ export class RTCPeer extends Peer {
       data,
       toId: this.toId,
       fromId: this.peerId,
-      type: Action.FileMetas
+      type: Action.FileMetas,
     })
   }
 
@@ -296,12 +296,13 @@ export class RTCPeer extends Peer {
         toId,
         fromId: this.peerId,
         sdp: this.pc.localDescription!,
-        type: Action.Offer
+        type: Action.Offer,
       }
       this.server.relay(data)
 
       console.log(`向 ${toId} 发送 offer`, this.pc.localDescription)
-    } catch (error) {
+    }
+    catch (error) {
       this.broadcastRTCError(`创建或发送 offer 失败: ${error}`, 'SEND_OFFER_ERROR')
     }
   }
@@ -325,13 +326,14 @@ export class RTCPeer extends Peer {
         toId: offer.fromId,
         fromId: this.peerId,
         sdp: this.pc.localDescription!,
-        type: Action.Answer
+        type: Action.Answer,
       }
       this.server.relay(data)
 
       console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
       console.log(`发送 answer 给 ${data.toId}`, this.pc.localDescription)
-    } catch (error) {
+    }
+    catch (error) {
       this.broadcastRTCError(`处理 offer 失败: ${error}`, 'HANDLE_OFFER_ERROR')
     }
   }
@@ -346,7 +348,8 @@ export class RTCPeer extends Peer {
     try {
       console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
       await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
-    } catch (error) {
+    }
+    catch (error) {
       this.broadcastRTCError(`处理 answer 失败: ${error}`, 'HANDLE_ANSWER_ERROR')
     }
   }
@@ -361,7 +364,8 @@ export class RTCPeer extends Peer {
     try {
       console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
       await this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
-    } catch (error) {
+    }
+    catch (error) {
       this.broadcastRTCError(`处理 ICE candidate 失败: ${error}`, 'HANDLE_CANDIDATE_ERROR')
     }
   }
@@ -373,13 +377,13 @@ export class RTCPeer extends Peer {
         .then(() => {
           this.sendJSON({
             type: Action.AcceptFile,
-            data: null
+            data: null,
           })
         })
         .catch(() => {
           this.sendJSON({
             type: Action.DenyFile,
-            data: null
+            data: null,
           })
         })
     })
@@ -395,18 +399,18 @@ export class RTCPeer extends Peer {
   private broadcastRTCError(errorMessage: string, errorType: string) {
     console.error(`RTC错误 [${errorType}]: ${errorMessage}`)
 
-    // 通过服务端广播错误消息
+    /** 通过服务端广播错误消息 */
     this.server.send({
       type: Action.RTCError,
       data: {
         errorMessage,
         errorType,
         fromPeerId: this.peerId,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     })
 
-    // 延迟刷新页面，给广播一些时间
+    /** 延迟刷新页面，给广播一些时间 */
     setTimeout(() => {
       console.log('RTC错误导致页面刷新')
       window.location.reload()
@@ -414,12 +418,14 @@ export class RTCPeer extends Peer {
   }
 
   private sendJSON<T>(data: RTCBaseData<T>) {
-    if (!this.channelIsReady(this.channel)) return
+    if (!this.channelIsReady(this.channel))
+      return
     this.channel.send(JSON.stringify(data))
   }
 
   private send(data: any) {
-    if (!this.channelIsReady(this.channel)) return
+    if (!this.channelIsReady(this.channel))
+      return
     this.channel.send(data)
   }
 
@@ -462,13 +468,14 @@ export class RTCPeer extends Peer {
 
   private onIceCandidate = (e: RTCPeerConnectionIceEvent) => {
     const toId = this.toId
-    if (!e.candidate || !toId) return
+    if (!e.candidate || !toId)
+      return
 
     const data: To & Candidate = {
       toId,
       fromId: this.peerId,
       candidate: e.candidate,
-      type: Action.Candidate
+      type: Action.Candidate,
     }
     this.server.relay(data)
 
@@ -547,7 +554,8 @@ export class RTCPeer extends Peer {
 
   private onClose = () => {
     console.log('RTC: channel 已关闭', this.peerId)
-    if (!this.isCaller) return
+    if (!this.isCaller)
+      return
     this.connect() // reopen the channel
   }
 
@@ -564,9 +572,7 @@ export class RTCPeer extends Peer {
       }
     })
   }
-
 }
-
 
 export type RTCPeerOpts = {
   /**

@@ -1,6 +1,5 @@
-import localforage from 'localforage'
 import { uniqueId } from '@jl-org/tool'
-
+import localforage from 'localforage'
 
 /** 文件元数据在 localforage 中存储的键 */
 const FILE_METADATA_KEY = 'fileStore_metadata'
@@ -18,7 +17,7 @@ export class FileStore {
   constructor(config?: LocalForageOptions) {
     this.localForageInstance = localforage.createInstance({
       name: 'fileStore', // 数据库名称，可以自定义
-      storeName: 'fileDataChunks',   // 表名，可以自定义
+      storeName: 'fileDataChunks', // 表名，可以自定义
       description: '存储应用的大文件数据块',
       ...(config || {}),
     })
@@ -63,10 +62,10 @@ export class FileStore {
     const fileId = uniqueId() // 使用外部库生成唯一 ID
     const metadata = await this._getMetadata()
 
-    // 理论上 uniqueId 应该保证唯一，但以防万一可以检查
+    /** 理论上 uniqueId 应该保证唯一，但以防万一可以检查 */
     if (metadata[fileId]) {
       console.warn(`File ID ${fileId} collision. This should be rare. Retrying...`)
-      // 如果发生碰撞，简单地再次调用或实现更复杂的重试逻辑
+      /** 如果发生碰撞，简单地再次调用或实现更复杂的重试逻辑 */
       return this.createFile(originalFileName)
     }
 
@@ -76,7 +75,9 @@ export class FileStore {
       ...(originalFileName && { originalFileName }),
     }
     await this._saveMetadata(metadata)
-    console.log(`新文件记录已创建: ${fileId}${originalFileName ? ` (原始文件名: ${originalFileName})` : ''}`)
+    console.log(`新文件记录已创建: ${fileId}${originalFileName
+      ? ` (原始文件名: ${originalFileName})`
+      : ''}`)
     return fileId
   }
 
@@ -159,13 +160,13 @@ export class FileStore {
       return
     }
 
-    // 删除所有数据块
+    /** 删除所有数据块 */
     for (let i = 0; i < fileMeta.totalChunks; i++) {
       const chunkKey = this._getChunkStorageKey(fileId, i)
       await this.localForageInstance.removeItem(chunkKey)
     }
 
-    // 删除元数据条目
+    /** 删除元数据条目 */
     delete metadata[fileId]
     await this._saveMetadata(metadata)
 
@@ -192,7 +193,7 @@ export class FileStore {
   async getFile<T = ArrayBuffer>(
     callback: (chunk: T) => Promise<void>,
     onError?: (error: Error) => Promise<void>,
-    autoClear = true
+    autoClear = true,
   ) {
     const field = (await this.getAllFileIds()).at(-1)
     if (!field) {
@@ -245,12 +246,11 @@ export class FileStore {
         }
       }
     }
-    // 最后删除元数据本身
+    /** 最后删除元数据本身 */
     await this.localForageInstance.removeItem(FILE_METADATA_KEY)
     console.log('所有存储的文件数据和元数据已清除。')
   }
 }
-
 
 /**
  * @description 单个文件的元数据结构

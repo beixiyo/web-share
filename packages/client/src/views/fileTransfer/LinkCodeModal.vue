@@ -3,26 +3,30 @@
     v-model="show"
     class="LinkCodeModal-container"
     title="连接码管理"
-    height="auto">
+    height="auto"
+  >
     <div class="p-4 sm:p-3">
       <!-- 选项卡 -->
       <div
-        class="flex mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 gap-1">
+        class="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700"
+      >
         <Button
-          @click="activeTab = 'generate'"
           :variant="activeTab === 'generate' ? 'primary' : 'default'"
           :design-style="activeTab === 'generate' ? 'flat' : 'ghost'"
           size="md"
-          class="flex-1">
+          class="flex-1"
+          @click="activeTab = 'generate'"
+        >
           生成连接码
         </Button>
 
         <Button
-          @click="activeTab = 'input'"
           :variant="activeTab === 'input' ? 'primary' : 'default'"
           :design-style="activeTab === 'input' ? 'flat' : 'ghost'"
           size="md"
-          class="flex-1">
+          class="flex-1"
+          @click="activeTab = 'input'"
+        >
           输入连接码
         </Button>
       </div>
@@ -30,14 +34,16 @@
       <!-- 生成连接码内容 -->
       <div v-if="activeTab === 'generate'" class="space-y-4">
         <div class="text-center">
-          <div v-if="roomCode"
-            class="text-6xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mb-4 tracking-wider">
+          <div
+            v-if="roomCode"
+            class="mb-4 text-6xl text-emerald-600 font-bold tracking-wider font-mono dark:text-emerald-400"
+          >
             {{ roomCode }}
           </div>
-          <p v-else class="text-gray-500 dark:text-gray-400 mb-4">
+          <p v-else class="mb-4 text-gray-500 dark:text-gray-400">
             点击下方按钮生成连接码
           </p>
-          <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">
             {{ roomCode ? '请将此6位数字码告诉对方，让对方输入此码加入房间' : '生成一个6位数字连接码供他人加入' }}
           </p>
         </div>
@@ -45,17 +51,19 @@
         <div class="flex justify-center space-x-2">
           <Button
             v-if="!roomCode"
-            @click.stop="emit('generateCode')"
             variant="primary"
-            size="md">
+            size="md"
+            @click.stop="emit('generateCode')"
+          >
             生成连接码
           </Button>
 
           <Button
             v-else
-            @click="copyRoomCode"
             variant="primary"
-            size="md">
+            size="md"
+            @click="copyRoomCode"
+          >
             复制连接码
           </Button>
         </div>
@@ -65,7 +73,8 @@
       <div v-if="activeTab === 'input'" class="space-y-4">
         <div>
           <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            class="mb-2 block text-sm text-gray-700 font-medium dark:text-gray-300"
+          >
             请输入6位数字连接码
           </label>
           <input
@@ -73,12 +82,10 @@
             type="text"
             maxlength="6"
             placeholder="例如: 123456"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
-                   focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-                   dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400
-                   sm:text-sm"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-emerald-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:placeholder-gray-400"
             @keyup.enter="handleJoinWithCode"
-            @input="joinCode = joinCode.replace(/[^0-9]/g, '')" />
+            @input="joinCode = joinCode.replace(/[^0-9]/g, '')"
+          >
         </div>
       </div>
     </div>
@@ -87,10 +94,11 @@
       <div class="flex justify-end space-x-2">
         <Button
           v-if="activeTab === 'input'"
-          @click="handleJoinWithCode"
           variant="primary"
           size="md"
-          :disabled="joinCode.length !== 6">
+          :disabled="joinCode.length !== 6"
+          @click="handleJoinWithCode"
+        >
           加入房间
         </Button>
       </div>
@@ -99,11 +107,10 @@
 </template>
 
 <script setup lang="ts">
-import { Message } from '@/utils'
 import { copyToClipboard } from '@jl-org/tool'
-import Modal from '@/components/Modal/index.vue'
 import Button from '@/components/Button/index.vue'
-
+import Modal from '@/components/Modal/index.vue'
+import { Message } from '@/utils'
 
 defineOptions({ name: 'LinkCodeModal' })
 
@@ -113,7 +120,7 @@ const props = withDefaults(
   }>(),
   {
     roomCode: '',
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -125,8 +132,8 @@ const show = defineModel<boolean>()
 const joinCode = ref('')
 const activeTab = ref<'generate' | 'input'>('generate')
 
-// 处理输入连接码
-const handleJoinWithCode = () => {
+/** 处理输入连接码 */
+function handleJoinWithCode() {
   if (joinCode.value.trim().length === 6) {
     emit('joinWithCode', joinCode.value.trim())
     show.value = false
@@ -134,13 +141,13 @@ const handleJoinWithCode = () => {
   }
 }
 
-// 复制房间码
-const copyRoomCode = () => {
-  if (!props.roomCode) return
+/** 复制房间码 */
+function copyRoomCode() {
+  if (!props.roomCode)
+    return
   copyToClipboard(props.roomCode)
   Message.success('连接码已复制')
 }
-
 </script>
 
 <style lang="scss" scoped></style>

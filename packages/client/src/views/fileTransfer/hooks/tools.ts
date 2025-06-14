@@ -1,13 +1,16 @@
-import { Laptop, Smartphone, HelpCircle } from 'lucide-vue-next'
 import type { ProgressData } from 'web-share-common'
+import { HelpCircle, Laptop, Smartphone } from 'lucide-vue-next'
 
 /**
  * 根据设备类型获取图标
  */
 export function getDeviceIcon(deviceType: string | undefined) {
-  if (!deviceType) return HelpCircle
-  if (deviceType.toLowerCase().includes('window')) return Laptop
-  if (deviceType.toLowerCase().includes('mobile')) return Smartphone
+  if (!deviceType)
+    return HelpCircle
+  if (deviceType.toLowerCase().includes('window'))
+    return Laptop
+  if (deviceType.toLowerCase().includes('mobile'))
+    return Smartphone
   return HelpCircle
 }
 
@@ -19,6 +22,6 @@ export function getInitProgress(): ProgressData {
     progress: -1,
     total: -1,
     curIndex: -1,
-    filename: '--'
+    filename: '--',
   }
 }

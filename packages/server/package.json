@@ -1,17 +1,18 @@
 {
   "name": "web-share-server",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
   "main": "dist/server.mjs",
   "scripts": {
     "dev": "nodemon -w src -e ts -x run-s build start",
     "start": "node dist/server.mjs",
-    "build": "vite build"
+    "build": "vite build",
+    "lint": "eslint . --fix"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@jl-org/tool": "^2.0.8",
     "connect-history-api-fallback": "^2.0.0",

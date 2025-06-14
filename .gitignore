@@ -19,8 +19,6 @@ coverage
 /deploy
 
 # Editor directories and files
-.vscode/*
-!.vscode/launch.json
 .idea
 *.suo
 *.ntvs*

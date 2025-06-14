@@ -1,8 +1,7 @@
-import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
-import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo, RoomCodeInfo, JoinRoomCodeInfo, UserReconnectedInfo } from 'web-share-common'
-import { Events } from './Events'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import { WS } from '@jl-org/tool'
-
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import { Events } from './Events'
 
 /**
  * 管理与 WebSocket 服务器的连接
@@ -11,7 +10,6 @@ import { WS } from '@jl-org/tool'
  * 监听各种事件 如 visibilityChange，并相应地处理 WebSocket 连接和消息
  */
 export class ServerConnection {
-
   declare timer: number
   declare pingTimer: number
   server: WS | null = null
@@ -45,10 +43,11 @@ export class ServerConnection {
    * 中转数据到指定用户
    */
   relay<T>(data: To & T) {
-    if (!this.isConnected) return
+    if (!this.isConnected)
+      return
     this.server?.send(JSON.stringify({
       type: Action.Relay,
-      data
+      data,
     }))
   }
 
@@ -58,7 +57,7 @@ export class ServerConnection {
   createDirectRoom() {
     this.send({
       type: Action.CreateDirectRoom,
-      data: null
+      data: null,
     })
   }
 
@@ -74,12 +73,12 @@ export class ServerConnection {
 
     const data: JoinRoomInfo = {
       roomId,
-      peerId
+      peerId,
     }
 
     this.send({
       type: Action.JoinDirectRoom,
-      data
+      data,
     })
   }
 
@@ -89,7 +88,7 @@ export class ServerConnection {
   createRoomWithCode() {
     this.send({
       type: Action.CreateRoomWithCode,
-      data: null
+      data: null,
     })
   }
 
@@ -98,12 +97,12 @@ export class ServerConnection {
    */
   joinRoomWithCode(roomCode: string) {
     const data: JoinRoomCodeInfo = {
-      roomCode
+      roomCode,
     }
 
     this.send({
       type: Action.JoinRoomWithCode,
-      data
+      data,
     })
   }
 
@@ -119,7 +118,8 @@ export class ServerConnection {
   }
 
   private connect() {
-    if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline) return
+    if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline)
+      return
 
     const onConnect = (socket: WebSocket) => {
       // socket.binaryType = 'arraybuffer'
@@ -137,9 +137,9 @@ export class ServerConnection {
       heartbeatInterval: HEART_BEAT_TIME - 1000,
       genHeartbeatMsg: () => ({
         data: null,
-        type: Action.Ping
+        type: Action.Ping,
       }),
-      onVisible: onConnect
+      onVisible: onConnect,
     })
 
     onConnect(ws.connect())
@@ -150,7 +150,7 @@ export class ServerConnection {
     const userInfo = this.userInfo
     this.send({
       type: Action.JoinRoom,
-      data: userInfo
+      data: userInfo,
     })
 
     let backlog = this.backlogOfData.shift()
@@ -234,7 +234,7 @@ export class ServerConnection {
        */
       case Action.RTCErrorBroadcast:
         console.log('收到RTC错误广播，准备刷新页面:', data.data)
-        // 延迟刷新页面，确保日志能够输出
+        /** 延迟刷新页面，确保日志能够输出 */
         setTimeout(() => {
           window.location.reload()
         }, 100)
@@ -282,7 +282,9 @@ export class ServerConnection {
       port,
       protocol,
     } = ServerConnection.getUrl('3001')
-    protocol = protocol === 'https:' ? 'wss' : 'ws'
+    protocol = protocol === 'https:'
+      ? 'wss'
+      : 'ws'
 
     const url = new URL(import.meta.env[SERVER_URL] || `${protocol}://${hostname}:${port}/`)
 
@@ -292,9 +294,7 @@ export class ServerConnection {
 
     return url
   }
-
 }
-
 
 export type ServerConnectionOpts = {
   onNotifyUserInfo: (user: UserInfo) => void

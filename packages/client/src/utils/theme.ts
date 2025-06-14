@@ -1,8 +1,8 @@
 import type { Theme } from '@jl-org/tool'
 import type { Ref } from 'vue'
+import { getCurTheme } from '@jl-org/tool'
 import { THEME_KEY } from '@/config'
 import { useInsertStyle } from '@/hooks'
-import { getCurTheme } from '@jl-org/tool'
 
 /**
  * 获取当前主题

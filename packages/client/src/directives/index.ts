@@ -1,6 +1,5 @@
-import type { App } from "vue"
+import type { App } from 'vue'
 import { loading } from '@/directives/loading'
-
 
 export default {
   install(app: App<Element>) {
@@ -8,6 +7,6 @@ export default {
       loading,
     ]
 
-    directiveArr.forEach((fn) => fn(app as App<HTMLElement>))
-  }
+    directiveArr.forEach(fn => fn(app as App<HTMLElement>))
+  },
 }

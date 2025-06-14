@@ -1,20 +1,19 @@
-import type { Request, Response, NextFunction } from 'express'
-
+import type { NextFunction, Request, Response } from 'express'
 
 export function cors(
   allowOrigins: string[] | '*' = '*',
-  withCredentials: boolean = true
+  withCredentials: boolean = true,
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
     /** 预检请求 */
     if (req.method === 'OPTIONS') {
       res.header(
         'Access-Control-Allow-Methods',
-        req.headers['access-control-request-method']
+        req.headers['access-control-request-method'],
       )
       res.header(
         'Access-Control-Allow-Headers',
-        req.headers['access-control-request-headers']
+        req.headers['access-control-request-headers'],
       )
     }
 

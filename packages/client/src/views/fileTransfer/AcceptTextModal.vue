@@ -1,33 +1,35 @@
 <template>
-  <Modal class="AcceptTextModal-container"
+  <Modal
     v-model="show"
+    class="AcceptTextModal-container"
     title="接收文本"
-    height="auto">
+    height="auto"
+  >
     <div class="p-4 sm:p-3">
       <div
-        class="p-3 w-full h-40 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500 overflow-y-auto
-               bg-gray-50 dark:bg-gray-700/50
-               dark:border-gray-600 dark:text-gray-200 dark:focus:ring-emerald-400
-               sm:h-32 sm:text-sm">
+        class="h-40 w-full overflow-y-auto border rounded-lg bg-gray-50 p-3 sm:h-32 dark:border-gray-600 dark:bg-gray-700/50 sm:text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400"
+      >
         {{ props.text }}
       </div>
     </div>
 
     <template #footer>
-      <div class="flex-shrink-0 flex gap-4">
+      <div class="flex flex-shrink-0 gap-4">
         <Button
-          @click="emit('close')"
           design-style="ghost"
           variant="default"
           class="flex-1"
-          size="md">
+          size="md"
+          @click="emit('close')"
+        >
           关闭
         </Button>
         <Button
-          @click="emit('copy')"
           variant="primary"
           class="flex-1"
-          size="md">
+          size="md"
+          @click="emit('copy')"
+        >
           复制
         </Button>
       </div>
@@ -36,18 +38,17 @@
 </template>
 
 <script setup lang="ts">
-import Modal from '@/components/Modal/index.vue'
 import Button from '@/components/Button/index.vue'
-
-const show = defineModel<boolean>()
+import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'AcceptTextModal' })
+
 const props = withDefaults(
   defineProps<{
     text: string
   }>(),
   {
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -55,6 +56,7 @@ const emit = defineEmits<{
   (e: 'copy'): void
 }>()
 
+const show = defineModel<boolean>()
 </script>
 
 <style lang="scss" scoped></style>

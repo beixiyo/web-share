@@ -1,11 +1,9 @@
-import { type FileMeta } from 'web-share-common'
+import type { FileMeta } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
 import type { FileInfo } from '@/types/fileInfo'
 import { createStreamDownloader, type StreamDownloader } from '@jl-org/tool'
 
-
 export abstract class Peer {
-
   server: ServerConnection
   peerId: string
   /**
@@ -49,7 +47,7 @@ export abstract class Peer {
     return this.downloader?.append(
       data instanceof Uint8Array
         ? data
-        : new Uint8Array(data)
+        : new Uint8Array(data),
     )
   }
 
@@ -70,9 +68,7 @@ export abstract class Peer {
   protected saveFileMetas(fileMetas: FileMeta[]) {
     this.fileMetaCache.push(...fileMetas)
   }
-
 }
-
 
 export type PeerOpts = {
   server: ServerConnection

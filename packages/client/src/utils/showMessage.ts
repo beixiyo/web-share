@@ -1,5 +1,5 @@
-import type { MessageVariant } from '@/components/Message/type'
 import type { App } from 'vue'
+import type { MessageVariant } from '@/components/Message/type'
 import { MESSAGE_DURATION, MESSAGE_ENUM } from '@/components/Message/constants'
 import MessageComp from '@/components/Message/index.vue'
 

@@ -1,10 +1,9 @@
-import { createStreamDownloader } from '@jl-org/tool'
 import type { FileStore } from './FileStore'
-
+import { createStreamDownloader } from '@jl-org/tool'
 
 export async function saveFileWithStream(
   filename: string,
-  fileStore: FileStore
+  fileStore: FileStore,
 ) {
   const downloader = await createStreamDownloader(filename, { swPath: '/sw.js' })
 
@@ -16,7 +15,7 @@ export async function saveFileWithStream(
     async (error) => {
       await downloader.abort()
       console.error(`流式传输文件 ${filename} 失败:`, error)
-    }
+    },
   )
 
   await downloader.complete()

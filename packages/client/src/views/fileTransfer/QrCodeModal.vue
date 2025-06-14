@@ -1,39 +1,51 @@
 <template>
-  <Modal class="QrCodeModal-container"
+  <Modal
     v-model="show"
+    class="QrCodeModal-container"
     height="auto"
-    title="请让对方扫描二维码">
+    title="请让对方扫描二维码"
+  >
     <div
-      class="flex flex-col items-center p-4 gap-2 sm:p-3 sm:gap-1.5">
-      <div v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
-        class="p-2 bg-white rounded-lg">
-        <img :src="qrCodeValue"
+      class="flex flex-col items-center gap-2 p-4 sm:gap-1.5 sm:p-3"
+    >
+      <div
+        v-if="qrCodeValue && qrCodeValue.startsWith('data:image/png')"
+        class="rounded-lg bg-white p-2"
+      >
+        <img
+          :src="qrCodeValue"
           alt="二维码"
-          class="max-w-full h-auto max-sm:max-w-[250px]" />
+          class="h-auto max-w-full max-sm:max-w-[250px]"
+        >
       </div>
 
-      <p v-else-if="!qrCodeValue && showQrCodeModal"
-        class="text-gray-500 dark:text-gray-400 sm:text-sm h-48 flex items-center justify-center">
+      <p
+        v-else-if="!qrCodeValue && showQrCodeModal"
+        class="h-48 flex items-center justify-center text-gray-500 sm:text-sm dark:text-gray-400"
+      >
         正在生成二维码...
       </p>
 
       <p
         v-else-if="qrCodeValue && !qrCodeValue.startsWith('data:image/png')"
-        class="text-gray-500 dark:text-gray-400 sm:text-sm h-48 flex items-center justify-center">
+        class="h-48 flex items-center justify-center text-gray-500 sm:text-sm dark:text-gray-400"
+      >
         二维码内容已准备，等待扫码...
       </p>
 
       <p
-        class="text-sm text-gray-600 dark:text-gray-300 sm:text-xs">
+        class="text-sm text-gray-600 sm:text-xs dark:text-gray-300"
+      >
         扫描此二维码以建立连接
       </p>
     </div>
     <template #footer>
       <Button
-        @click="emit('copy')"
         variant="primary"
         size="md"
-        class="w-full">
+        class="w-full"
+        @click="emit('copy')"
+      >
         或者复制链接让对方打开
       </Button>
     </template>
@@ -41,25 +53,23 @@
 </template>
 
 <script setup lang="ts">
-import Modal from '@/components/Modal/index.vue'
 import Button from '@/components/Button/index.vue'
+import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'QrCodeModal' })
 
-const show = defineModel<boolean>()
 const props = withDefaults(
   defineProps<{
     qrCodeValue: string
     showQrCodeModal: boolean
   }>(),
   {
-  }
+  },
 )
-
 const emit = defineEmits<{
   (e: 'copy'): void
 }>()
-
+const show = defineModel<boolean>()
 </script>
 
 <style lang="scss" scoped></style>

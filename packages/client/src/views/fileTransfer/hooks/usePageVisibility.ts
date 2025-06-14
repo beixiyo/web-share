@@ -1,6 +1,6 @@
-import { onUnmounted } from 'vue'
-import { USER_INFO, Action } from 'web-share-common'
 import type { ServerConnection } from '@/ClientServer'
+import { onUnmounted } from 'vue'
+import { Action, USER_INFO } from 'web-share-common'
 
 /**
  * 页面可见性处理Hook
@@ -15,16 +15,17 @@ export function usePageVisibility(server: ServerConnection) {
     if (document.visibilityState === 'hidden') {
       wasHidden = true
       console.log('页面切换到后台')
-    } else if (document.visibilityState === 'visible' && wasHidden) {
+    }
+    else if (document.visibilityState === 'visible' && wasHidden) {
       wasHidden = false
       console.log('页面从后台恢复，重新同步用户状态')
 
-      // 页面恢复时重新请求用户列表，确保状态同步
+      /** 页面恢复时重新请求用户列表，确保状态同步 */
       const userInfo = sessionStorage.getItem(USER_INFO)
       if (userInfo) {
         server.send({
           type: Action.JoinRoom,
-          data: JSON.parse(userInfo)
+          data: JSON.parse(userInfo),
         })
       }
     }
@@ -36,13 +37,13 @@ export function usePageVisibility(server: ServerConnection) {
   function setupVisibilityHandling() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // 组件卸载时清理事件监听
+    /** 组件卸载时清理事件监听 */
     onUnmounted(() => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     })
   }
 
   return {
-    setupVisibilityHandling
+    setupVisibilityHandling,
   }
 }

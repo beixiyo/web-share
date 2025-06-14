@@ -1,4 +1,4 @@
-import { twMerge, type ClassNameValue } from 'tailwind-merge'
+import { type ClassNameValue, twMerge } from 'tailwind-merge'
 
 /**
  * tailwindCSS 类合并

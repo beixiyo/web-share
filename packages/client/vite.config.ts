@@ -1,14 +1,13 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import UnoCSS from 'unocss/vite'
-import postcssPreset from 'postcss-preset-env'
-import vueDevTools from 'vite-plugin-vue-devtools'
-import { envParse } from 'vite-plugin-env-parse'
-import AutoImport from 'unplugin-auto-import/vite'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
-
+import postcssPreset from 'postcss-preset-env'
+import UnoCSS from 'unocss/vite'
+import AutoImport from 'unplugin-auto-import/vite'
+import { defineConfig } from 'vite'
+import { envParse } from 'vite-plugin-env-parse'
+import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig({
   plugins: [
@@ -28,7 +27,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   css: {
@@ -44,11 +43,11 @@ export default defineConfig({
             'nesting-rules': true,
           },
           browsers: ['last 2 versions', '> 1%', 'IE 11'],
-        })
-      ]
-    }
+        }),
+      ],
+    },
   },
   server: {
-    host: '::'
+    host: '::',
   },
 })

@@ -1,22 +1,22 @@
-import { ref, useTemplateRef } from 'vue'
 import type { FileMeta, ProgressData, UserInfo } from 'web-share-common'
 import type { RTCPeer } from '@/ClientServer'
-import { getInitProgress } from './tools'
+import { ref, useTemplateRef } from 'vue'
 import { Message } from '@/utils'
+import { getInitProgress } from './tools'
 
 /**
  * 文件传输管理Hook
  */
 export function useFileTransfer() {
-  // 文件输入引用
+  /** 文件输入引用 */
   const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 
-  // 进度相关状态
+  /** 进度相关状态 */
   const progress = ref<ProgressData>(getInitProgress())
   const currentFileMetas = ref<FileMeta[]>([])
   const currentFileSizes = ref<number[]>([])
 
-  // 文件接收Promise
+  /** 文件接收Promise */
   let acceptPromise: PromiseWithResolvers<void>
 
   /**
@@ -25,7 +25,7 @@ export function useFileTransfer() {
   async function handleFileSelect(
     event: Event,
     selectedPeer: UserInfo | undefined,
-    me: RTCPeer | undefined
+    me: RTCPeer | undefined,
   ) {
     if (!selectedPeer) {
       return
@@ -54,44 +54,46 @@ export function useFileTransfer() {
     me: { value: RTCPeer | undefined },
     setSelectedPeer: (peer: UserInfo) => void,
     setLoading: (state: boolean, message?: string) => void,
-    forceCloseLoading: () => void
+    forceCloseLoading: () => void,
   ) {
     return async function sendFilesToPeer(
       targetPeer: UserInfo,
-      files: File[]
+      files: File[],
     ) {
       if (!me.value) {
         throw new Error('未初始化连接')
       }
 
-      // 设置选中的用户
+      /** 设置选中的用户 */
       setSelectedPeer(targetPeer)
       setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文件...`)
 
       try {
-        // 建立连接
+        /** 建立连接 */
         const { promise, resolve } = Promise.withResolvers()
         await me.value.sendOffer(targetPeer.peerId, resolve)
         await promise
 
-        // 更新文件大小数组
+        /** 更新文件大小数组 */
         currentFileSizes.value = files.map(f => f.size)
 
-        // 发送文件元数据
+        /** 发送文件元数据 */
         await me.value.sendFileMetas(files)
 
-        // 发送文件，处理拒绝情况
+        /** 发送文件，处理拒绝情况 */
         await me.value.sendFiles(files, () => {
           console.log('对方拒绝了你的文件')
           Message.warning(`${targetPeer.name.displayName} 拒绝了文件传输`)
           forceCloseLoading() // 确保关闭loading状态
         })
-      } catch (error) {
+      }
+      catch (error) {
         console.error('发送文件时出错:', error)
         Message.error('发送文件时发生错误')
         forceCloseLoading() // 确保关闭loading状态
         throw error
-      } finally {
+      }
+      finally {
         setLoading(false)
       }
     }
@@ -104,7 +106,7 @@ export function useFileTransfer() {
     fileMetas: FileMeta[],
     acceptCallback: (promiseResolver: PromiseWithResolvers<void>) => void,
     showAcceptFile: { value: boolean },
-    previewSrc: { value: string }
+    previewSrc: { value: string },
   ) {
     acceptPromise = Promise.withResolvers()
     acceptCallback(acceptPromise)
@@ -113,7 +115,8 @@ export function useFileTransfer() {
     currentFileSizes.value = fileMetas.map(fm => fm.size)
 
     for (const item of fileMetas) {
-      if (!item.base64) continue
+      if (!item.base64)
+        continue
       previewSrc.value = item.base64
     }
   }
@@ -123,7 +126,7 @@ export function useFileTransfer() {
    */
   function acceptFile(
     showAcceptFile: { value: boolean },
-    previewSrc: { value: string }
+    previewSrc: { value: string },
   ) {
     showAcceptFile.value = false
     acceptPromise?.resolve()
@@ -135,7 +138,7 @@ export function useFileTransfer() {
    */
   function denyFile(
     showAcceptFile: { value: boolean },
-    previewSrc: { value: string }
+    previewSrc: { value: string },
   ) {
     showAcceptFile.value = false
     acceptPromise?.reject()
@@ -148,8 +151,8 @@ export function useFileTransfer() {
   function handleProgress(data: ProgressData) {
     progress.value = data
     if (
-      data.total === data.curIndex + 1 &&
-      data.progress >= 1
+      data.total === data.curIndex + 1
+      && data.progress >= 1
     ) {
       progress.value = getInitProgress()
     }
@@ -163,19 +166,19 @@ export function useFileTransfer() {
   }
 
   return {
-    // 状态
+    /** 状态 */
     fileInput,
     progress,
     currentFileMetas,
     currentFileSizes,
 
-    // 方法
+    /** 方法 */
     handleFileSelect,
     createSendFilesToPeer,
     handleFileMetas,
     acceptFile,
     denyFile,
     handleProgress,
-    resetProgress
+    resetProgress,
   }
 }

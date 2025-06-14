@@ -1,8 +1,11 @@
 {
   "name": "web-share",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
   "main": "index.js",
   "scripts": {
     "---dev---": "---dev---",
@@ -17,17 +20,22 @@
     "build:client": "pnpm --filter web-share-client build-only",
     "build": "pnpm build:common && run-p build:server build:client",
     "---deploy---": "---deploy---",
-    "deploy:server": "pnpm --filter web-share-server deploy ./deploy --prod"
+    "deploy:server": "pnpm --filter web-share-server deploy ./deploy --prod",
+    "---lint---": "---lint---",
+    "lint:server": "pnpm --filter web-share-server lint",
+    "lint:client": "pnpm --filter web-share-client lint",
+    "lint": "pnpm --parallel --stream -r lint"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^4.7.0",
+    "@jl-org/eslint-plugins": "^1.0.0",
     "@jl-org/ts-tool": "^0.0.8",
     "@types/node": "^22.10.2",
+    "@unocss/eslint-plugin": "^66.1.2",
+    "eslint": "^9.21.0",
     "nodemon": "^3.1.9",
     "npm-run-all2": "^7.0.1",
     "typescript": "~5.7.2",
     "vite": "npm:rolldown-vite@latest"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  }
 }

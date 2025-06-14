@@ -5,5 +5,5 @@ interface PromiseWithResolvers<T> {
 }
 
 declare interface PromiseConstructor {
-  withResolvers<T>(): PromiseWithResolvers<T>
+  withResolvers: <T>() => PromiseWithResolvers<T>
 }

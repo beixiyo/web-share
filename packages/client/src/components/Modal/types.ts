@@ -1,6 +1,6 @@
-import type Modal from '@/components/Modal/index.vue'
 import type { BaseType } from '@jl-org/tool'
 import type { CSSProperties } from 'vue'
+import type Modal from '@/components/Modal/index.vue'
 import { handleCssUnit } from '@jl-org/tool'
 
 export interface CompProps {

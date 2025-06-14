@@ -1,14 +1,14 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "../common/src/config"],
-  "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
+    "lib": ["DOM", "ESNext", "DOM.Iterable"],
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "lib": ["DOM", "ESNext", "DOM.Iterable"],
+    }
   },
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "../common/src/config"],
+  "exclude": ["src/**/__tests__/*"]
 }

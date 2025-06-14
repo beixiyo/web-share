@@ -6,9 +6,11 @@
     enter-to-class="opacity-100"
     leave-active-class="transition duration-300"
     leave-from-class="opacity-100"
-    leave-to-class="opacity-0">
+    leave-to-class="opacity-0"
+  >
     <div
-      class="Mask-container fixed inset-0 z-[99] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      class="Mask-container fixed inset-0 z-[99] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    >
       <slot />
     </div>
   </Transition>

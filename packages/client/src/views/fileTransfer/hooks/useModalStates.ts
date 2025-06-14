@@ -4,7 +4,7 @@ import { ref } from 'vue'
  * 模态框状态管理Hook
  */
 export function useModalStates() {
-  // 各种模态框状态
+  /** 各种模态框状态 */
   const showQrCodeModal = ref(false)
   const showKeyManagementModal = ref(false)
   const showAcceptFile = ref(false)
@@ -12,18 +12,18 @@ export function useModalStates() {
   const showTextInput = ref(false)
   const showUserSelector = ref(false)
 
-  // 加载状态
+  /** 加载状态 */
   const loading = ref(false)
   const loadingMessage = ref('')
 
-  // 文本相关状态
+  /** 文本相关状态 */
   const text = ref('')
   const acceptText = ref('')
 
-  // 预览相关状态
+  /** 预览相关状态 */
   const previewSrc = ref('')
 
-  // 加载超时定时器
+  /** 加载超时定时器 */
   let loadingTimeout: NodeJS.Timeout | null = null
 
   /**
@@ -46,18 +46,19 @@ export function useModalStates() {
     loading.value = state
     loadingMessage.value = message
 
-    // 清除之前的超时定时器
+    /** 清除之前的超时定时器 */
     if (loadingTimeout) {
       clearTimeout(loadingTimeout)
       loadingTimeout = null
     }
 
     if (state === false) {
-      // 加载结束时关闭相关模态框
+      /** 加载结束时关闭相关模态框 */
       showQrCodeModal.value = false
       showKeyManagementModal.value = false
-    } else if (state === true) {
-      // 设置30秒超时
+    }
+    else if (state === true) {
+      /** 设置30秒超时 */
       loadingTimeout = setTimeout(() => {
         loading.value = false
         loadingMessage.value = ''
@@ -111,7 +112,7 @@ export function useModalStates() {
   }
 
   return {
-    // 状态
+    /** 状态 */
     showQrCodeModal,
     showKeyManagementModal,
     showAcceptFile,
@@ -124,13 +125,13 @@ export function useModalStates() {
     acceptText,
     previewSrc,
 
-    // 方法
+    /** 方法 */
     closeAllModals,
     setLoading,
     forceCloseLoading,
     showTextReceiveModal,
     showTextSendModal,
     closeTextSendModal,
-    closeTextReceiveModal
+    closeTextReceiveModal,
   }
 }

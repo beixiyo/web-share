@@ -1,8 +1,7 @@
-import { PromisePolyfill } from './PromisePolyfill'
-import { arrPolyfill } from './arrPolyfill'
-import VConsole from 'vconsole'
 import { isMobile } from '@jl-org/tool'
-
+import VConsole from 'vconsole'
+import { arrPolyfill } from './arrPolyfill'
+import { PromisePolyfill } from './PromisePolyfill'
 
 PromisePolyfill()
 arrPolyfill()

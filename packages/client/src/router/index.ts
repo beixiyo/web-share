@@ -1,15 +1,14 @@
-import { createRouter, createWebHistory } from 'vue-router'
 import { genRoutes } from '@jl-org/vite-auto-route'
+import { createRouter, createWebHistory } from 'vue-router'
 
-
-// 拿到 /src/views 下所有 index.vue 作为路由
+/** 拿到 /src/views 下所有 index.vue 作为路由 */
 const views = genRoutes({
   globComponentsImport: () => import.meta.glob('/src/views/**/index.vue'),
   indexFileName: '/index.vue',
   routerPathFolder: '/src/views',
   pathPrefix: /^\/src\/views/,
 })
-// 拿到 /src/components 下所有 Test.vue 作为路由
+/** 拿到 /src/components 下所有 Test.vue 作为路由 */
 const components = genRoutes({
   globComponentsImport: () => import.meta.glob('/src/components/**/Test.vue'),
   indexFileName: '/Test.vue',

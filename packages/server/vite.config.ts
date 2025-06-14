@@ -1,7 +1,7 @@
-import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
-
 import { builtinModules } from 'node:module' // 用于获取 Node.js 内置模块
+import { fileURLToPath, URL } from 'node:url'
+
+import { defineConfig } from 'vite'
 import pkg from './package.json' with { type: 'json' }
 
 /**
@@ -13,12 +13,12 @@ const externalPackages = [
   ...Object.keys(pkg.dependencies || {}),
   // @ts-ignore
   ...Object.keys(pkg.peerDependencies || {}),
-].filter((item) => item !== 'web-share-common')
+].filter(item => item !== 'web-share-common')
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 
@@ -26,11 +26,13 @@ export default defineConfig({
     sourcemap: true,
     lib: {
       entry: fileURLToPath(new URL('./src/main.ts', import.meta.url)),
-      fileName: (format) => `server.${format === 'es' ? 'mjs' : 'js'}`, // 输出 index.mjs (推荐) 或 index.js
-      formats: ['es']
+      fileName: format => `server.${format === 'es'
+        ? 'mjs'
+        : 'js'}`, // 输出 index.mjs (推荐) 或 index.js
+      formats: ['es'],
     },
     rollupOptions: {
-      // 关键：将所有 Node.js 内置模块和 package.json 中的依赖声明为外部的
+      /** 关键：将所有 Node.js 内置模块和 package.json 中的依赖声明为外部的 */
       external: externalPackages,
     },
     minify: false,
