@@ -13,16 +13,27 @@
 
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div v-if="info"
-      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
-             dark:bg-gray-800/80 dark:shadow-gray-700/50
-             sm:p-2 sm:space-x-1 sm:text-sm sm:bottom-4 sm:max-w-[calc(100vw-2rem)]">
-      <component :is="getDeviceIcon(info.name.type || info.name.os)"
-        class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5 flex-shrink-0" />
-      <span
-        class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs truncate">
-        你当前是: <span
-          class="text-emerald-600 dark:text-emerald-400">{{ info.name.displayName }}</span>
-      </span>
+      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center space-y-2">
+      <!-- 主要用户信息 -->
+      <div class="flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-md
+                  dark:bg-gray-800/80 dark:shadow-gray-700/50
+                  sm:p-2 sm:space-x-1 sm:text-sm sm:max-w-[calc(100vw-2rem)]">
+        <component :is="getDeviceIcon(info.name.type || info.name.os)"
+          class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5 flex-shrink-0" />
+        <span
+          class="font-semibold text-gray-700 dark:text-gray-200 sm:text-xs truncate">
+          你当前是: <span
+            class="text-emerald-600 dark:text-emerald-400">{{ info.name.displayName }}</span>
+        </span>
+      </div>
+
+      <!-- 粘贴提示 -->
+      <div v-if="onlineUsers.length > 0"
+        class="text-xs text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60
+               backdrop-blur-sm px-2 py-1 rounded-md shadow-sm
+               sm:text-[10px] sm:px-1.5 sm:py-0.5">
+        💡 按 Ctrl+V 粘贴文件或文本快速发送
+      </div>
     </div>
 
     <!-- 浮动小球 -->
@@ -187,6 +198,7 @@ onMounted(() => {
 
   handleQuery()
   setupVisibilityHandling()
+  setupPasteHandler()
 })
 
 /**
@@ -220,6 +232,206 @@ function setupVisibilityHandling() {
   onUnmounted(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   })
+}
+
+/**
+ * 设置粘贴事件处理
+ */
+function setupPasteHandler() {
+  const handlePaste = async (event: ClipboardEvent) => {
+    // 防止在输入框中粘贴时触发文件传输
+    const target = event.target as HTMLElement
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true')) {
+      return
+    }
+
+    event.preventDefault()
+
+    if (!event.clipboardData) {
+      Message.warning('无法访问剪贴板内容')
+      return
+    }
+
+    await handleClipboardData(event.clipboardData)
+  }
+
+  document.addEventListener('paste', handlePaste)
+
+  // 组件卸载时清理事件监听
+  onUnmounted(() => {
+    document.removeEventListener('paste', handlePaste)
+  })
+}
+
+/**
+ * 处理剪贴板数据
+ */
+async function handleClipboardData(clipboardData: DataTransfer) {
+  try {
+    // 检查是否有在线用户可以发送
+    if (onlineUsers.value.length === 0) {
+      Message.warning('没有在线用户，无法发送内容')
+      return
+    }
+
+    const items = Array.from(clipboardData.items)
+    const files: File[] = []
+    let textContent = ''
+
+    // 分析剪贴板内容
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const file = item.getAsFile()
+        if (file) {
+          files.push(file)
+        }
+      } else if (item.kind === 'string' && item.type === 'text/plain') {
+        textContent = await new Promise<string>((resolve) => {
+          item.getAsString(resolve)
+        })
+      }
+    }
+
+    // 处理内容
+    if (files.length > 0 && textContent.trim()) {
+      // 混合内容：询问用户要发送什么
+      await handleMixedClipboardContent(files, textContent)
+    } else if (files.length > 0) {
+      // 只有文件
+      await handleClipboardFiles(files)
+    } else if (textContent.trim()) {
+      // 只有文本
+      await handleClipboardText(textContent.trim())
+    } else {
+      Message.warning('剪贴板中没有可发送的内容')
+    }
+  } catch (error) {
+    console.error('处理剪贴板数据时出错:', error)
+    Message.error('处理剪贴板内容时发生错误')
+  }
+}
+
+/**
+ * 处理剪贴板中的文件
+ */
+async function handleClipboardFiles(files: File[]) {
+  try {
+    // 如果只有一个在线用户，直接发送给该用户
+    if (onlineUsers.value.length === 1) {
+      const targetPeer = onlineUsers.value[0]
+      await sendFilesToPeer(targetPeer, files)
+      return
+    }
+
+    // 多个用户时，需要选择发送目标
+    // 这里可以扩展为显示用户选择对话框，目前发送给第一个用户
+    const targetPeer = onlineUsers.value[0]
+    await sendFilesToPeer(targetPeer, files)
+
+    Message.success(`已通过粘贴发送 ${files.length} 个文件给 ${targetPeer.name.displayName}`)
+  } catch (error) {
+    console.error('发送剪贴板文件时出错:', error)
+    Message.error('发送文件时发生错误')
+  }
+}
+
+/**
+ * 处理剪贴板中的文本
+ */
+async function handleClipboardText(textContent: string) {
+  try {
+    // 如果只有一个在线用户，直接发送给该用户
+    if (onlineUsers.value.length === 1) {
+      const targetPeer = onlineUsers.value[0]
+      await sendTextToPeer(targetPeer, textContent)
+      return
+    }
+
+    // 多个用户时，需要选择发送目标
+    // 这里可以扩展为显示用户选择对话框，目前发送给第一个用户
+    const targetPeer = onlineUsers.value[0]
+    await sendTextToPeer(targetPeer, textContent)
+
+    Message.success(`已通过粘贴发送文本给 ${targetPeer.name.displayName}`)
+  } catch (error) {
+    console.error('发送剪贴板文本时出错:', error)
+    Message.error('发送文本时发生错误')
+  }
+}
+
+/**
+ * 处理混合剪贴板内容（文件+文本）
+ */
+async function handleMixedClipboardContent(files: File[], textContent: string) {
+  try {
+    // 简化处理：优先发送文件，如果用户需要发送文本，可以再次粘贴
+    Message.info('检测到文件和文本内容，优先发送文件')
+    await handleClipboardFiles(files)
+  } catch (error) {
+    console.error('处理混合剪贴板内容时出错:', error)
+    Message.error('处理混合内容时发生错误')
+  }
+}
+
+/**
+ * 向指定用户发送文件
+ */
+async function sendFilesToPeer(targetPeer: UserInfo, files: File[]) {
+  if (!me.value) {
+    throw new Error('未初始化连接')
+  }
+
+  // 设置选中的用户
+  selectedPeer.value = targetPeer
+  sessionStorage.setItem(SELECTED_PEER_ID, targetPeer.peerId)
+
+  loading.value = true
+
+  try {
+    // 建立连接
+    const { promise, resolve } = Promise.withResolvers()
+    await me.value.sendOffer(targetPeer.peerId, resolve)
+    await promise
+
+    // 更新文件大小数组
+    currentFileSizes.value = files.map(f => f.size)
+
+    // 发送文件
+    await me.value.sendFileMetas(files)
+    await me.value.sendFiles(files, () => {
+      console.log('对方拒绝了你的文件')
+      Message.warning('对方拒绝了文件传输')
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 向指定用户发送文本
+ */
+async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
+  if (!me.value) {
+    throw new Error('未初始化连接')
+  }
+
+  // 设置选中的用户
+  selectedPeer.value = targetPeer
+  sessionStorage.setItem(SELECTED_PEER_ID, targetPeer.peerId)
+
+  loading.value = true
+
+  try {
+    // 建立连接
+    const { promise, resolve } = Promise.withResolvers()
+    await me.value.sendOffer(targetPeer.peerId, resolve)
+    await promise
+
+    // 发送文本
+    me.value.sendText(textContent)
+  } finally {
+    loading.value = false
+  }
 }
 
 
