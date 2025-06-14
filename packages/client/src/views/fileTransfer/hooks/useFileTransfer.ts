@@ -16,6 +16,9 @@ export function useFileTransfer() {
   const currentFileMetas = ref<FileMeta[]>([])
   const currentFileSizes = ref<number[]>([])
 
+  /** 发送方用户信息 */
+  const fromUser = ref<string>('')
+
   /** 文件接收Promise */
   let acceptPromise: PromiseWithResolvers<void>
 
@@ -107,12 +110,18 @@ export function useFileTransfer() {
     acceptCallback: (promiseResolver: PromiseWithResolvers<void>) => void,
     showAcceptFile: { value: boolean },
     previewSrc: { value: string },
+    fromUserName?: string,
   ) {
     acceptPromise = Promise.withResolvers()
     acceptCallback(acceptPromise)
     showAcceptFile.value = true
     currentFileMetas.value = fileMetas
     currentFileSizes.value = fileMetas.map(fm => fm.size)
+
+    /** 设置发送方用户信息 */
+    if (fromUserName) {
+      fromUser.value = fromUserName
+    }
 
     for (const item of fileMetas) {
       if (!item.base64)
@@ -171,6 +180,7 @@ export function useFileTransfer() {
     progress,
     currentFileMetas,
     currentFileSizes,
+    fromUser,
 
     /** 方法 */
     handleFileSelect,

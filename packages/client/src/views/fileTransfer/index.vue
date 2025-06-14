@@ -78,6 +78,7 @@
       v-model="showAcceptFile"
       :file-metas="currentFileMetas"
       :preview-src="previewSrc"
+      :from-user="fromUser"
       @accept="onAcceptFile" @deny="onDenyFile" />
 
     <!-- 接收文本弹窗 -->
@@ -181,6 +182,7 @@ const {
   progress,
   currentFileMetas,
   currentFileSizes,
+  fromUser,
   handleFileSelect,
   // sendFilesToPeer,
   handleFileMetas,
@@ -503,7 +505,15 @@ function onNotifyUserInfo(data: UserInfo) {
        * 在获取元数据时被调用 {@link RTCPeer.handleFileMetas}
        */
       onFileMetas(fileMetas: any, acceptCallback: any) {
-        handleFileMetas(fileMetas, acceptCallback, showAcceptFile, previewSrc)
+        // 根据 fromId 查找发送方用户信息
+        let fromUserName = '未知用户'
+        if (fileMetas && fileMetas.length > 0 && fileMetas[0].fromId) {
+          const senderUser = allUsers.value.find(user => user.peerId === fileMetas[0].fromId)
+          if (senderUser) {
+            fromUserName = senderUser.name.displayName
+          }
+        }
+        handleFileMetas(fileMetas, acceptCallback, showAcceptFile, previewSrc, fromUserName)
       },
 
       onText(text: string) {
