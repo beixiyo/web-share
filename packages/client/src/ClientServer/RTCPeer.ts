@@ -53,8 +53,8 @@ export class RTCPeer extends Peer {
       this.pc.ondatachannel = this.onChannelOpened
       this.pc.onicecandidate = this.onIceCandidate
 
-      this.pc.onconnectionstatechange = () => console.log('RTC: Connection state:', this.pc?.connectionState)
-      this.pc.oniceconnectionstatechange = () => console.log('ICE connection state:', this.pc?.iceConnectionState)
+      this.pc.onconnectionstatechange = () => console.log('RTC: 连接状态:', this.pc?.connectionState)
+      this.pc.oniceconnectionstatechange = () => console.log('ICE 连接状态:', this.pc?.iceConnectionState)
     }
 
     /**
@@ -119,7 +119,7 @@ export class RTCPeer extends Peer {
       this.pc = null
     }
 
-    console.log(`RTCPeer ${this.peerId} closed.`)
+    console.log(`RTCPeer ${this.peerId} 已关闭.`)
   }
 
   /***************************************************
@@ -164,7 +164,7 @@ export class RTCPeer extends Peer {
 
         while (!chunker.done) {
           if (this.isChannelClose) {
-            console.error('RTC: channel closed, 中断文件传输')
+            console.error('RTC: channel 已关闭, 中断文件传输')
             return
           }
           const blob = chunker.next()
@@ -260,12 +260,12 @@ export class RTCPeer extends Peer {
   async sendOffer(toId: string, onChannelReady?: Function) {
     if (!this.pc) {
       this.connect()
-      console.error('RTC: [sendOffer] PeerConnection is null. Cannot send offer.')
+      console.error('RTC: [sendOffer] PeerConnection 为空，无法发送 offer。')
       return
     }
 
     if (this.isChannelOpen) {
-      console.log('RTC: channel is already open, cannot send offer')
+      console.log('RTC: channel 已经打开，无法发送 offer')
       onChannelReady?.()
       return
     }
@@ -294,7 +294,7 @@ export class RTCPeer extends Peer {
   async handleOffer(offer: Sdp & To) {
     if (!this.pc) {
       this.connect()
-      console.warn('RTC: [handleOffer] PeerConnection not initialized. Attempting to connect first.')
+      console.warn('RTC: [handleOffer] PeerConnection 尚未初始化，正在尝试连接...')
       return
     }
 
@@ -320,7 +320,7 @@ export class RTCPeer extends Peer {
   async handleAnswer(answer: Sdp & To) {
     if (!this.pc) {
       this.connect()
-      console.warn('RTC: PeerConnection not initialized, cannot handle answer.')
+      console.warn('RTC: PeerConnection 尚未初始化，无法处理 answer。')
       return
     }
 
@@ -389,7 +389,7 @@ export class RTCPeer extends Peer {
       this.connect()
       return
     }
-    console.log('RTC: channel opened with', this.peerId)
+    console.log('RTC: channel 已打开，对端ID:', this.peerId)
 
     const channel = e.channel || e.target
     this.channel = channel
@@ -459,7 +459,7 @@ export class RTCPeer extends Peer {
           break
 
         default:
-          console.warn('RTC: unknown message type', data.type)
+          console.warn('RTC: 未知的消息类型', data.type)
       }
     }
     else {
@@ -493,7 +493,7 @@ export class RTCPeer extends Peer {
   }
 
   private onClose = () => {
-    console.log('RTC: channel closed', this.peerId)
+    console.log('RTC: channel 已关闭', this.peerId)
     if (!this.isCaller) return
     this.connect() // reopen the channel
   }

@@ -1,37 +1,38 @@
 <template>
-  <Modal class="TextModal-container" v-model="show">
-    <div class="p-6 w-96 bg-white rounded-2xl shadow-2xl
-                dark:bg-gray-800 dark:shadow-gray-900/50
-                sm:w-[90vw] sm:max-w-sm sm:p-4">
-      <h3 class="mb-4 font-semibold text-gray-900 dark:text-gray-100 sm:text-base sm:mb-3">
-        发送文本给
-        {{ toName }}
-      </h3>
+  <Modal class="TextModal-container"
+    v-model="show"
+    :title="`发送文本给 ${toName}`"
+    height="auto">
+    <div class="p-4 sm:p-3">
       <textarea v-model.trim="textModel"
         class="p-3 w-full h-32 rounded-lg border focus:outline-none focus:ring-2 focus:ring-emerald-500
-               dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-emerald-400
+               bg-gray-50 dark:bg-gray-700/50
+               dark:border-gray-600 dark:text-gray-200 dark:focus:ring-emerald-400
                dark:placeholder-gray-400
                sm:h-24 sm:p-2 sm:text-sm"
         placeholder="输入要发送的文本...">
-        </textarea>
-      <div class="flex justify-end mt-4 space-x-4 sm:space-x-2 sm:flex-col-reverse sm:space-y-2 sm:space-y-reverse sm:space-x-0 sm:mt-3">
+      </textarea>
+    </div>
+
+    <template #footer>
+      <div class="flex-shrink-0 flex gap-4">
         <Button
           @click="emit('close')"
           design-style="ghost"
           variant="default"
           size="md"
-          class="sm:w-full">
+          class="flex-1">
           取消
         </Button>
         <Button
           @click="emit('send')"
           variant="primary"
           size="md"
-          class="sm:w-full">
+          class="flex-1">
           发送
         </Button>
       </div>
-    </div>
+    </template>
   </Modal>
 </template>
 

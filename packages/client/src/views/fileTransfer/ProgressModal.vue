@@ -1,58 +1,64 @@
 <template>
-  <Modal class="ProgressModal-container" v-model="show">
-    <div class="p-6 w-[420px] bg-white rounded-2xl shadow-2xl
-                dark:bg-gray-800 dark:shadow-gray-900/50
-                sm:w-[90vw] sm:max-w-md sm:p-4">
+  <Modal class="ProgressModal-container"
+    v-model="show"
+    title="文件传输中"
+    height="auto">
+    <div class="size-full rounded-2xl flex flex-col p-4 gap-4 sm:p-3 sm:gap-3">
       <!-- 头部信息 -->
-      <div class="flex items-center mb-6 space-x-4 sm:mb-4 sm:space-x-3">
+      <div class="flex items-center space-x-4 sm:space-x-3">
         <div
           class="flex justify-center items-center w-12 h-12 bg-emerald-100 rounded-full
-                 dark:bg-emerald-900/30 sm:w-10 sm:h-10">
+                 dark:bg-emerald-900/30 sm:w-10 sm:h-10 flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg"
-            class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24"
+            class="w-6 h-6 text-emerald-600 dark:text-emerald-400 sm:w-5 sm:h-5"
+            fill="none"
+            viewBox="0 0 24 24"
             stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round"
               stroke-width="2"
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
         </div>
-        <div class="flex-1">
-          <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100 sm:text-base">文件传输中</h3>
-          <div class="text-sm text-gray-500 dark:text-gray-400 sm:text-xs">
-            正在传输第 <span
-              class="font-medium text-emerald-600 dark:text-emerald-400">{{ progress.curIndex + 1 }}</span>
-            个文件，共 <span class="font-medium">{{ progress.total }}</span> 个
+        <div class="flex-1 min-w-0">
+          <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100 sm:text-base">文件传输</h3>
+          <div class="text-sm text-gray-500 dark:text-gray-400 sm:text-xs truncate">
+            正在传输第
+            <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ progress.curIndex + 1 }}</span>
+            个文件，共
+            <span class="font-medium">{{ progress.total }}</span>
+            个
           </div>
         </div>
       </div>
 
       <!-- 当前文件信息 -->
-      <div class="mb-4 p-3 bg-gray-50 rounded-lg dark:bg-gray-700 sm:mb-3 sm:p-2">
+      <div class="p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50 sm:p-2">
         <div class="flex items-center justify-between mb-2 sm:mb-1">
-          <div class="flex items-center space-x-2 sm:space-x-1">
+          <div class="flex items-center space-x-2 min-w-0 sm:space-x-1.5">
             <component :is="getFileIcon(progress.filename)"
-              class="w-4 h-4 text-gray-500 dark:text-gray-400 sm:w-3 sm:h-3" />
-            <span class="font-medium text-gray-900 truncate max-w-[200px] dark:text-gray-100 sm:text-sm sm:max-w-[150px]"
+              class="w-4 h-4 text-gray-500 dark:text-gray-400 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            <span class="font-medium text-gray-900 truncate dark:text-gray-100 sm:text-sm"
               :title="progress.filename">
               {{ progress.filename }}
             </span>
           </div>
-          <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded dark:bg-gray-600 dark:text-gray-300 sm:text-[10px] sm:px-1">
+          <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded dark:bg-gray-600 dark:text-gray-300 sm:text-[10px] sm:px-1.5 flex-shrink-0">
             {{ progress.curIndex + 1 }}/{{ progress.total }}
           </span>
         </div>
 
         <!-- 文件大小信息 -->
-        <div v-if="currentFileSize" class="text-xs text-gray-500 dark:text-gray-400 sm:text-[10px]">
+        <div v-if="currentFileSize"
+          class="text-xs text-gray-500 dark:text-gray-400 sm:text-[10px]">
           {{ formatByte(currentFileSize * progress.progress) }} /
           {{ formatByte(currentFileSize) }}
         </div>
       </div>
 
       <!-- 进度条 -->
-      <div class="mb-4 sm:mb-3">
+      <div class="space-y-3 sm:space-y-2">
         <!-- 单个文件进度 -->
-        <div class="mb-3 sm:mb-2">
+        <div>
           <div class="flex justify-between items-center mb-1">
             <span class="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-xs">当前文件进度</span>
             <span
@@ -81,12 +87,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 传输速度和剩余时间 -->
-      <!-- <div class="flex justify-between text-xs text-gray-500">
-        <span>传输速度: {{ transferSpeed }}</span>
-        <span>预计剩余: {{ estimatedTime }}</span>
-      </div> -->
     </div>
   </Modal>
 </template>

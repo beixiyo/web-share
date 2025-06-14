@@ -65,7 +65,6 @@ export class Peer {
    * 同一局域网的设备会被分配到同一个房间
    */
   private getRoomIdFromIP(ip: string): string {
-    return `pub_${Math.random().toString(36)}`
     // IPv6本地地址
     if (ip === '::1') {
       return 'local'
