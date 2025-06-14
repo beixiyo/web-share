@@ -65,6 +65,12 @@ export interface CompProps {
    * @default 99
    */
   zIndex?: number
+
+  /**
+   * 点击空白是否可以关闭
+   * @default true
+   */
+  maskClosable?: boolean
 }
 
 export const defaultProps = {

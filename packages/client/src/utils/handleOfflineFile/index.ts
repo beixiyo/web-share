@@ -1,6 +1,4 @@
-export * from './FileStore'
 export * from './ResumeManager'
-export * from './saveFileWithStream'
 export * from './TransferManager'
 export * from './TransferStore'
 export * from './types'

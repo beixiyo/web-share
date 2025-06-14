@@ -1,20 +1,20 @@
 import type { CleanupOptions, CleanupResult, TransferManagerConfig, TransferProgress, TransferSession, TransferStatus } from './types'
-import { FileStore } from './FileStore'
 import { TransferStore } from './TransferStore'
+import { ResumeManager } from './ResumeManager'
 
 /**
  * 传输管理器
  * 负责管理文件传输的断点续传、进度跟踪和状态管理
  */
 export class TransferManager {
-  private fileStore: FileStore
+  private resumeManager: ResumeManager
   private transferStore: TransferStore
   private config: Required<TransferManagerConfig>
   private progressCallbacks: Map<string, (progress: TransferProgress) => void> = new Map()
   private speedCalculator: Map<string, { lastBytes: number, lastTime: number }> = new Map()
 
   constructor(config: TransferManagerConfig = {}) {
-    this.fileStore = new FileStore()
+    this.resumeManager = new ResumeManager()
     this.transferStore = new TransferStore()
 
     /** 默认配置 */
@@ -39,12 +39,12 @@ export class TransferManager {
     direction: 'send' | 'receive',
     peerId?: string,
   ): Promise<string> {
-    /** 创建文件存储 */
-    const fileId = await this.fileStore.createFile(file.name)
+    /** 创建断点续传缓存 */
+    const fileHash = await this.resumeManager.createResumeCache(file.name, file.size)
 
     /** 创建传输会话 */
     const session = await this.transferStore.createSession(
-      fileId,
+      fileHash, // 使用 fileHash 作为 fileId
       file.name,
       file.size,
       file.type,
@@ -82,10 +82,10 @@ export class TransferManager {
       return false
     }
 
-    /** 检查文件数据是否存在 */
-    const fileMeta = await this.fileStore.getFileMetadata(session.fileId)
-    if (!fileMeta) {
-      console.warn(`文件数据 ${session.fileId} 不存在，无法恢复传输`)
+    /** 检查断点续传缓存是否存在 */
+    const hasCache = await this.resumeManager.hasResumeCache(session.fileId)
+    if (!hasCache) {
+      console.warn(`断点续传缓存 ${session.fileId} 不存在，无法恢复传输`)
       await this.transferStore.updateSession(sessionId, { status: 'failed' as TransferStatus })
       return false
     }
@@ -116,8 +116,8 @@ export class TransferManager {
   async cancelTransfer(sessionId: string): Promise<void> {
     const session = await this.transferStore.getSession(sessionId)
     if (session) {
-      /** 删除文件数据 */
-      await this.fileStore.deleteFile(session.fileId)
+      /** 删除断点续传缓存 */
+      await this.resumeManager.deleteResumeCache(session.fileId)
 
       /** 更新会话状态 */
       await this.transferStore.updateSession(sessionId, {
@@ -273,14 +273,14 @@ export class TransferManager {
         })
         .map(session => session.fileId)
 
-      /** 清理文件数据 */
+      /** 清理断点续传缓存 */
       for (const fileId of fileIdsToClean) {
         try {
-          await this.fileStore.deleteFile(fileId)
+          await this.resumeManager.deleteResumeCache(fileId)
           result.cleanedFiles++
         }
         catch (error) {
-          console.warn(`清理文件 ${fileId} 失败:`, error)
+          console.warn(`清理断点续传缓存 ${fileId} 失败:`, error)
         }
       }
     }
@@ -299,8 +299,8 @@ export class TransferManager {
     const sessionCount = Object.keys(sessions).length
     const totalBytes = Object.values(sessions).reduce((sum, session) => sum + session.totalSize, 0)
 
-    /** 清理文件存储 */
-    await this.fileStore.clearAllStoredData()
+    /** 清理断点续传缓存 */
+    await this.resumeManager.clearAllCache()
 
     /** 清理传输存储 */
     await this.transferStore.clearAll()
