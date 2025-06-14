@@ -1,6 +1,6 @@
 import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { createStreamDownloader, type StreamDownloader } from '@jl-org/tool'
+import { createStreamDownloader, retryTask, type StreamDownloader } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
@@ -55,11 +55,17 @@ export class FileDownloadManager {
    */
   async download(): Promise<void> {
     try {
-      await this.downloader?.complete()
-      console.log('文件下载完成')
+      if (!this.downloader) {
+        throw new Error('下载器未初始化')
+      }
+
+      /** 完成下载并等待文件保存 */
+      await this.downloader.complete()
     }
     catch (error) {
-      this.config.onError?.(`文件下载完成失败: ${error}`)
+      const errorMessage = `文件下载完成失败: ${error}`
+      console.error(errorMessage)
+      this.config.onError?.(errorMessage)
       throw error
     }
   }
@@ -158,12 +164,32 @@ export class FileDownloadManager {
   async handleFileDone(): Promise<void> {
     this.stopAllRaf()
     await this.appendBuffer()
-    await this.download()
 
-    /** 文件传输完成，清理断点续传缓存 */
-    if (this.currentFileHash) {
-      await this.resumeManager.deleteResumeCache(this.currentFileHash)
-      this.currentFileHash = undefined
+    try {
+      /** 完成文件下载 */
+      await this.download()
+
+      /** 文件下载成功，清理断点续传缓存 */
+      if (this.currentFileHash) {
+        await this.cleanupResumeCache(this.currentFileHash)
+        this.currentFileHash = undefined
+      }
+
+      console.log('文件下载和缓存清理完成')
+    }
+    catch (error) {
+      console.error('文件下载完成处理失败:', error)
+      /** 即使下载失败，也要尝试清理缓存以避免数据残留 */
+      if (this.currentFileHash) {
+        try {
+          await this.cleanupResumeCache(this.currentFileHash)
+          this.currentFileHash = undefined
+        }
+        catch (cleanupError) {
+          console.error('清理缓存失败:', cleanupError)
+        }
+      }
+      throw error
     }
   }
 
@@ -240,6 +266,32 @@ export class FileDownloadManager {
       console.error('恢复缓存数据失败:', error)
       /** 恢复失败不应该阻止文件下载，只是记录错误 */
     }
+  }
+
+  /**
+   * 清理断点续传缓存
+   * 提供重试机制和详细的错误处理
+   */
+  private async cleanupResumeCache(fileHash: string, maxRetries: number = 3): Promise<void> {
+    const rmCache = async () => {
+      /** 删除断点续传缓存 */
+      await this.resumeManager.deleteResumeCache(fileHash)
+
+      /** 验证缓存是否真正被清理 */
+      const hasCache = await this.resumeManager.hasResumeCache(fileHash)
+      if (hasCache) {
+        return Promise.reject(new Error('缓存清理后仍然存在，可能清理失败'))
+      }
+
+      console.log(`断点续传缓存清理成功: ${fileHash}`)
+    }
+
+    return retryTask(rmCache, maxRetries)
+      .catch(() => {
+        /** 所有重试都失败了 */
+        console.error(`清理断点续传缓存最终失败: ${fileHash}`)
+        throw new Error(`清理断点续传缓存失败`)
+      })
   }
 
   /**

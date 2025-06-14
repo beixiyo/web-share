@@ -195,7 +195,8 @@ export class ResumeManager {
 
       console.warn(`获取缓存数据块: ${fileHash}, 数量: ${cacheItem.chunks.length}`)
       return cacheItem.chunks
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`获取缓存数据块失败: ${fileHash}`, error)
       return []
     }
@@ -205,15 +206,23 @@ export class ResumeManager {
    * 删除断点续传缓存
    */
   async deleteResumeCache(fileHash: string): Promise<void> {
-    const cacheKey = this.getCacheKey(fileHash)
-    await this.localForageInstance.removeItem(cacheKey)
+    try {
+      const cacheKey = this.getCacheKey(fileHash)
 
-    /** 更新元数据 */
-    const metadata = await this.getMetadata()
-    delete metadata[fileHash]
-    await this.saveMetadata(metadata)
+      /** 删除缓存数据 */
+      await this.localForageInstance.removeItem(cacheKey)
 
-    console.log(`删除断点续传缓存: ${fileHash}`)
+      /** 更新元数据 */
+      const metadata = await this.getMetadata()
+      delete metadata[fileHash]
+      await this.saveMetadata(metadata)
+
+      console.log(`删除断点续传缓存成功: ${fileHash}`)
+    }
+    catch (error) {
+      console.error(`删除断点续传缓存失败: ${fileHash}`, error)
+      throw new Error(`删除断点续传缓存失败: ${error}`)
+    }
   }
 
   /**

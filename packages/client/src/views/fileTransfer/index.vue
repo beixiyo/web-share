@@ -269,7 +269,20 @@ const { server, peerManager } = initializeServer({
 })
 
 /** 设置页面可见性处理 */
-const pageVisibility = usePageVisibility(server)
+const pageVisibility = usePageVisibility(server, async () => {
+  /** 页面从后台恢复时重新检查缓存状态 */
+  try {
+    console.log('页面恢复，重新检查断点续传缓存状态...')
+    const result = await checkCacheData()
+
+    if (result.hasData && !showCacheDetectionModal.value) {
+      console.log('页面恢复时发现新的缓存数据:', result.cacheInfo)
+      showCacheDetectionModal.value = true
+    }
+  } catch (error) {
+    console.error('页面恢复时检查缓存失败:', error)
+  }
+})
 const { setupVisibilityHandling } = pageVisibility
 
 onMounted(() => {
@@ -298,11 +311,21 @@ onMounted(() => {
 
   /** 检查断点续传缓存 */
   setTimeout(async () => {
-    await checkCacheData()
-    if (hasCacheData.value) {
-      showCacheDetectionModal.value = true
+    try {
+      console.log('开始检查断点续传缓存...')
+      const result = await checkCacheData()
+
+      if (result.hasData) {
+        console.log('发现断点续传缓存数据:', result.cacheInfo)
+        showCacheDetectionModal.value = true
+      }
+      else {
+        console.log('未发现断点续传缓存数据')
+      }
+    } catch (error) {
+      console.error('检查断点续传缓存失败:', error)
     }
-  }, 2000) // 延迟2秒检查，避免影响页面初始化
+  }, 1000) // 延迟1秒检查，避免影响页面初始化
 })
 
 /** 创建发送文件函数 */

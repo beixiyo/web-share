@@ -5,7 +5,7 @@ import { Action, USER_INFO } from 'web-share-common'
 /**
  * 页面可见性处理Hook
  */
-export function usePageVisibility(server: ServerConnection) {
+export function usePageVisibility(server: ServerConnection, onPageVisible?: () => void) {
   let wasHidden = false
 
   /**
@@ -28,6 +28,8 @@ export function usePageVisibility(server: ServerConnection) {
           data: JSON.parse(userInfo),
         })
       }
+
+      onPageVisible?.()
     }
   }
 

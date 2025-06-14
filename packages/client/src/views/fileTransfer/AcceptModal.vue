@@ -4,6 +4,7 @@
     class="AcceptModal-container"
     title="接收文件"
     height="80vh"
+    width="clamp(345px, 800px, 60vw)"
     variant="info"
   >
     <div

@@ -17,12 +17,37 @@ export function useResumeCache() {
     isCheckingCache.value = true
     try {
       const allCacheInfo = await resumeManager.getAllCacheInfo()
-      const hasData = Object.keys(allCacheInfo).length > 0
 
-      hasCacheData.value = hasData
-      cacheInfo.value = allCacheInfo
+      /** 验证缓存数据的有效性 */
+      const validCacheInfo: Record<string, any> = {}
+      let hasValidData = false
 
-      return { hasData, cacheInfo: allCacheInfo }
+      for (const [fileHash, info] of Object.entries(allCacheInfo)) {
+        try {
+          /** 检查缓存项是否真实存在 */
+          const hasCache = await resumeManager.hasResumeCache(fileHash)
+          if (hasCache) {
+            validCacheInfo[fileHash] = info
+            hasValidData = true
+          }
+          else {
+            console.warn(`发现无效缓存项，将清理: ${fileHash}`)
+            /** 清理无效的元数据 */
+            await resumeManager.deleteResumeCache(fileHash).catch((error) => {
+              console.warn(`清理无效缓存项失败: ${fileHash}`, error)
+            })
+          }
+        }
+        catch (error) {
+          console.warn(`验证缓存项失败: ${fileHash}`, error)
+        }
+      }
+
+      hasCacheData.value = hasValidData
+      cacheInfo.value = validCacheInfo
+
+      console.log(`缓存检查完成: 有效缓存 ${Object.keys(validCacheInfo).length} 个`)
+      return { hasData: hasValidData, cacheInfo: validCacheInfo }
     }
     catch (error) {
       console.error('检查缓存数据失败:', error)
@@ -102,11 +127,6 @@ export function useResumeCache() {
       updatedAt: new Date(info.updatedAt).toLocaleString(),
     }))
   }
-
-  /** 组件挂载时自动检查缓存 */
-  onMounted(() => {
-    checkCacheData()
-  })
 
   return {
     /** 状态 */
