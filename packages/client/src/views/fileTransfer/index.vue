@@ -7,13 +7,9 @@
 
     <!-- 工具栏 -->
     <ToolBar
-      v-model:show-qr-modal="showQrCodeModal"
       :qr-code-value="qrCodeValue"
-      :room-code="roomCode"
-      @generate-code="requestCreateRoomWithCode"
-      @copy="copyLink"
       @generate-qr-code="requestCreateDirectRoom"
-      @join-with-code="handleJoinWithCode" />
+      @show-key-management="showKeyManagementModal = true" />
 
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div v-if="info"
@@ -38,8 +34,15 @@
     <QrCodeModal
       @copy="copyLink"
       v-model="showQrCodeModal"
-      :qrCodeValue
-      :showQrCodeModal />
+      :qr-code-value="qrCodeValue"
+      :show-qr-code-modal="showQrCodeModal" />
+
+    <!-- 连接码管理弹窗 -->
+    <LinkCodeModal
+      v-model="showKeyManagementModal"
+      :room-code="roomCode"
+      @generate-code="requestCreateRoomWithCode"
+      @join-with-code="handleJoinWithCode" />
 
     <!-- 隐藏的文件输入 -->
     <input type="file" ref="fileInput" class="hidden"
@@ -89,6 +92,7 @@ import SendTextModal from './SendTextModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
+import LinkCodeModal from './LinkCodeModal.vue'
 import ToolBar from './ToolBar.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
@@ -111,6 +115,7 @@ const selectedPeer = ref<UserInfo>()
  *                    Server
  ***************************************************/
 const showQrCodeModal = ref(false)
+const showKeyManagementModal = ref(false)
 const qrCodeValue = ref('')
 const roomCode = ref('')
 const currentFileSizes = ref<number[]>([]) // 用于ProgressModal显示文件大小
@@ -128,6 +133,7 @@ const server = new ServerConnection({
     Message.error(`发生错误: ${errorData.message}`)
     loading.value = false
     showQrCodeModal.value = false
+    showKeyManagementModal.value = false
   }
 })
 const peerManager = new PeerManager(server)
@@ -433,6 +439,7 @@ function onCopyText() {
 function onJoinRoom(data: UserInfo[]) {
   allUsers.value = data
   showQrCodeModal.value = false
+  showKeyManagementModal.value = false
 
   for (const item of data) {
     peerManager.createPeer(item.peerId)
@@ -541,12 +548,10 @@ function onNotifyUserInfo(data: UserInfo) {
       }
     } catch (e) {
       // 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略
-      // console.warn('Error parsing qrCodeValue in onNotifyUserInfo, possibly a DataURL:', e)
+      console.warn('Error parsing qrCodeValue in onNotifyUserInfo, possibly a DataURL:', e)
     }
   }
 
-  // showQrCodeModal.value = false // 加入成功后关闭二维码弹窗，这个逻辑可以根据具体场景调整
-  // qrCodeValue.value = '' // 清空，这个也需要看是否立即清空
   if (!showQrCodeModal.value) { // 如果二维码弹窗没开，才清空
     qrCodeValue.value = ''
   }

@@ -22,7 +22,7 @@
 
     <!-- 连接码管理按钮（合并生成和输入功能） -->
     <Button
-      @click="showKeyManagementModal = true"
+      @click="emit('showKeyManagement')"
       variant="default"
       size="md"
       :icon-only="true"
@@ -31,42 +31,22 @@
 
     <!-- 其他工具按钮可以在这里添加 -->
   </div>
-
-  <!-- 二维码弹窗 -->
-  <QrCodeModal
-    @copy="emit('copy')"
-    v-model="showQrModal"
-    :qr-code-value="qrCodeValue"
-    :show-qr-code-modal="showQrModal" />
-
-  <!-- 连接码管理弹窗 -->
-  <LinkCodeModal
-    v-model="showKeyManagementModal"
-    :room-code="roomCode"
-    @generate-code="emit('generateCode')"
-    @join-with-code="emit('joinWithCode', $event)" />
 </template>
 
 <script setup lang="ts">
 import Button from '@/components/Button/index.vue'
-import QrCodeModal from '@/views/fileTransfer/QrCodeModal.vue'
 import { QrCode, Sun, Moon, KeyRound } from 'lucide-vue-next'
 import { useTheme } from '@/hooks/useTheme'
 import { toggleThemeWithTransition } from '@/utils/theme'
-import LinkCodeModal from './LinkCodeModal.vue'
 
 defineOptions({ name: 'ToolBar' })
 
 const props = withDefaults(
   defineProps<{
     qrCodeValue?: string
-    roomCode?: string
-    showCodeModal?: boolean
   }>(),
   {
-    qrCodeValue: '',
-    roomCode: '',
-    showCodeModal: false
+    qrCodeValue: ''
   }
 )
 
@@ -75,16 +55,9 @@ const [theme, setTheme] = useTheme()
 const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
 
 const emit = defineEmits<{
-  (e: 'copy'): void
-  (e: 'joinWithCode', code: string): void
-  (e: 'generateCode'): void
   (e: 'generateQrCode'): void
+  (e: 'showKeyManagement'): void
 }>()
-
-const showQrModal = defineModel<boolean>('showQrModal', { default: false })
-
-// 连接码管理相关状态
-const showKeyManagementModal = ref(false)
 </script>
 
 <style scoped>
