@@ -1,6 +1,6 @@
 import QRCode from 'qrcode'
 import { ref } from 'vue'
-import { ROOM_CODE_KEY, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
+import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 
@@ -73,6 +73,10 @@ export function useServerConnection() {
         Message.error(`发生错误: ${errorData.message}`)
         callbacks.setLoading(false)
         callbacks.closeAllModals()
+      },
+
+      onRoomCodeExpired: (expiredInfo) => {
+        handleRoomCodeExpired(expiredInfo, callbacks.setLoading)
       },
     })
 
@@ -217,6 +221,32 @@ export function useServerConnection() {
     }
   }
 
+  /**
+   * 处理房间码失效
+   */
+  function handleRoomCodeExpired(
+    expiredInfo: RoomCodeExpiredInfo,
+    setLoading: (state: boolean) => void,
+  ) {
+    const currentRoomCode = roomCode.value
+
+    /** 检查失效的房间码是否与当前房间码匹配 */
+    if (currentRoomCode && currentRoomCode === expiredInfo.roomCode) {
+      console.log(`当前房间码 ${expiredInfo.roomCode} 已失效，正在清理并重新生成`)
+
+      /** 清理失效的房间码 */
+      roomCode.value = ''
+      saveRoomCodeToSession('')
+
+      /** 显示提示消息 */
+      Message.warning(`房间码 ${expiredInfo.roomCode} 已过期，正在重新生成...`)
+
+      /** 自动重新生成新的房间码 */
+      setLoading(true)
+      server.createRoomWithCode()
+    }
+  }
+
   return {
     /** 状态 */
     qrCodeValue,
@@ -232,5 +262,6 @@ export function useServerConnection() {
     copyLink,
     handleQuery,
     restoreRoomCodeIfNeeded,
+    handleRoomCodeExpired,
   }
 }

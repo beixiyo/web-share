@@ -260,6 +260,26 @@ export class WSServer {
     return code
   }
 
+  /**
+   * 广播房间码失效消息给所有客户端
+   */
+  private broadcastRoomCodeExpired(expiredRoomCode: string) {
+    console.log(`广播房间码失效消息: ${expiredRoomCode}`)
+
+    /** 向所有连接的客户端广播房间码失效消息 */
+    this.roomMap.forEach((room) => {
+      room.forEach((peer) => {
+        this.send(peer, {
+          type: Action.RoomCodeExpired,
+          data: {
+            roomCode: expiredRoomCode,
+            message: '房间码已过期',
+          },
+        })
+      })
+    })
+  }
+
   private onMessage = (sender: Peer, data: RawData) => {
     let msg: SendData
     try {
@@ -377,6 +397,8 @@ export class WSServer {
           console.log(`用户 ${sender.name.displayName} 通过房间码 ${joinCode} 加入房间: ${targetRoomId}`)
         }
         else {
+          /** 房间码无效，广播房间码失效消息 */
+          this.broadcastRoomCodeExpired(joinCode)
           this.send(sender, { type: Action.Error, data: { message: '房间码不存在或已过期' } })
         }
         break

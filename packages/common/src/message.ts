@@ -34,6 +34,11 @@ export type JoinRoomCodeInfo = {
   roomCode: string
 }
 
+export type RoomCodeExpiredInfo = {
+  roomCode: string
+  message: string
+}
+
 export type UserReconnectedInfo = {
   oldPeerId: string
   newPeerId: string

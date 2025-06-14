@@ -204,6 +204,7 @@ const {
   copyLink,
   handleQuery,
   restoreRoomCodeIfNeeded,
+  handleRoomCodeExpired,
 } = serverConnection
 
 const {

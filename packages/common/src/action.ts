@@ -13,6 +13,7 @@ export enum Action {
   CreateRoomWithCode = 'CreateRoomWithCode',
   RoomCodeCreated = 'RoomCodeCreated',
   JoinRoomWithCode = 'JoinRoomWithCode',
+  RoomCodeExpired = 'RoomCodeExpired',
 
   UserReconnected = 'UserReconnected',
 

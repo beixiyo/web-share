@@ -415,9 +415,9 @@ export class RTCPeer extends Peer {
 
     /** 延迟刷新页面，给广播一些时间 */
     setTimeout(() => {
-      console.log('RTC错误导致页面刷新')
       window.location.reload()
-    }, 300)
+      console.log('RTC错误导致页面刷新')
+    }, 100)
   }
 
   private sendJSON<T>(data: RTCBaseData<T>) {

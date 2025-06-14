@@ -1,4 +1,4 @@
-import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import { WS } from '@jl-org/tool'
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
@@ -230,14 +230,17 @@ export class ServerConnection {
         break
 
       /**
+       * 房间码失效
+       */
+      case Action.RoomCodeExpired:
+        this.opts.onRoomCodeExpired?.(data.data)
+        break
+
+      /**
        * RTC错误广播
        */
       case Action.RTCErrorBroadcast:
-        console.log('收到RTC错误广播，准备刷新页面:', data.data)
-        /** 延迟刷新页面，确保日志能够输出 */
-        setTimeout(() => {
-          window.location.reload()
-        }, 100)
+        window.location.reload()
         break
 
       default:
@@ -305,4 +308,5 @@ export type ServerConnectionOpts = {
   onRoomCodeCreated?: (data: RoomCodeInfo) => void
   onUserReconnected?: (data: UserReconnectedInfo) => void
   onError?: (data: { message: string }) => void
+  onRoomCodeExpired?: (data: RoomCodeExpiredInfo) => void
 }
