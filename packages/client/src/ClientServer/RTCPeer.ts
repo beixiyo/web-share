@@ -171,7 +171,10 @@ export class RTCPeer extends Peer {
           type: file.type as MIMEType,
         }
         this.sendJSON({ type: Action.NewFile, data: fileInfo })
-        const chunker = new FileChunker(file, this.chunkSize)
+        const chunker = new FileChunker(file, {
+          chunkSize: this.chunkSize,
+          startOffset: 0,
+        })
 
         while (!chunker.done) {
           if (this.isChannelClose) {

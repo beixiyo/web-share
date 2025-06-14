@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@jl-org/cvs": "^1.0.53",
-    "@jl-org/tool": "^2.0.8",
+    "@jl-org/tool": "^2.1.3",
     "@jl-org/vite-auto-route": "1.0.6",
     "class-variance-authority": "^0.7.1",
     "localforage": "1.10.0",
