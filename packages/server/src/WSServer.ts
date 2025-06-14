@@ -282,6 +282,7 @@ export class WSServer {
       case Action.JoinRoom:
         const data = msg.data as UserInfo
         if (data.roomId) {
+          console.log(`${sender.name.displayName} 加入房间`)
           this.addToNewRoom(sender, data.roomId)
         }
 
@@ -293,6 +294,7 @@ export class WSServer {
         break
 
       case Action.LeaveRoom:
+        console.log(`${sender.name.displayName} 离开房间`)
         this.broadcastToRoom(sender.roomId, {
           type: Action.LeaveRoom,
           data: msg.data

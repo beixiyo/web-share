@@ -80,9 +80,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo, type RoomCodeInfo, type UserReconnectedInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, USER_INFO, Action, type FileMeta, type ProgressData, type UserInfo, type RoomInfo, type RoomCodeInfo, type UserReconnectedInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
@@ -90,7 +90,6 @@ import AcceptTextModal from './AcceptTextModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
 import ToolBar from './ToolBar.vue'
-import Button from '@/components/Button/index.vue'
 import { copyToClipboard } from '@jl-org/tool'
 import { WaterRipple } from '@jl-org/cvs'
 import { Laptop, Smartphone, HelpCircle } from 'lucide-vue-next'
@@ -181,7 +180,41 @@ onMounted(() => {
   })
 
   handleQuery()
+  setupVisibilityHandling()
 })
+
+/**
+ * 设置页面可见性处理
+ */
+function setupVisibilityHandling() {
+  let wasHidden = false
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      wasHidden = true
+      console.log('页面切换到后台')
+    } else if (document.visibilityState === 'visible' && wasHidden) {
+      wasHidden = false
+      console.log('页面从后台恢复，重新同步用户状态')
+
+      // 页面恢复时重新请求用户列表，确保状态同步
+      const userInfo = sessionStorage.getItem(USER_INFO)
+      if (userInfo) {
+        server.send({
+          type: Action.JoinRoom,
+          data: JSON.parse(userInfo)
+        })
+      }
+    }
+  }
+
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  // 组件卸载时清理事件监听
+  onUnmounted(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  })
+}
 
 
 /***************************************************
@@ -425,6 +458,10 @@ function onUserReconnected(data: UserReconnectedInfo) {
   if (userIndex !== -1) {
     allUsers.value[userIndex] = data.userInfo
     console.log(`更新用户列表: ${data.userInfo.name.displayName} 的peerId从 ${data.oldPeerId} 更新为 ${data.newPeerId}`)
+  } else {
+    // 如果用户不在列表中，直接添加（处理用户列表不同步的情况）
+    allUsers.value.push(data.userInfo)
+    console.log(`添加重连用户到列表: ${data.userInfo.name.displayName}`)
   }
 
   // 显示重连提示
