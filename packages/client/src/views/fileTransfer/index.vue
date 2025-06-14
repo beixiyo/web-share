@@ -548,7 +548,7 @@ function onNotifyUserInfo(data: UserInfo) {
       }
     } catch (e) {
       // 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略
-      console.warn('Error parsing qrCodeValue in onNotifyUserInfo, possibly a DataURL:', e)
+      // console.warn('Error parsing qrCodeValue in onNotifyUserInfo, possibly a DataURL:', e)
     }
   }
 
