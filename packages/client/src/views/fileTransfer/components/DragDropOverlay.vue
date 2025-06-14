@@ -3,15 +3,23 @@
   <div :class="dragOverlayClass">
     <div :class="dropZoneClass">
       <div v-if="isDropZoneActive" class="space-y-4">
-        <div class="text-6xl">📁</div>
-        <div class="text-xl font-semibold">释放文件开始传输</div>
+        <div class="text-6xl">
+          📁
+        </div>
+        <div class="text-xl font-semibold">
+          释放文件开始传输
+        </div>
         <div class="text-sm opacity-75">
           支持多文件同时传输
         </div>
       </div>
       <div v-else class="space-y-4">
-        <div class="text-6xl opacity-50">🚫</div>
-        <div class="text-xl font-semibold">不支持的内容类型</div>
+        <div class="text-6xl opacity-50">
+          🚫
+        </div>
+        <div class="text-xl font-semibold">
+          不支持的内容类型
+        </div>
         <div class="text-sm opacity-75">
           请拖拽文件到此区域
         </div>
@@ -22,10 +30,10 @@
   <!-- 拖拽状态指示器 -->
   <div
     v-if="isDragging"
-    class="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg dark:bg-gray-800/90"
+    class="fixed right-4 top-4 z-40 rounded-lg bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:bg-gray-800/90"
   >
     <div class="flex items-center space-x-2">
-      <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+      <div class="h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
       <span class="text-sm font-medium dark:text-gray-200">
         {{ isDragFile ? '检测到文件' : '拖拽中...' }}
       </span>
@@ -61,7 +69,8 @@ const props = withDefaults(defineProps<DragDropOverlayProps>(), {
  * 拖拽覆盖层样式计算
  */
 const dragOverlayClass = computed(() => {
-  if (!props.isDragging) return 'hidden'
+  if (!props.isDragging)
+    return 'hidden'
 
   return [
     'fixed inset-0 z-50 flex items-center justify-center',

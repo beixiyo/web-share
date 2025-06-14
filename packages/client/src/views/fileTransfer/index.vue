@@ -265,8 +265,6 @@ const {
   formatCacheInfo,
 } = resumeCache
 
-
-
 /** 其他状态 */
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
@@ -386,13 +384,12 @@ const {
   isDropZoneActive,
 } = dragDrop
 
-
-
 /** 条件性启用拖拽功能 */
 watch(onlineUsers, (users) => {
   if (users.length > 0) {
     dragDrop.enableDragDrop()
-  } else {
+  }
+  else {
     dragDrop.disableDragDrop()
   }
 }, { immediate: true })
@@ -401,7 +398,8 @@ watch(onlineUsers, (users) => {
 watch([showAcceptFile, showTextInput, loading], ([acceptFile, textInput, isLoading]) => {
   if (acceptFile || textInput || isLoading) {
     dragDrop.disableDragDrop()
-  } else if (onlineUsers.value.length > 0) {
+  }
+  else if (onlineUsers.value.length > 0) {
     dragDrop.enableDragDrop()
   }
 })

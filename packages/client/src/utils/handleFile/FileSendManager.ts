@@ -181,14 +181,24 @@ export class FileSendManager {
    */
   private async waitForResumeResponses(timeoutMs: number): Promise<void> {
     const startTime = Date.now()
+    const { promise, resolve } = Promise.withResolvers<void>()
 
-    while (this.pendingResumeRequests.size > 0 && (Date.now() - startTime) < timeoutMs) {
-      await new Promise(resolve => setTimeout(resolve, 50)) // 每50ms检查一次
+    const checkResumeRequests = () => {
+      if (this.pendingResumeRequests.size > 0 && (Date.now() - startTime) < timeoutMs) {
+        requestAnimationFrame(checkResumeRequests)
+      }
+      else if (this.pendingResumeRequests.size > 0) {
+        resolve()
+      }
+      else {
+        resolve()
+        console.warn(`断点续传响应超时，未收到 ${this.pendingResumeRequests.size} 个文件的响应`)
+      }
     }
 
-    if (this.pendingResumeRequests.size > 0) {
-      console.warn(`断点续传响应超时，未收到 ${this.pendingResumeRequests.size} 个文件的响应`)
-    }
+    checkResumeRequests()
+
+    return promise
   }
 
   /**

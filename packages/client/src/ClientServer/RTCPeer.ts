@@ -174,8 +174,20 @@ export class RTCPeer extends Peer {
 
     this.onChannelReady = onChannelReady
 
+    /** 创建4秒超时Promise */
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('TIMEOUT'))
+      }, 4000)
+    })
+
     try {
-      const offer = await this.rtcConnect.createOffer(toId)
+      /** 使用Promise.race实现超时控制 */
+      const offer = await Promise.race([
+        this.rtcConnect.createOffer(toId),
+        timeoutPromise,
+      ])
+
       if (!offer) {
         this.broadcastRTCError('创建 offer 失败', 'SEND_OFFER_ERROR')
         return
@@ -192,7 +204,12 @@ export class RTCPeer extends Peer {
       console.log(`向 ${toId} 发送 offer`, offer)
     }
     catch (error) {
-      this.broadcastRTCError(`创建或发送 offer 失败: ${error}`, 'SEND_OFFER_ERROR')
+      if (error instanceof Error && error.message === 'TIMEOUT') {
+        this.broadcastRTCError('创建 offer 超时', 'SEND_OFFER_TIMEOUT')
+      }
+      else {
+        this.broadcastRTCError(`创建或发送 offer 失败: ${error}`, 'SEND_OFFER_ERROR')
+      }
     }
   }
 

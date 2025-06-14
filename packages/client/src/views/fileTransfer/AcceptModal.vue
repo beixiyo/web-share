@@ -144,7 +144,7 @@
           >
             <img
               :src="previewSrc"
-              class="w-full object-contain sm:max-h-32"
+              class="max-h-64 w-full object-contain lg:max-h-80 sm:max-h-48"
               alt="文件预览"
             >
           </div>
