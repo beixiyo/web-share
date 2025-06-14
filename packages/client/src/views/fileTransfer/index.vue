@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ServerConnection, PeerManager, RTCPeer } from '@/ClientServer'
-import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo, type RoomCodeInfo } from 'web-share-common'
+import { SELECTED_PEER_ID, type FileMeta, type ProgressData, type UserInfo, type RoomInfo, type RoomCodeInfo, type UserReconnectedInfo } from 'web-share-common'
 import User from './User.vue'
 import AcceptModal from './AcceptModal.vue'
 import SendTextModal from './SendTextModal.vue'
@@ -122,6 +122,7 @@ const server = new ServerConnection({
   onLeaveRoom,
   onDirectRoomCreated,
   onRoomCodeCreated,
+  onUserReconnected,
 
   onError: (errorData) => {
     console.error('Server Error:', errorData.message)
@@ -408,6 +409,26 @@ function onJoinRoom(data: UserInfo[]) {
 function onLeaveRoom(data: UserInfo) {
   allUsers.value = allUsers.value.filter(item => item.peerId !== data.peerId)
   peerManager.rmPeer(data.peerId)
+}
+
+/**
+ * 处理用户重连
+ */
+function onUserReconnected(data: UserReconnectedInfo) {
+  console.log('用户重连事件:', data)
+
+  // 使用PeerManager处理重连
+  peerManager.handleUserReconnection(data)
+
+  // 更新用户列表中的peerId
+  const userIndex = allUsers.value.findIndex(user => user.peerId === data.oldPeerId)
+  if (userIndex !== -1) {
+    allUsers.value[userIndex] = data.userInfo
+    console.log(`更新用户列表: ${data.userInfo.name.displayName} 的peerId从 ${data.oldPeerId} 更新为 ${data.newPeerId}`)
+  }
+
+  // 显示重连提示
+  Message.info(`用户 ${data.userInfo.name.displayName} 已重新连接`)
 }
 
 /**

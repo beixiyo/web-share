@@ -5,8 +5,8 @@
     variant="info"
     v-model="show">
     <div
-      class="size-full bg-white rounded-2xl flex flex-col
-             dark:bg-gray-800">
+      class="size-full  rounded-2xl flex flex-col
+             ">
 
       <!-- 头部信息 - 固定区域 -->
       <div class="flex-shrink-0 pb-4 border-b border-gray-100 dark:border-gray-700
@@ -52,7 +52,7 @@
       </div>
 
       <!-- 主要内容区域 - 可滚动 -->
-      <div class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col pt-4">
 
         <!-- 文件列表 -->
         <div class="flex-1">

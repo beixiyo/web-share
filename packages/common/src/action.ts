@@ -14,6 +14,8 @@ export enum Action {
   RoomCodeCreated = 'RoomCodeCreated',
   JoinRoomWithCode = 'JoinRoomWithCode',
 
+  UserReconnected = 'UserReconnected',
+
   Relay = 'Relay',
   Offer = 'Offer',
   Answer = 'Answer',

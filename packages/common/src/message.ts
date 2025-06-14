@@ -34,6 +34,12 @@ export type JoinRoomCodeInfo = {
   roomCode: string
 }
 
+export type UserReconnectedInfo = {
+  oldPeerId: string
+  newPeerId: string
+  userInfo: UserInfo
+}
+
 export type SendUserInfo = SendData<UserInfo>
 
 export type To = {

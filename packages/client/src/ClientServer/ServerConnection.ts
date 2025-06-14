@@ -1,5 +1,5 @@
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
-import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo, RoomCodeInfo, JoinRoomCodeInfo } from 'web-share-common'
+import type { SendData, UserInfo, To, FileMeta, RoomInfo, JoinRoomInfo, RoomCodeInfo, JoinRoomCodeInfo, UserReconnectedInfo } from 'web-share-common'
 import { Events } from './Events'
 import { WS } from '@jl-org/tool'
 
@@ -218,6 +218,13 @@ export class ServerConnection {
         this.opts.onRoomCodeCreated?.(data.data)
         break
 
+      /**
+       * 用户重连
+       */
+      case Action.UserReconnected:
+        this.opts.onUserReconnected?.(data.data)
+        break
+
       case Action.Error:
         this.opts.onError?.(data.data)
         break
@@ -285,5 +292,6 @@ export type ServerConnectionOpts = {
 
   onDirectRoomCreated: (data: RoomInfo) => void
   onRoomCodeCreated?: (data: RoomCodeInfo) => void
+  onUserReconnected?: (data: UserReconnectedInfo) => void
   onError?: (data: { message: string }) => void
 }

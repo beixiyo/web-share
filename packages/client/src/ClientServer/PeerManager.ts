@@ -1,5 +1,5 @@
 import { Action, USER_INFO } from 'web-share-common'
-import type { To, Sdp, Candidate, FileMeta } from 'web-share-common'
+import type { To, Sdp, Candidate, FileMeta, UserReconnectedInfo } from 'web-share-common'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 import type { ServerConnection } from './ServerConnection'
@@ -61,6 +61,26 @@ export class PeerManager {
       peer.close()
       this.peerMap.delete(peerId)
     }
+  }
+
+  /**
+   * 处理用户重连，清理旧连接并重新建立连接
+   */
+  handleUserReconnection(reconnectionInfo: UserReconnectedInfo) {
+    const { oldPeerId, newPeerId, userInfo } = reconnectionInfo
+
+    console.log(`处理用户重连: ${userInfo.name.displayName}`)
+    console.log(`旧peerId: ${oldPeerId}, 新peerId: ${newPeerId}`)
+
+    // 清理旧连接
+    this.rmPeer(oldPeerId)
+
+    // 创建新连接
+    const newPeer = this.createPeer(newPeerId)
+
+    console.log(`用户 ${userInfo.name.displayName} 重连完成，新连接已建立`)
+
+    return newPeer
   }
 
   /***************************************************

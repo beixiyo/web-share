@@ -2,7 +2,7 @@ import type { Server } from 'node:http'
 import { WebSocketServer, RawData, WebSocket } from 'ws'
 import { Peer } from '@/Peer'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
-import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo, RoomCodeInfo, JoinRoomCodeInfo } from 'web-share-common'
+import type { JoinRoomInfo, RoomInfo, SendData, SendUserInfo, UserInfo, RoomCodeInfo, JoinRoomCodeInfo, UserReconnectedInfo } from 'web-share-common'
 
 
 export class WSServer {
@@ -17,6 +17,16 @@ export class WSServer {
    * roomCode -> roomId 映射
    */
   roomCodeMap = new Map<string, string>()
+  /**
+   * 用户设备信息映射，用于检测重连
+   * deviceKey -> { peerId, roomId, displayName, lastSeen }
+   */
+  deviceMap = new Map<string, {
+    peerId: string
+    roomId: string
+    displayName: string
+    lastSeen: number
+  }>()
 
   constructor(
     server: Server,
@@ -40,15 +50,81 @@ export class WSServer {
   }
 
   /**
+   * 生成设备唯一标识
+   */
+  private generateDeviceKey(peer: Peer): string {
+    // 使用IP + 设备名称 + 浏览器信息生成唯一标识
+    return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}`.replace(/\s+/g, '_')
+  }
+
+  /**
+   * 检测用户重连并处理
+   */
+  private detectAndHandleReconnection(peer: Peer): string | null {
+    const deviceKey = this.generateDeviceKey(peer)
+    const existingDevice = this.deviceMap.get(deviceKey)
+
+    if (existingDevice && existingDevice.peerId !== peer.id) {
+      // 检查旧连接是否仍然活跃（5分钟内有活动）
+      const now = Date.now()
+      const timeSinceLastSeen = now - existingDevice.lastSeen
+
+      if (timeSinceLastSeen < 5 * 60 * 1000) { // 5分钟内
+        // 找到旧的peer并移除
+        const oldRoom = this.roomMap.get(existingDevice.roomId)
+        const oldPeer = oldRoom?.get(existingDevice.peerId)
+
+        if (oldPeer) {
+          console.log(`检测到用户重连: ${peer.name.displayName} (${peer.ip})`)
+          console.log(`旧peerId: ${existingDevice.peerId}, 新peerId: ${peer.id}`)
+
+          // 移除旧连接
+          this.removePeerFromRoom(oldPeer)
+
+          // 返回旧的peerId用于通知其他用户
+          return existingDevice.peerId
+        }
+      }
+    }
+
+    // 更新设备映射
+    this.deviceMap.set(deviceKey, {
+      peerId: peer.id,
+      roomId: peer.roomId,
+      displayName: peer.name.displayName,
+      lastSeen: Date.now()
+    })
+
+    return null
+  }
+
+  /**
    * 将用户添加到对应房间
    */
   private addPeerToRoom(peer: Peer) {
+    // 检测重连
+    const oldPeerId = this.detectAndHandleReconnection(peer)
+
     if (!this.roomMap.has(peer.roomId)) {
       this.roomMap.set(peer.roomId, new Map())
     }
     this.roomMap.get(peer.roomId)!.set(peer.id, peer)
 
     console.log(`用户 ${peer.name.displayName} (${peer.ip}) 加入房间: ${peer.roomId}`)
+
+    // 如果检测到重连，通知房间内其他用户
+    if (oldPeerId) {
+      const reconnectionInfo: UserReconnectedInfo = {
+        oldPeerId,
+        newPeerId: peer.id,
+        userInfo: peer.getInfo()
+      }
+
+      this.broadcastToRoom(peer.roomId, {
+        type: Action.UserReconnected,
+        data: reconnectionInfo
+      }, peer.id) // 排除重连的用户自己
+    }
   }
 
   /**
@@ -63,6 +139,35 @@ export class WSServer {
         // 清理对应的房间码映射
         this.cleanupRoomCode(peer.roomId)
       }
+    }
+
+    // 清理设备映射
+    this.cleanupDeviceMapping(peer)
+  }
+
+  /**
+   * 清理设备映射
+   */
+  private cleanupDeviceMapping(peer: Peer) {
+    const deviceKey = this.generateDeviceKey(peer)
+    const existingDevice = this.deviceMap.get(deviceKey)
+
+    // 只有当映射的peerId匹配时才删除
+    if (existingDevice && existingDevice.peerId === peer.id) {
+      this.deviceMap.delete(deviceKey)
+      console.log(`清理设备映射: ${deviceKey}`)
+    }
+  }
+
+  /**
+   * 更新设备最后活跃时间
+   */
+  private updateDeviceLastSeen(peer: Peer) {
+    const deviceKey = this.generateDeviceKey(peer)
+    const existingDevice = this.deviceMap.get(deviceKey)
+
+    if (existingDevice && existingDevice.peerId === peer.id) {
+      existingDevice.lastSeen = Date.now()
     }
   }
 
@@ -167,6 +272,8 @@ export class WSServer {
         break
       case Action.Ping:
         sender[HEART_BEAT] = Date.now()
+        // 更新设备映射的最后活跃时间
+        this.updateDeviceLastSeen(sender)
         this.send(sender, { type: Action.Ping, data: null })
         break
 
