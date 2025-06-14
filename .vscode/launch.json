@@ -8,7 +8,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
-        "dev-server"
+        "dev:server"
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",

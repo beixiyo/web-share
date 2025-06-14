@@ -1,7 +1,7 @@
 <template>
   <Modal class="AcceptModal-container"
     title="接收文件"
-    height="600px"
+    height="80vh"
     variant="info"
     v-model="show">
     <div
@@ -9,8 +9,7 @@
              ">
 
       <!-- 头部信息 - 固定区域 -->
-      <div class="flex-shrink-0 pb-4 border-b border-gray-100 dark:border-gray-700
-                  sm:px-4 sm:pt-4 sm:pb-3">
+      <div class="flex-shrink-0 pb-4 sm:px-4 sm:pt-4 sm:pb-3">
         <div class="flex items-center space-x-4 sm:space-x-3">
           <div
             class="flex justify-center items-center size-12 bg-emerald-100 rounded-full
@@ -59,9 +58,7 @@
           <div class="space-y-2 sm:space-y-1.5">
             <div v-for="(file, index) in fileMetas" :key="index"
               class="group flex items-center p-3 bg-gray-50/50 rounded-xl hover:bg-gray-100/80
-                     hover:shadow-sm transition-all duration-200 border border-transparent
-                     hover:border-gray-200/50 dark:bg-gray-700/30 dark:hover:bg-gray-600/50
-                     dark:hover:border-gray-600/50 sm:p-2.5">
+                     hover:shadow-sm transition-all duration-200 dark:bg-gray-700/30 dark:hover:bg-gray-600/50  sm:p-2.5">
 
               <!-- 文件序号 -->
               <div class="flex-shrink-0 mr-3 sm:mr-2">
@@ -130,10 +127,12 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 底部操作区域 - 固定 -->
+    <!-- 底部操作区域 - 固定 -->
+    <template #footer>
       <div
-        class="flex-shrink-0 flex gap-4 border-t border-gray-100 dark:border-gray-700">
+        class="flex-shrink-0 flex gap-4">
         <Button
           @click="emit('deny')"
           design-style="ghost"
@@ -151,7 +150,7 @@
           <span class="font-medium">接收全部</span>
         </Button>
       </div>
-    </div>
+    </template>
   </Modal>
 </template>
 

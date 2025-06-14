@@ -203,7 +203,9 @@ export class WSServer {
   /**
    * 向房间内广播（排除指定用户）
    */
-  private broadcastToRoom(roomId: string, data: any, excludeId?: string) {
+  private broadcastToRoom(roomId: string, data: SendData<UserInfo[] | UserInfo | UserReconnectedInfo>, excludeId?: string) {
+    console.log(`广播到房间 ${roomId}: ${data.type}`)
+
     const room = this.roomMap.get(roomId)
     if (!room) return
 
