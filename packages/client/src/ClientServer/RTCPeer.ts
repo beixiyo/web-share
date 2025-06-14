@@ -1,7 +1,8 @@
 import type { Candidate, FileMeta, ProgressData, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { compressImg, FileChunker, getImg, isStr, type MIMEType } from '@jl-org/tool'
+import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
+import { FileDownloadManager, FileSendManager } from '@/utils'
 import { Peer, type PeerOpts } from './Peer'
 
 export class RTCPeer extends Peer {
@@ -13,24 +14,37 @@ export class RTCPeer extends Peer {
   declare pc: RTCPeerConnection | null
   channel: RTCDataChannel | null = null
 
-  downloadRafId: number[] = []
-  /** 文件传输器尚未创建完毕时，接收的数据缓冲区 */
-  downloadBuffer: Uint8Array[] = []
-
-  /**
-   * sendFiles 时传递的 Promise.resolve
-   * 当对方同意接收文件时执行，触发文件传输
-   */
-  private onAcceptFile?: Function
-  /**
-   * sendFiles 时传递的失败回调
-   * 当对方拒绝接收文件时执行
-   */
-  private onDenyFile?: Function
+  /** 文件传输管理器 */
+  private fileDownloadManager: FileDownloadManager
+  private fileSendManager: FileSendManager
 
   constructor(opts: PeerOpts & RTCPeerOpts) {
     super(opts)
     this.opts = opts
+
+    /** 初始化文件下载管理器 */
+    this.fileDownloadManager = new FileDownloadManager({
+      sendJSON: data => this.sendJSON(data),
+      onProgress: this.opts.onProgress,
+      onError: error => this.broadcastRTCError(error, 'FILE_DOWNLOAD_ERROR'),
+      isChannelClosed: () => this.isChannelClose,
+    })
+
+    /** 初始化文件发送管理器 */
+    this.fileSendManager = new FileSendManager({
+      sendJSON: data => this.sendJSON(data),
+      send: data => this.send(data),
+      relay: data => this.server.relay(data),
+      waitUntilChannelIdle: () => this.waitUntilChannelIdle(),
+      isChannelAmountHigh: () => this.channelAmountIsHigh,
+      isChannelClosed: () => this.isChannelClose,
+      getToId: () => this.toId || undefined,
+      getPeerId: () => this.peerId,
+      chunkSize: this.chunkSize,
+      onProgress: this.opts.onProgress,
+      onError: error => this.broadcastRTCError(error, 'FILE_SEND_ERROR'),
+    })
+
     this.connect()
   }
 
@@ -130,6 +144,10 @@ export class RTCPeer extends Peer {
       this.pc = null
     }
 
+    /** 清理文件传输管理器 */
+    this.fileDownloadManager.cleanup()
+    this.fileSendManager.cleanup()
+
     console.log(`RTCPeer ${this.peerId} 已关闭.`)
   }
 
@@ -147,119 +165,19 @@ export class RTCPeer extends Peer {
 
   /**
    * 发送文件
-   * @param promiseResolver 对方同意后，会触发 resolve
-   * @param onDeny 对方拒绝后，触发的回调
    */
   async sendFiles(
     files: File[],
     onDenyFile?: VoidFunction,
   ) {
-    /**
-     * 发送文件后，复制 resolve，等待被调用后执行下载文件
-     */
-    const { promise, resolve } = Promise.withResolvers<void>()
-    this.onAcceptFile = resolve
-    this.onDenyFile = onDenyFile
-
-    return promise.then(async () => {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        const fileInfo: FileInfo = {
-          lastModified: file.lastModified,
-          name: file.name,
-          size: file.size,
-          type: file.type as MIMEType,
-        }
-        this.sendJSON({ type: Action.NewFile, data: fileInfo })
-        const chunker = new FileChunker(file, {
-          chunkSize: this.chunkSize,
-          startOffset: 0,
-        })
-
-        while (!chunker.done) {
-          if (this.isChannelClose) {
-            console.error('RTC: channel 已关闭, 中断文件传输')
-            return
-          }
-          const blob = chunker.next()
-          const arrayBuffer = await blob.arrayBuffer()
-
-          if (this.channelAmountIsHigh) {
-            await this.waitUntilChannelIdle()
-            this.send(arrayBuffer)
-          }
-          else {
-            this.send(arrayBuffer)
-          }
-
-          const progressData: ProgressData = {
-            curIndex: i,
-            progress: chunker.progress,
-            total: this.fileMetaCache.length,
-            filename: this.fileMetaCache[i].name,
-          }
-          this.sendJSON({ type: Action.Progress, data: progressData })
-          this.opts.onProgress?.(progressData)
-        }
-
-        this.sendJSON({ type: Action.FileDone, data: null })
-      }
-
-      this.fileMetaCache = []
-    })
+    return this.fileSendManager.sendFiles(files, onDenyFile)
   }
 
   /**
    * 发送元数据和预览图
    */
   async sendFileMetas(files: File[]) {
-    if (!this.toId) {
-      return console.warn('没有指定对方 ID，无法发送文件元数据')
-    }
-
-    console.log(`发送 ${files[0].name}`)
-    const getMeta = (file: File) => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      totalChunkSize: Math.ceil(file.size / this.chunkSize),
-      fromId: this.peerId,
-    })
-
-    let hasImg = false
-    this.fileMetaCache = files.map(getMeta)
-
-    const proms = files.map((file) => {
-      return new Promise<FileMeta>(async (resolve, reject) => {
-        const res: FileMeta = getMeta(file)
-
-        if (res.type.includes('image') && !hasImg) {
-          hasImg = true
-          const url = URL.createObjectURL(file)
-          const img = await getImg(url)
-          if (!img) {
-            return reject('文件预览失败')
-          }
-
-          const base64 = await compressImg(img, 'base64', 0.1, 'image/webp')
-          res.base64 = base64
-        }
-
-        resolve(res)
-      })
-    })
-
-    const data = await Promise.all(proms)
-
-    /**
-     * 通过 WS 发送，因为 WebRTC 接收文件大小有限
-     */
-    this.server.relay({
-      data,
-      toId: this.toId,
-      fromId: this.peerId,
-      type: Action.FileMetas,
-    })
+    return this.fileSendManager.sendFileMetas(files)
   }
 
   /***************************************************
@@ -374,6 +292,9 @@ export class RTCPeer extends Peer {
   }
 
   handleFileMetas(fileMeta: FileMeta[]) {
+    /** 将文件元数据传递给下载管理器 */
+    this.fileDownloadManager.setFileMetaCache(fileMeta)
+
     this.opts.onFileMetas?.(fileMeta, (data) => {
       const { promise } = data
       promise
@@ -498,10 +419,10 @@ export class RTCPeer extends Peer {
          * 文件传输前
          */
         case Action.AcceptFile:
-          this.onAcceptFile?.()
+          this.fileSendManager.handleAcceptFile()
           break
         case Action.DenyFile:
-          this.onDenyFile?.()
+          this.fileSendManager.handleDenyFile()
           break
 
         /**
@@ -509,16 +430,13 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
-          await this.createFile(fileInfo)
-          this.appendDownloadBuffer()
+          await this.fileDownloadManager.handleNewFile(fileInfo)
           break
         case Action.FileDone:
-          this.stopAllRaf()
-          await this.appendBuffer()
-          this.download()
+          await this.fileDownloadManager.handleFileDone()
           break
         case Action.Progress:
-          this.opts.onProgress?.(data.data)
+          this.fileDownloadManager.handleProgress(data.data)
           break
 
         default:
@@ -526,33 +444,9 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      this.downloadBuffer.push(e.data)
+      /** 接收二进制数据，传递给文件下载管理器 */
+      this.fileDownloadManager.receiveDataChunk(new Uint8Array(e.data))
     }
-  }
-
-  private async appendBuffer() {
-    let data = this.downloadBuffer.shift()
-    while (data) {
-      await this.wirteFileBuffer(data)
-      data = this.downloadBuffer.shift()
-    }
-  }
-
-  private appendDownloadBuffer() {
-    const consume = () => {
-      const id = requestAnimationFrame(async () => {
-        await this.appendBuffer()
-        this.downloadRafId.push(id)
-        requestAnimationFrame(consume)
-      })
-    }
-
-    consume()
-  }
-
-  private stopAllRaf() {
-    this.downloadRafId.forEach(cancelAnimationFrame)
-    this.downloadRafId = []
   }
 
   private onClose = () => {

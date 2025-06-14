@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CleanupResult } from '@/utils/handleFile'
+import type { CleanupResult } from '@/utils/handleOfflineFile'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'

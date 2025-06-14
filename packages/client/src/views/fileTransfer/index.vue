@@ -115,7 +115,7 @@ import { copyToClipboard } from '@jl-org/tool'
 import { onMounted, useTemplateRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatByte, Message } from '@/utils'
-import { TransferManager, type CleanupOptions, type CleanupResult } from '@/utils/handleFile'
+import { TransferManager, type CleanupOptions, type CleanupResult } from '@/utils/handleOfflineFile'
 import AcceptModal from './AcceptModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ClearCacheModal from './ClearCacheModal.vue'
@@ -423,6 +423,7 @@ function onDenyFile() {
 
 function onCopyText() {
   copyToClipboard(acceptText.value)
+  Message.success('已复制文本')
   closeTextReceiveModal()
 }
 

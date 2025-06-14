@@ -1,4 +1,5 @@
 export * from './handleFile'
+export * from './handleOfflineFile'
 export * from './math'
 export * from './showMessage'
 export * from './showModal'
