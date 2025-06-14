@@ -45,7 +45,7 @@
         <div class="flex justify-center space-x-2">
           <Button
             v-if="!roomCode"
-            @click="emit('generateCode')"
+            @click.stop="emit('generateCode')"
             variant="primary"
             size="md">
             生成连接码

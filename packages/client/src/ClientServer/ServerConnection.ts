@@ -229,6 +229,17 @@ export class ServerConnection {
         this.opts.onError?.(data.data)
         break
 
+      /**
+       * RTC错误广播
+       */
+      case Action.RTCErrorBroadcast:
+        console.log('收到RTC错误广播，准备刷新页面:', data.data)
+        // 延迟刷新页面，确保日志能够输出
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
+        break
+
       default:
         break
     }

@@ -1,6 +1,5 @@
 <template>
-  <div v-loading="loading"
-    :loading-text="loadingMessage"
+  <div v-loading="{ loading, text: loadingMessage }"
     :class="[
       'overflow-hidden relative h-screen',
       'flex flex-col justify-center items-center',

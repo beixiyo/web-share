@@ -53,8 +53,19 @@ export class RTCPeer extends Peer {
       this.pc.ondatachannel = this.onChannelOpened
       this.pc.onicecandidate = this.onIceCandidate
 
-      this.pc.onconnectionstatechange = () => console.log('RTC: 连接状态:', this.pc?.connectionState)
-      this.pc.oniceconnectionstatechange = () => console.log('ICE 连接状态:', this.pc?.iceConnectionState)
+      this.pc.onconnectionstatechange = () => {
+        console.log('RTC: 连接状态:', this.pc?.connectionState)
+        if (this.pc?.connectionState === 'failed') {
+          this.broadcastRTCError('RTC连接失败', 'CONNECTION_FAILED')
+        }
+      }
+
+      this.pc.oniceconnectionstatechange = () => {
+        console.log('ICE 连接状态:', this.pc?.iceConnectionState)
+        if (this.pc?.iceConnectionState === 'failed') {
+          this.broadcastRTCError('ICE连接失败', 'ICE_CONNECTION_FAILED')
+        }
+      }
     }
 
     /**
@@ -260,7 +271,7 @@ export class RTCPeer extends Peer {
   async sendOffer(toId: string, onChannelReady?: Function) {
     if (!this.pc) {
       this.connect()
-      console.error('RTC: [sendOffer] PeerConnection 为空，无法发送 offer。')
+      this.broadcastRTCError('PeerConnection 为空，无法发送 offer', 'SEND_OFFER_ERROR')
       return
     }
 
@@ -277,64 +288,82 @@ export class RTCPeer extends Peer {
     this.remotePeerId = toId
     this.onChannelReady = onChannelReady
 
-    const offer = await this.pc.createOffer()
-    await this.pc.setLocalDescription(offer)
+    try {
+      const offer = await this.pc.createOffer()
+      await this.pc.setLocalDescription(offer)
 
-    const data: To & Sdp = {
-      toId,
-      fromId: this.peerId,
-      sdp: this.pc.localDescription!,
-      type: Action.Offer
+      const data: To & Sdp = {
+        toId,
+        fromId: this.peerId,
+        sdp: this.pc.localDescription!,
+        type: Action.Offer
+      }
+      this.server.relay(data)
+
+      console.log(`向 ${toId} 发送 offer`, this.pc.localDescription)
+    } catch (error) {
+      this.broadcastRTCError(`创建或发送 offer 失败: ${error}`, 'SEND_OFFER_ERROR')
     }
-    this.server.relay(data)
-
-    console.log(`向 ${toId} 发送 offer`, this.pc.localDescription)
   }
 
   async handleOffer(offer: Sdp & To) {
     if (!this.pc) {
       this.connect()
-      console.warn('RTC: [handleOffer] PeerConnection 尚未初始化，正在尝试连接...')
+      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 offer', 'HANDLE_OFFER_ERROR')
       return
     }
 
     this.isCaller = false // 标记为接收方
     this.remotePeerId = offer.fromId
 
-    await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
-    const answer = await this.pc.createAnswer()
-    await this.pc.setLocalDescription(answer)
+    try {
+      await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
+      const answer = await this.pc.createAnswer()
+      await this.pc.setLocalDescription(answer)
 
-    const data: To & Sdp = {
-      toId: offer.fromId,
-      fromId: this.peerId,
-      sdp: this.pc.localDescription!,
-      type: Action.Answer
+      const data: To & Sdp = {
+        toId: offer.fromId,
+        fromId: this.peerId,
+        sdp: this.pc.localDescription!,
+        type: Action.Answer
+      }
+      this.server.relay(data)
+
+      console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
+      console.log(`发送 answer 给 ${data.toId}`, this.pc.localDescription)
+    } catch (error) {
+      this.broadcastRTCError(`处理 offer 失败: ${error}`, 'HANDLE_OFFER_ERROR')
     }
-    this.server.relay(data)
-
-    console.log(`接收到 ${offer.fromId} 的 offer`, offer.sdp)
-    console.log(`发送 answer 给 ${data.toId}`, this.pc.localDescription)
   }
 
   async handleAnswer(answer: Sdp & To) {
     if (!this.pc) {
       this.connect()
-      console.warn('RTC: PeerConnection 尚未初始化，无法处理 answer。')
+      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 answer', 'HANDLE_ANSWER_ERROR')
       return
     }
 
-    console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
-    await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
+    try {
+      console.log(`接收到 ${answer.fromId} 的 answer`, answer.sdp)
+      await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
+    } catch (error) {
+      this.broadcastRTCError(`处理 answer 失败: ${error}`, 'HANDLE_ANSWER_ERROR')
+    }
   }
 
   async handleCandidate(candidate: Candidate & To) {
     if (!this.pc) {
       this.connect()
+      this.broadcastRTCError('PeerConnection 尚未初始化，无法处理 ICE candidate', 'HANDLE_CANDIDATE_ERROR')
       return
     }
-    console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
-    return this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
+
+    try {
+      console.log(`接收到 ${candidate.fromId} 的 ICE candidate`, candidate.candidate)
+      await this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
+    } catch (error) {
+      this.broadcastRTCError(`处理 ICE candidate 失败: ${error}`, 'HANDLE_CANDIDATE_ERROR')
+    }
   }
 
   handleFileMetas(fileMeta: FileMeta[]) {
@@ -359,6 +388,30 @@ export class RTCPeer extends Peer {
   /***************************************************
    *                    Private
    ***************************************************/
+
+  /**
+   * 广播 RTC 错误到房间内所有成员
+   */
+  private broadcastRTCError(errorMessage: string, errorType: string) {
+    console.error(`RTC错误 [${errorType}]: ${errorMessage}`)
+
+    // 通过服务端广播错误消息
+    this.server.send({
+      type: Action.RTCError,
+      data: {
+        errorMessage,
+        errorType,
+        fromPeerId: this.peerId,
+        timestamp: Date.now()
+      }
+    })
+
+    // 延迟刷新页面，给广播一些时间
+    setTimeout(() => {
+      console.log('RTC错误导致页面刷新')
+      window.location.reload()
+    }, 300)
+  }
 
   private sendJSON<T>(data: RTCBaseData<T>) {
     if (!this.channelIsReady(this.channel)) return
@@ -500,6 +553,7 @@ export class RTCPeer extends Peer {
 
   private onChannelError = (error: Event) => {
     console.warn('RTC Channel: 对方关闭了连接', error)
+    this.broadcastRTCError(`数据通道错误: ${error.type}`, 'CHANNEL_ERROR')
     this.opts.onOtherChannelClose?.(error)
   }
 

@@ -385,6 +385,15 @@ export class WSServer {
         this.sendTo(sender, relayData.toId, relayData)
         break
 
+      case Action.RTCError:
+        // 处理 RTC 错误，广播给房间内所有其他成员
+        console.log(`收到来自 ${sender.name.displayName} 的RTC错误:`, msg.data)
+        this.broadcastToRoom(sender.roomId, {
+          type: Action.RTCErrorBroadcast,
+          data: msg.data
+        }, sender.id) // 排除发送错误的用户
+        break
+
       default:
         break
     }

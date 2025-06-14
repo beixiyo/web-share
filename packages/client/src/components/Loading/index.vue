@@ -5,9 +5,14 @@
     :style="{
       zIndex,
       background: bgc,
-    }"
-  >
-    <LoadingIcon :size="size" />
+    }">
+    <div class="flex flex-col items-center space-y-4">
+      <LoadingIcon :size="size" />
+      <div v-if="displayText"
+        class="text-gray-900 dark:text-gray-300 text-sm font-medium text-center px-4">
+        {{ displayText }}
+      </div>
+    </div>
   </Mask>
 </template>
 
@@ -28,6 +33,8 @@ const props = withDefaults(
     loading?: boolean
     /** 指令调用给的值 */
     __loading?: boolean
+    /** 指令传递的加载文本 */
+    __loadingText?: string
     zIndex?: BaseType
     bgc?: string
   } & LoadingProps>(),
@@ -35,6 +42,7 @@ const props = withDefaults(
     ...defaultLoadingProps,
     loading: undefined,
     __loading: undefined,
+    __loadingText: undefined,
     zIndex: 99,
     bgc: '#0005',
     size: 'lg',
@@ -42,6 +50,12 @@ const props = withDefaults(
 )
 
 let show: Ref<boolean>
+
+/** 计算显示的文本 */
+const displayText = computed(() => {
+  // 优先使用指令传递的文本，然后是组件属性，最后是默认值
+  return props.__loadingText || props.loadingText || defaultLoadingProps.loadingText
+})
 
 /** 初始化入口 */
 init()
@@ -68,5 +82,4 @@ defineExpose({
 })
 </script>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>

@@ -6,6 +6,7 @@
     <Button
       @click="handleThemeToggle"
       variant="default"
+      design-style="neumorphic"
       size="md"
       :icon-only="true"
       :left-icon="theme === 'dark' ? Sun : Moon"
@@ -14,6 +15,7 @@
     <!-- 生成二维码按钮 -->
     <Button
       variant="default"
+      design-style="neumorphic"
       @click="emit('generateQrCode')"
       size="md"
       :icon-only="true"
@@ -24,6 +26,7 @@
     <Button
       @click="emit('showKeyManagement')"
       variant="default"
+      design-style="neumorphic"
       size="md"
       :icon-only="true"
       :left-icon="KeyRound"

@@ -32,4 +32,7 @@ export enum Action {
   Progress = 'Progress',
 
   Error = 'Error',
+
+  RTCError = 'RTCError',
+  RTCErrorBroadcast = 'RTCErrorBroadcast',
 }
