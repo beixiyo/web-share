@@ -203,10 +203,7 @@ async function handleClearCache() {
     const result = await emit('clear', options)
     cleanupResult.value = result
 
-    // 3秒后自动关闭
-    setTimeout(() => {
-      show.value = false
-    }, 3000)
+    show.value = false
   } catch (error) {
     console.error('清理缓存失败:', error)
   } finally {

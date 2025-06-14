@@ -85,6 +85,7 @@ export const defaultProps = {
   okText: '确认',
   cancelText: '取消',
   zIndex: 99,
+  maskClosable: true,
 }
 
 export type ModalVariant = 'default' | 'success' | 'warning' | 'error' | 'info'

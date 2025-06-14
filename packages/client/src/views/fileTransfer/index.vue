@@ -113,7 +113,7 @@
 
     <canvas
       ref="canvas"
-      class="absolute left-0 top-0 h-full w-full from-indigo-50 to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800" />
+      class="absolute left-0 top-0 h-full w-full from-[#e8e8e8] to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800" />
   </div>
 </template>
 
@@ -292,6 +292,7 @@ onMounted(() => {
     },
     circleCount: 20,
     canvas: canvas.value!,
+    strokeStyle: '#c4c4c455'
   })
 
   handleQuery(route)
