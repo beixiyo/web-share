@@ -148,6 +148,8 @@ function copyRoomCode() {
   copyToClipboard(props.roomCode)
   Message.success('连接码已复制')
 }
+
+
 </script>
 
 <style lang="scss" scoped></style>

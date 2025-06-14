@@ -53,9 +53,9 @@ export function useModalStates() {
     }
 
     if (state === false) {
-      /** 加载结束时关闭相关模态框 */
+      /** 加载结束时只关闭二维码模态框，保持连接码管理弹窗打开 */
       showQrCodeModal.value = false
-      showKeyManagementModal.value = false
+      /** 注意：不再自动关闭 showKeyManagementModal，让用户手动控制 */
     }
     else if (state === true) {
       /** 设置30秒超时 */

@@ -1,6 +1,6 @@
-import type { RoomCodeInfo, RoomInfo, UserInfo } from 'web-share-common'
 import QRCode from 'qrcode'
 import { ref } from 'vue'
+import { ROOM_CODE_KEY, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 
@@ -10,8 +10,38 @@ import { Message } from '@/utils'
 export function useServerConnection() {
   /** 二维码和房间码相关状态 */
   const qrCodeValue = ref('')
-  const roomCode = ref('')
+  const roomCode = ref(getStoredRoomCode())
   let qrData: string
+
+  /**
+   * 从 sessionStorage 获取已保存的房间码
+   */
+  function getStoredRoomCode(): string {
+    try {
+      return sessionStorage.getItem(ROOM_CODE_KEY) || ''
+    }
+    catch (error) {
+      console.warn('无法从 sessionStorage 读取房间码:', error)
+      return ''
+    }
+  }
+
+  /**
+   * 保存房间码到 sessionStorage
+   */
+  function saveRoomCodeToSession(code: string) {
+    try {
+      if (code) {
+        sessionStorage.setItem(ROOM_CODE_KEY, code)
+      }
+      else {
+        sessionStorage.removeItem(ROOM_CODE_KEY)
+      }
+    }
+    catch (error) {
+      console.warn('无法保存房间码到 sessionStorage:', error)
+    }
+  }
 
   /** 服务器连接实例 */
   let server: ServerConnection
@@ -133,6 +163,7 @@ export function useServerConnection() {
       }
 
       roomCode.value = data.roomCode
+      saveRoomCodeToSession(data.roomCode)
       console.log('创建房间码成功:', data.roomCode)
     }
 
@@ -174,6 +205,18 @@ export function useServerConnection() {
     server.joinDirectRoom(roomId, peerId)
   }
 
+  /**
+   * 检查并恢复房间码状态
+   * 在页面加载时调用，如果有保存的房间码但当前状态为空，则恢复
+   */
+  function restoreRoomCodeIfNeeded() {
+    const storedCode = getStoredRoomCode()
+    if (storedCode && !roomCode.value) {
+      roomCode.value = storedCode
+      console.log('恢复保存的房间码:', storedCode)
+    }
+  }
+
   return {
     /** 状态 */
     qrCodeValue,
@@ -188,5 +231,6 @@ export function useServerConnection() {
     handleJoinWithCode,
     copyLink,
     handleQuery,
+    restoreRoomCodeIfNeeded,
   }
 }
