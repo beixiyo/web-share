@@ -36,4 +36,7 @@ export enum Action {
 
   RTCError = 'RTCError',
   RTCErrorBroadcast = 'RTCErrorBroadcast',
+
+  RequestResumeInfo = 'RequestResumeInfo',
+  ResumeInfo = 'ResumeInfo',
 }

@@ -1,6 +1,8 @@
-import type { FileMeta, ProgressData } from 'web-share-common'
+import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
 import { createStreamDownloader, type StreamDownloader } from '@jl-org/tool'
+import { Action } from 'web-share-common'
+import { ResumeManager } from '@/utils/handleOfflineFile'
 
 /**
  * 独立的文件下载管理器
@@ -12,9 +14,12 @@ export class FileDownloadManager {
   private downloadRafId: number[] = []
   private downloadBuffer: Uint8Array[] = []
   private fileMetaCache: FileMeta[] = []
+  private resumeManager: ResumeManager
+  private currentFileHash?: string
 
   constructor(config: FileDownloadConfig) {
     this.config = config
+    this.resumeManager = new ResumeManager()
   }
 
   /**
@@ -74,6 +79,47 @@ export class FileDownloadManager {
    */
   receiveDataChunk(data: Uint8Array): void {
     this.downloadBuffer.push(data)
+
+    /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
+    if (this.currentFileHash) {
+      const arrayBuffer = data.buffer instanceof ArrayBuffer
+        ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+        : new ArrayBuffer(data.byteLength)
+
+      if (!(data.buffer instanceof ArrayBuffer)) {
+        new Uint8Array(arrayBuffer).set(data)
+      }
+
+      this.resumeManager.appendChunk(this.currentFileHash, arrayBuffer)
+        .catch((error) => {
+          console.warn('添加数据块到缓存失败:', error)
+        })
+    }
+  }
+
+  /**
+   * 处理断点续传请求
+   */
+  async handleResumeRequest(resumeRequest: ResumeRequest): Promise<void> {
+    const { fileHash, fileName } = resumeRequest
+
+    /** 检查是否有缓存 */
+    const resumeInfo = await this.resumeManager.getResumeInfo(fileHash)
+
+    /** 发送断点续传信息响应 */
+    const response: ResumeInfo = {
+      fileHash,
+      startOffset: resumeInfo.startOffset,
+      hasCache: resumeInfo.hasCache,
+      fromId: resumeRequest.fromId, // 使用请求方的ID作为响应目标
+    }
+
+    this.config.sendJSON({
+      type: Action.ResumeInfo,
+      data: response,
+    })
+
+    console.warn(`断点续传请求: ${fileName}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
   }
 
   /**
@@ -83,6 +129,17 @@ export class FileDownloadManager {
     if (this.config.isChannelClosed()) {
       this.config.onError?.('通道已关闭，无法开始文件下载')
       return
+    }
+
+    /** 生成文件哈希并创建缓存 */
+    this.currentFileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size)
+
+    /** 检查是否有现有缓存 */
+    const hasCache = await this.resumeManager.hasResumeCache(this.currentFileHash)
+
+    if (!hasCache) {
+      /** 创建新的断点续传缓存 */
+      await this.resumeManager.createResumeCache(fileInfo.name, fileInfo.size)
     }
 
     await this.createFile(fileInfo)
@@ -95,6 +152,12 @@ export class FileDownloadManager {
     this.stopAllRaf()
     await this.appendBuffer()
     await this.download()
+
+    /** 文件传输完成，清理断点续传缓存 */
+    if (this.currentFileHash) {
+      await this.resumeManager.deleteResumeCache(this.currentFileHash)
+      this.currentFileHash = undefined
+    }
   }
 
   /**

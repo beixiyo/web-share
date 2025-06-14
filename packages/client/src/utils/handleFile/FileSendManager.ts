@@ -1,7 +1,8 @@
-import type { FileMeta, ProgressData } from 'web-share-common'
+import type { FileMeta, ProgressData, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, type MIMEType, wait } from '@jl-org/tool'
 import { Action } from 'web-share-common'
+import { ResumeManager } from '@/utils/handleOfflineFile'
 
 /**
  * 独立的文件发送管理器
@@ -12,9 +13,12 @@ export class FileSendManager {
   private fileMetaCache: FileMeta[] = []
   private onAcceptFile?: Function
   private onDenyFile?: Function
+  private resumeManager: ResumeManager
+  private resumeInfoMap: Map<string, { startOffset: number, hasCache: boolean }> = new Map()
 
   constructor(config: FileSendConfig) {
     this.config = config
+    this.resumeManager = new ResumeManager()
   }
 
   /**
@@ -63,6 +67,7 @@ export class FileSendManager {
         type: file.type,
         totalChunkSize: Math.ceil(file.size / this.config.chunkSize),
         fromId: this.config.getPeerId(),
+        fileHash: this.resumeManager.generateFileHash(file.name, file.size),
       })
 
       let hasImg = false
@@ -134,18 +139,58 @@ export class FileSendManager {
   }
 
   /**
+   * 请求断点续传信息
+   */
+  async requestResumeInfo(files: File[]): Promise<void> {
+    const toId = this.config.getToId()
+    if (!toId) {
+      return
+    }
+
+    for (const file of files) {
+      const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
+      const resumeRequest: ResumeRequest = {
+        fileHash,
+        fileName: file.name,
+        fileSize: file.size,
+        fromId: this.config.getPeerId(),
+      }
+
+      this.config.sendJSON({
+        type: Action.RequestResumeInfo,
+        data: resumeRequest,
+      })
+    }
+  }
+
+  /**
+   * 处理断点续传信息响应
+   */
+  handleResumeInfo(resumeInfo: { fileHash: string, startOffset: number, hasCache: boolean }): void {
+    this.resumeInfoMap.set(resumeInfo.fileHash, {
+      startOffset: resumeInfo.startOffset,
+      hasCache: resumeInfo.hasCache,
+    })
+  }
+
+  /**
    * 清理资源
    */
   cleanup(): void {
     this.fileMetaCache = []
     this.onAcceptFile = undefined
     this.onDenyFile = undefined
+    this.resumeInfoMap.clear()
   }
 
   /**
    * 发送单个文件
    */
   private async sendSingleFile(file: File, fileIndex: number): Promise<void> {
+    const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
+    const resumeInfo = this.resumeInfoMap.get(fileHash)
+    const startOffset = resumeInfo?.startOffset || 0
+
     const fileInfo: FileInfo = {
       lastModified: file.lastModified,
       name: file.name,
@@ -156,11 +201,16 @@ export class FileSendManager {
     /** 发送文件开始信号 */
     this.config.sendJSON({ type: Action.NewFile, data: fileInfo })
 
-    /** 创建文件分片器 */
+    /** 创建文件分片器，支持断点续传 */
     const chunker = new FileChunker(file, {
       chunkSize: this.config.chunkSize,
-      startOffset: 0,
+      startOffset,
     })
+
+    /** 如果是断点续传，记录日志 */
+    if (startOffset > 0) {
+      console.warn(`断点续传: ${file.name}, 从 ${startOffset} 字节开始`)
+    }
 
     /** 发送文件分片 */
     while (!chunker.done) {
@@ -188,6 +238,7 @@ export class FileSendManager {
 
       this.config.sendJSON({ type: Action.Progress, data: progressData })
       this.config.onProgress?.(progressData)
+      await wait(2000)
     }
 
     /** 发送文件完成信号 */

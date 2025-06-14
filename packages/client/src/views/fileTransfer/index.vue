@@ -100,7 +100,16 @@
     <!-- 清理缓存弹窗 -->
     <ClearCacheModal
       v-model="showClearCacheModal"
-      @clear="onClearCache" />
+      @clear="handleClearCache" />
+
+    <!-- 缓存检测模态框 -->
+    <CacheDetectionModal
+      v-model="showCacheDetectionModal"
+      :cache-stats="cacheStats"
+      :formatted-cache-info="formattedCacheInfo"
+      @keep-cache="handleKeepCache"
+      @clear-all="handleClearAllResumeCache"
+      @cleanup-expired="handleCleanupExpiredResumeCache" />
 
     <canvas
       ref="canvas"
@@ -119,10 +128,12 @@ import { TransferManager, type CleanupOptions, type CleanupResult } from '@/util
 import AcceptModal from './AcceptModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import ClearCacheModal from './ClearCacheModal.vue'
+import CacheDetectionModal from './CacheDetectionModal.vue'
 import { getDeviceIcon } from './hooks/tools'
 import { useClipboard } from './hooks/useClipboard'
 import { useFileTransfer } from './hooks/useFileTransfer'
 import { useModalStates } from './hooks/useModalStates'
+import { useResumeCache } from '@/hooks/useResumeCache'
 import { usePageVisibility } from './hooks/usePageVisibility'
 import { useServerConnection } from './hooks/useServerConnection'
 import { useUserManagement } from './hooks/useUserManagement'
@@ -140,6 +151,7 @@ const modalStates = useModalStates()
 const fileTransfer = useFileTransfer()
 const serverConnection = useServerConnection()
 const clipboard = useClipboard()
+const resumeCache = useResumeCache()
 
 /** 从hooks中解构需要的状态和方法 */
 const {
@@ -214,6 +226,16 @@ const {
   pendingTransfer,
 } = clipboard
 
+const {
+  hasCacheData,
+  isCheckingCache,
+  checkCacheData,
+  cleanupExpiredCache,
+  clearAllCache,
+  getCacheStats,
+  formatCacheInfo,
+} = resumeCache
+
 /** 其他状态 */
 const route = useRoute()
 const canvas = useTemplateRef<HTMLCanvasElement>('canvas')
@@ -226,6 +248,13 @@ const clipboardText = ref<string>()
 /** 清理缓存相关状态 */
 const showClearCacheModal = ref(false)
 const transferManager = new TransferManager()
+
+/** 缓存检测模态框状态 */
+const showCacheDetectionModal = ref(false)
+
+/** 缓存统计信息 */
+const cacheStats = computed(() => getCacheStats())
+const formattedCacheInfo = computed(() => formatCacheInfo())
 
 /** 初始化服务器连接 */
 const { server, peerManager } = initializeServer({
@@ -266,6 +295,14 @@ onMounted(() => {
     showUserSelectorForClipboard,
   )
   setupPasteHandler()
+
+  /** 检查断点续传缓存 */
+  setTimeout(async () => {
+    await checkCacheData()
+    if (hasCacheData.value) {
+      showCacheDetectionModal.value = true
+    }
+  }, 2000) // 延迟2秒检查，避免影响页面初始化
 })
 
 /** 创建发送文件函数 */
@@ -573,7 +610,7 @@ function onNotifyUserInfo(data: UserInfo) {
 /**
  * 清理缓存处理函数
  */
-async function onClearCache(options: CleanupOptions): Promise<CleanupResult> {
+async function handleClearCache(options: CleanupOptions): Promise<CleanupResult> {
   try {
     setLoading(true, '正在清理缓存...')
 
@@ -583,7 +620,7 @@ async function onClearCache(options: CleanupOptions): Promise<CleanupResult> {
     const message = `清理完成！清理了 ${result.cleanedSessions} 个传输会话，${result.cleanedFiles} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`
     Message.success(message)
 
-    console.log('缓存清理完成:', result)
+    console.warn('缓存清理完成:', result)
     return result
   } catch (error) {
     console.error('清理缓存失败:', error)
@@ -591,6 +628,41 @@ async function onClearCache(options: CleanupOptions): Promise<CleanupResult> {
     throw error
   } finally {
     setLoading(false)
+  }
+}
+
+/**
+ * 保留断点续传缓存
+ */
+function handleKeepCache() {
+  Message.success('已保留断点续传缓存')
+}
+
+/**
+ * 清理所有断点续传缓存
+ */
+async function handleClearAllResumeCache() {
+  try {
+    const result = await clearAllCache()
+    Message.success(`清理完成！清理了 ${result.cleanedCount} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`)
+  } catch (error) {
+    console.error('清理断点续传缓存失败:', error)
+    Message.error('清理失败，请重试')
+    throw error
+  }
+}
+
+/**
+ * 清理过期断点续传缓存
+ */
+async function handleCleanupExpiredResumeCache() {
+  try {
+    const result = await cleanupExpiredCache(7) // 清理7天前的缓存
+    Message.success(`清理完成！清理了 ${result.cleanedCount} 个过期文件，释放了 ${formatByte(result.freedBytes)} 空间`)
+  } catch (error) {
+    console.error('清理过期缓存失败:', error)
+    Message.error('清理失败，请重试')
+    throw error
   }
 }
 

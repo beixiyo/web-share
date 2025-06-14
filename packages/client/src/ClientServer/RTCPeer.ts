@@ -1,4 +1,4 @@
-import type { Candidate, FileMeta, ProgressData, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
+import type { Candidate, FileMeta, ProgressData, ResumeInfo, ResumeRequest, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
 import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
@@ -170,6 +170,12 @@ export class RTCPeer extends Peer {
     files: File[],
     onDenyFile?: VoidFunction,
   ) {
+    /** 先请求断点续传信息 */
+    await this.fileSendManager.requestResumeInfo(files)
+
+    /** 等待一段时间收集断点续传响应 */
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
     return this.fileSendManager.sendFiles(files, onDenyFile)
   }
 
@@ -437,6 +443,18 @@ export class RTCPeer extends Peer {
           break
         case Action.Progress:
           this.fileDownloadManager.handleProgress(data.data)
+          break
+
+        /**
+         * 断点续传相关
+         */
+        case Action.RequestResumeInfo:
+          const resumeRequest: ResumeRequest = data.data
+          await this.fileDownloadManager.handleResumeRequest(resumeRequest)
+          break
+        case Action.ResumeInfo:
+          const resumeInfo: ResumeInfo = data.data
+          this.fileSendManager.handleResumeInfo(resumeInfo)
           break
 
         default:
