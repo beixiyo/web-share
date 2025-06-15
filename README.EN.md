@@ -1,4 +1,4 @@
-a# 🔗 Web Airdrop
+# 🔗 Web Airdrop
 
 <p align="center">
   <a href="./README.md">中文文档</a>
