@@ -4,8 +4,6 @@ a# 🔗 Web Airdrop
   <a href="./README.md">中文文档</a>
 </p>
 
-Browser-based local network file transfer with no server data collection, making browsers great again!
-
 <p align="center">
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
@@ -18,7 +16,13 @@ Browser-based local network file transfer with no server data collection, making
   <img src="./docAssets/save.webp" width="300px" />
 </div>
 
+<br />
+
+Browser-based local network file transfer with no server data collection, making browsers great again!!
+
 ## ✨ Core Features
+
+🚫 **No App Needed - Works 100% in browser**
 
 #### ⚡ High-Performance Peer-to-Peer Transfer
 - **🫗 Streaming Download**: Traditional frontend downloads store all chunks in memory, which can crash with large files

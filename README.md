@@ -4,8 +4,6 @@
   <a href="./README.EN.md">English</a>
 </p>
 
-在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
-
 <p align="center">
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
@@ -18,7 +16,13 @@
   <img src="./docAssets/save.webp" width="300px" />
 </div>
 
+<br />
+
+在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
+
 ## ✨ 核心功能亮点
+
+🚫 **无需安装应用，纯浏览器运行**
 
 #### ⚡ 高性能点对点传输
 - **🫗 流式下载**：传统前端下载要保存所有分片到内存，传输内容大了会崩溃
