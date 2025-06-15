@@ -1,5 +1,9 @@
 # 🔗 Web Airdrop
 
+<p align="center">
+  <a href="./README.EN.md">English</a>
+</p>
+
 在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
 
 <p align="center">
@@ -128,8 +132,9 @@ cd web-share
 
 ```bash
 # 构建 Docker 镜像
+# VITE_SERVER_URL_ARG 告诉前端 WebSocket 地址，不填则根据当前域名自动推断
 docker build \
-  --build-arg VITE_SERVER_URL_ARG=ws://YourHost:YourPort \
+  --build-arg VITE_SERVER_URL_ARG=wss://YourHost:YourPort \
   -t web-share .
 
 # 运行容器

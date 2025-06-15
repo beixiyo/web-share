@@ -1,6 +1,7 @@
 import type { Candidate, FileMeta, Sdp, To, UserReconnectedInfo } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
 import { Action, USER_INFO } from 'web-share-common'
+import { modal } from '@/utils'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 
@@ -13,6 +14,13 @@ export class PeerManager {
   constructor(
     public server: ServerConnection,
   ) {
+    if (typeof RTCPeerConnection === 'undefined') {
+      modal.error({
+        content: 'WebRTC 在你的设备不可用，请尝试关闭浏览器扩展，或者开启无痕模式。如果还不能用，请更新浏览器版本，推荐使用 Chrome 浏览器',
+      })
+      return
+    }
+
     Events.on(Action.Offer, this.onOffer)
     Events.on(Action.Answer, this.onAnswer)
     Events.on(Action.Candidate, this.onCandidate)
