@@ -18,6 +18,8 @@
 
 <br />
 
+https://web-share.beixiyo.dpdns.org/fileTransfer
+
 在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
 
 ## ✨ 核心功能亮点
