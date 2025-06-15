@@ -1,5 +1,6 @@
 import type { ProgressData } from 'web-share-common'
 import { HelpCircle, Laptop, Smartphone } from 'lucide-vue-next'
+import { Message } from '@/utils'
 
 /**
  * 根据设备类型获取图标
@@ -24,4 +25,13 @@ export function getInitProgress(): ProgressData {
     curIndex: -1,
     filename: '--',
   }
+}
+
+export function handleExpired() {
+  Message.warning('用户已过期，请稍后再试')
+  sessionStorage.clear()
+
+  setTimeout(() => {
+    location.reload()
+  }, 300)
 }

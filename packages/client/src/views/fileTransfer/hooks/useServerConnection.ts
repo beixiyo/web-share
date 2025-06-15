@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
+import { handleExpired } from './tools'
 
 /**
  * 服务器连接管理Hook
@@ -93,9 +94,10 @@ export function useServerConnection() {
     setLoading: (state: boolean) => void,
   ) {
     if (!info) {
-      Message.warning('无法获取用户信息，请稍后再试')
+      handleExpired()
       return
     }
+
     if (qrCodeValue.value) {
       return true // 表示应该显示二维码模态框
     }
@@ -113,7 +115,7 @@ export function useServerConnection() {
     setLoading: (state: boolean) => void,
   ) {
     if (!info) {
-      Message.warning('无法获取用户信息，请稍后再试')
+      handleExpired()
       return
     }
 

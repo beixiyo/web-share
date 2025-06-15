@@ -20,7 +20,7 @@ a# 🔗 Web Airdrop
 
 https://web-share.beixiyo.dpdns.org/fileTransfer
 
-Browser-based local network file transfer with no server data collection, making browsers great again!!
+Browser-based **local network** file transfer with no server data collection, making browsers great again!!
 
 ## ✨ Core Features
 
@@ -137,6 +137,9 @@ cd web-share
 #### Docker Deployment
 
 ```bash
+# Remove existing image and container
+docker rm web-share -f && docker rmi web-share
+
 # Build Docker image
 # VITE_SERVER_URL_ARG tells the frontend the WebSocket address, if not specified it will be automatically inferred from the current domain
 docker build \

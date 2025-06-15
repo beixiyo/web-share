@@ -20,7 +20,7 @@
 
 https://web-share.beixiyo.dpdns.org/fileTransfer
 
-在浏览器实现局域网文件传输，无服务器收集信息，让浏览器再次伟大！！
+在浏览器实现 **局域网** 文件传输，无服务器收集信息，让浏览器再次伟大！！
 
 ## ✨ 核心功能亮点
 
@@ -137,6 +137,9 @@ cd web-share
 #### Docker 部署
 
 ```bash
+# 删除已存在镜像和容器
+docker rm web-share -f && docker rmi web-share
+
 # 构建 Docker 镜像
 # VITE_SERVER_URL_ARG 告诉前端 WebSocket 地址，不填则根据当前域名自动推断
 docker build \
