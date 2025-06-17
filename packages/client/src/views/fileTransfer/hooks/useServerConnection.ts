@@ -91,7 +91,6 @@ export function useServerConnection() {
    */
   async function requestCreateDirectRoom(
     info: UserInfo | undefined,
-    setLoading: (state: boolean) => void,
   ) {
     if (!info) {
       handleExpired()
@@ -102,7 +101,6 @@ export function useServerConnection() {
       return true // 表示应该显示二维码模态框
     }
 
-    setLoading(true)
     server.createDirectRoom()
     return false
   }

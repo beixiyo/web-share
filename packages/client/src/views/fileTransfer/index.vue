@@ -438,7 +438,7 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 
 /** 事件处理函数 */
 async function onRequestCreateDirectRoom() {
-  const shouldShowModal = await requestCreateDirectRoom(info.value, setLoading)
+  const shouldShowModal = await requestCreateDirectRoom(info.value)
   if (shouldShowModal) {
     showQrCodeModal.value = true
   }
