@@ -131,7 +131,7 @@ export class FileSendManager {
    * @see {@link FileSendManager.sendFiles}
    */
   handleAcceptFile(): void {
-    // @16. [发送方] 收到接收方同意接收，开始发送文件
+    // @19. [发送方] 收到接收方同意接收，开始发送文件
     this.onAcceptFile?.()
   }
 
@@ -252,7 +252,7 @@ export class FileSendManager {
       type: file.type as MIMEType,
     }
 
-    // @17. [发送方] 发送文件开始信号
+    // @20. [发送方] 发送文件开始信号
     this.config.sendJSON({ type: Action.NewFile, data: fileInfo })
 
     /** 创建文件分片器，支持断点续传 */

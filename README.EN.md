@@ -5,6 +5,8 @@
 </p>
 
 <p align="center">
+  <img alt="License" src="https://img.shields.io/npm/l/@jl-org/cvs?color=blue" />
+  <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" />
@@ -389,6 +391,36 @@ A: Security guarantees:
 5. **🛡️ Type Safety**: Comprehensive use of TypeScript, providing complete type definitions and checking
 6. **🔧 Extensibility**: Modular design, easy to extend and maintain
 
+---
+
+### Resume Transfer Mechanism In-Depth Analysis
+
+Resume transfer is one of the core features of this project, implementing reliable large file transfer through carefully designed caching and negotiation mechanisms.
+
+#### 🏗️ Overall Architecture Design
+
+The resume transfer system consists of the following core components:
+
+1. **ResumeManager**: Resume transfer cache management
+2. **FileSendManager**: Sender-side resume transfer logic
+3. **FileDownloadManager**: Receiver-side resume transfer logic
+4. **WebRTC Negotiation Mechanism**: Offset negotiation and synchronization
+
+#### 🔍 Code Flow Markers
+
+To help developers understand the complex resume transfer flow, we have added flow markers in the format `@number. description` at key code locations.
+
+**How to view flow markers**:
+
+1. **Using VSCode Todo Tree Plugin** (Recommended):
+   - The project has configured `.vscode/settings.json` to automatically recognize `@number.` format markers
+   - View the "TODO TREE" panel in VSCode sidebar
+   - Click markers to jump directly to corresponding code locations
+
+2. **Manual Search**:
+   - Search for `@01.` `@02.` etc. markers in the project
+   - View the complete flow in numerical order
+
 ### Architecture Overview
 
 ```
@@ -422,11 +454,5 @@ A: Security guarantees:
 For questions or suggestions, feel free to contact:
 
 [![Email](https://img.shields.io/badge/Email-Contact-blue?style=flat-square&logo=gmail)](mailto:2662442385@qq.com)
-
----
-
-**📄 License**
-
-This project is licensed under the [MIT License](LICENSE)
 
 </div>

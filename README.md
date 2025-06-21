@@ -5,6 +5,8 @@
 </p>
 
 <p align="center">
+  <img alt="License" src="https://img.shields.io/npm/l/@jl-org/cvs?color=blue" />
+  <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" />
@@ -606,6 +608,21 @@ if (this.channel.bufferedAmount > this.config.bufferedAmountLowThreshold) {
 3. **FileDownloadManager**: 接收端断点续传逻辑
 4. **WebRTC 协商机制**: 偏移量协商和同步
 
+#### 🔍 代码流程标记说明
+
+为了便于开发者理解复杂的断点续传流程，我们在关键代码位置添加了 `@数字. 描述` 格式的流程标记。
+
+**如何查看流程标记**：
+
+1. **使用 VSCode Todo Tree 插件**（推荐）：
+   - 项目已配置 `.vscode/settings.json`，自动识别 `@数字.` 格式标记
+   - 在 VSCode 侧边栏查看 "TODO TREE" 面板
+   - 点击标记可直接跳转到对应代码位置
+
+2. **手动搜索**：
+   - 在项目中搜索 `@01.` `@02.` 等标记
+   - 按数字顺序查看完整流程
+
 #### 📊 数据流和控制流详解
 
 **完整的断点续传流程图**：
@@ -641,132 +658,26 @@ if (this.channel.bufferedAmount > this.config.bufferedAmountLowThreshold) {
       FileDone                                download()
 ```
 
-#### 🔍 核心函数详细分析
+#### 🔍 核心实现要点
 
-- **执行时机**：文件传输开始前
-- **输入参数**：文件名和文件大小
-- **返回值**：唯一的文件标识符
-- **下一步**：用于缓存键名生成和断点信息查询
+**详细的代码实现请查看项目中的流程标记**：
 
-**2. 断点信息请求 (FileSendManager.requestResumeInfo)**
+1. **断点续传协商阶段** (`@01-@07`)：
+   - 发送方请求断点续传信息
+   - 接收方检查本地缓存并返回偏移量
+   - 双方协商传输起始位置
 
-```typescript
-private async requestResumeInfo(files: File[]): Promise<void> {
-  for (const file of files) {
-    const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
+2. **文件传输准备阶段** (`@08-@12`)：
+   - 处理文件元数据和断点续传信息
+   - 等待用户确认接收文件
+   - 准备开始文件传输
 
-    const resumeRequest: ResumeRequest = {
-      fileHash,
-      fileName: file.name,
-      fileSize: file.size,
-      fromId: this.config.getPeerId(),
-    }
+3. **文件传输执行阶段** (`@13-@16`)：
+   - 发送文件开始信号和数据分片
+   - 接收方恢复缓存数据并接收新数据
+   - 实时处理二进制数据流
 
-    // 通过 WebRTC 发送断点续传请求
-    this.config.sendJSON({
-      type: Action.ResumeRequest,
-      data: resumeRequest,
-    })
-  }
-}
-```
-
-- **执行时机**：发送文件元数据后
-- **等待事件**：接收端返回 `ResumeInfo` 响应
-- **成功处理**：获取到 `startOffset`，从指定位置开始传输
-- **失败处理**：默认从 0 开始传输（全新传输）
-
-**3. 缓存信息查询 (FileDownloadManager.handleResumeRequest)**
-
-```typescript
-async handleResumeRequest(resumeRequest: ResumeRequest): Promise<void> {
-  const { fileHash, fileName } = resumeRequest
-
-  // 检查是否有缓存
-  const resumeInfo = await this.resumeManager.getResumeInfo(fileHash)
-
-  // 发送断点续传信息响应
-  const response: ResumeInfo = {
-    fileHash,
-    startOffset: resumeInfo.startOffset,
-    hasCache: resumeInfo.hasCache,
-    fromId: resumeRequest.fromId,
-  }
-
-  this.config.sendJSON({
-    type: Action.ResumeInfo,
-    data: response,
-  })
-}
-```
-
-- **执行时机**：接收到 `ResumeRequest` 消息时
-- **等待事件**：无（立即响应）
-- **成功处理**：返回缓存的下载进度信息
-- **失败处理**：返回 `startOffset: 0, hasCache: false`
-
-**4. 分片传输 (FileSendManager.sendSingleFile)**
-
-```typescript
-private async sendSingleFile(file: File, fileIndex: number): Promise<void> {
-  const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
-  const resumeInfo = this.resumeInfoMap.get(fileHash)
-  const startOffset = resumeInfo?.startOffset || 0
-
-  // 创建文件分片器，支持断点续传
-  const chunker = new FileChunker(file, {
-    chunkSize: this.config.chunkSize,
-    startOffset, // 关键：从指定偏移量开始
-  })
-
-  // 发送文件分片
-  while (!chunker.done) {
-    const blob = chunker.next()
-    const arrayBuffer = await blob.arrayBuffer()
-
-    // 通过 WebRTC DataChannel 发送
-    this.config.send(arrayBuffer)
-
-    // 发送进度更新
-    this.config.sendJSON({
-      type: Action.Progress,
-      data: progressData
-    })
-  }
-}
-```
-
-- **执行时机**：接收到文件接受确认后
-- **等待事件**：WebRTC 通道空闲（流控制）
-- **成功处理**：逐块发送文件数据，更新传输进度
-- **失败处理**：记录错误，可能触发重传
-
-**5. 数据接收和缓存 (FileDownloadManager.receiveDataChunk)**
-
-```typescript
-receiveDataChunk(data: Uint8Array): void {
-  // 添加到下载缓冲区
-  this.downloadBuffer.push(data)
-
-  // 如果有当前文件哈希，将数据块添加到断点续传缓存
-  if (this.currentFileHash) {
-    const arrayBuffer = data.buffer instanceof ArrayBuffer
-      ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-      : new ArrayBuffer(data.byteLength)
-
-    // 异步缓存数据块
-    this.resumeManager.appendChunk(this.currentFileHash, arrayBuffer)
-      .catch((error) => {
-        console.warn('添加数据块到缓存失败:', error)
-      })
-  }
-}
-```
-
-- **执行时机**：接收到 WebRTC 数据块时
-- **等待事件**：无（异步处理）
-- **成功处理**：数据同时写入下载缓冲区和断点续传缓存
-- **失败处理**：缓存失败不影响正常下载，只记录警告
+> 💡 **提示**：使用 VSCode Todo Tree 插件可以快速浏览所有流程标记，点击即可跳转到对应代码位置。
 
 #### 🔄 WebRTC 协商偏移量过程
 
@@ -881,11 +792,5 @@ catch (error) {
 如有问题或建议，欢迎通过以下方式联系：
 
 [![Email](https://img.shields.io/badge/Email-Contact-blue?style=flat-square&logo=gmail)](mailto:2662442385@qq.com)
-
----
-
-**📄 许可证**
-
-本项目采用 [MIT 许可证](LICENSE)
 
 </div>

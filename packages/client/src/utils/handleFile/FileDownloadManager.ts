@@ -36,7 +36,7 @@ export class FileDownloadManager {
         mimeType: fileInfo.type,
       })
 
-      // @19. [接收方] 如果有缓存数据，恢复到下载缓冲区
+      // @22. [接收方] 如果有缓存数据，恢复到下载缓冲区
       if (this.currentFileHash) {
         await this.restoreCachedData()
       }

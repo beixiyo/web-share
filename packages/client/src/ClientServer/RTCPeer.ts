@@ -275,7 +275,7 @@ export class RTCPeer extends Peer {
 
     this.opts.onFileMetas?.(fileMeta, (data) => {
       const { promise } = data
-      // @14. [接收方] 等待同意接收后发送
+      // @15. [接收方] 等待同意接收后发送
       promise
         .then(() => {
           this.sendJSON({
@@ -345,7 +345,7 @@ export class RTCPeer extends Peer {
          * 文件传输前
          */
         case Action.AcceptFile:
-          // @15. [发送方] 收到接收方同意接收，开始发送文件
+          // @16. [发送方] 收到接收方同意接收，开始发送文件
           this.fileSendManager.handleAcceptFile()
           break
         case Action.DenyFile:
@@ -357,7 +357,7 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
-          // @18. [接收方] 收到新文件信号，开始处理
+          // @21. [接收方] 收到新文件信号，开始处理
           await this.fileDownloadManager.handleNewFile(fileInfo)
           break
         case Action.FileDone:
@@ -387,7 +387,7 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      /** 接收二进制数据，传递给文件下载管理器 */
+      // @17. [接收方] 接收二进制数据，传递给文件下载管理器
       this.fileDownloadManager.receiveDataChunk(new Uint8Array(e.data))
     }
   }
