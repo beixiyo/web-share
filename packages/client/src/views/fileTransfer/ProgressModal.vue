@@ -5,16 +5,17 @@
     title="文件传输中"
     :mask-closable="false"
     height="auto"
+    width="clamp(320px, 90vw, 500px)"
   >
-    <div class="size-full flex flex-col gap-4 rounded-2xl p-4 sm:gap-3 sm:p-3">
+    <div class="size-full flex flex-col gap-3 rounded-2xl p-3 sm:gap-4 sm:p-4">
       <!-- 头部信息 -->
-      <div class="flex items-center space-x-4 sm:space-x-3">
+      <div class="flex items-center space-x-3 sm:space-x-4">
         <div
-          class="h-12 w-12 flex flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 sm:h-10 sm:w-10 dark:bg-emerald-900/30"
+          class="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 sm:h-12 sm:w-12 dark:bg-emerald-900/30"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-6 w-6 text-emerald-600 sm:h-5 sm:w-5 dark:text-emerald-400"
+            class="h-5 w-5 text-emerald-600 sm:h-6 sm:w-6 dark:text-emerald-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -28,12 +29,12 @@
         </div>
         <div class="min-w-0 flex-1">
           <h3
-            class="text-lg text-gray-900 font-semibold sm:text-base dark:text-gray-100"
+            class="text-base text-gray-900 font-semibold sm:text-lg dark:text-gray-100"
           >
             文件传输
           </h3>
           <div
-            class="truncate text-sm text-gray-500 sm:text-xs dark:text-gray-400"
+            class="truncate text-xs text-gray-500 sm:text-sm dark:text-gray-400"
           >
             正在传输第
             <span
@@ -47,22 +48,22 @@
       </div>
 
       <!-- 当前文件信息 -->
-      <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50 sm:p-2">
-        <div class="mb-2 flex items-center justify-between sm:mb-1">
-          <div class="min-w-0 flex items-center space-x-2 sm:space-x-1.5">
+      <div class="rounded-lg bg-gray-50 p-2 dark:bg-gray-700/50 sm:p-3">
+        <div class="mb-1 flex items-center justify-between sm:mb-2">
+          <div class="min-w-0 flex items-center space-x-1.5 sm:space-x-2">
             <component
               :is="getFileIcon(progress.filename)"
-              class="h-4 w-4 flex-shrink-0 text-gray-500 sm:h-3.5 sm:w-3.5 dark:text-gray-400"
+              class="h-3.5 w-3.5 flex-shrink-0 text-gray-500 sm:h-4 sm:w-4 dark:text-gray-400"
             />
             <span
-              class="truncate text-gray-900 font-medium sm:text-sm dark:text-gray-100"
+              class="truncate text-sm text-gray-900 font-medium sm:text-base dark:text-gray-100"
               :title="progress.filename"
             >
               {{ progress.filename }}
             </span>
           </div>
           <span
-            class="flex-shrink-0 rounded bg-white px-2 py-1 text-xs text-gray-500 dark:bg-gray-600 sm:px-1.5 sm:text-[10px] dark:text-gray-300"
+            class="flex-shrink-0 rounded bg-white px-1.5 py-0.5 text-[10px] text-gray-500 dark:bg-gray-600 sm:px-2 sm:py-1 sm:text-xs dark:text-gray-300"
           >
             {{ progress.curIndex + 1 }}/{{ progress.total }}
           </span>
@@ -71,7 +72,7 @@
         <!-- 文件大小信息 -->
         <div
           v-if="currentFileSize"
-          class="text-xs text-gray-500 sm:text-[10px] dark:text-gray-400"
+          class="text-[10px] text-gray-500 sm:text-xs dark:text-gray-400"
         >
           {{ formatByte(currentFileSize * progress.progress) }} /
           {{ formatByte(currentFileSize) }}
@@ -79,22 +80,22 @@
       </div>
 
       <!-- 进度条 -->
-      <div class="space-y-3 sm:space-y-2">
+      <div class="space-y-2 sm:space-y-3">
         <!-- 单个文件进度 -->
         <div>
           <div class="mb-1 flex items-center justify-between">
             <span
-              class="text-sm text-gray-700 font-medium sm:text-xs dark:text-gray-300"
+              class="text-xs text-gray-700 font-medium sm:text-sm dark:text-gray-300"
             >当前文件进度</span>
             <span
-              class="text-sm text-emerald-600 font-medium sm:text-xs dark:text-emerald-400"
+              class="text-xs text-emerald-600 font-medium sm:text-sm dark:text-emerald-400"
             >{{ numFixed(progress.progress * 100) }}%</span>
           </div>
           <div
-            class="h-2 w-full rounded-full bg-gray-200 sm:h-1.5 dark:bg-gray-600"
+            class="h-1.5 w-full rounded-full bg-gray-200 sm:h-2 dark:bg-gray-600"
           >
             <div
-              class="h-2 rounded-full bg-emerald-600 transition-all duration-300 sm:h-1.5 dark:bg-emerald-500"
+              class="h-1.5 rounded-full bg-emerald-600 transition-all duration-300 sm:h-2 dark:bg-emerald-500"
               :style="{ width: `${progress.progress * 100}%` }"
             />
           </div>
@@ -104,17 +105,17 @@
         <div>
           <div class="mb-1 flex items-center justify-between">
             <span
-              class="text-sm text-gray-700 font-medium sm:text-xs dark:text-gray-300"
+              class="text-xs text-gray-700 font-medium sm:text-sm dark:text-gray-300"
             >总体进度</span>
             <span
-              class="text-sm text-green-600 font-medium sm:text-xs dark:text-green-400"
+              class="text-xs text-green-600 font-medium sm:text-sm dark:text-green-400"
             >{{ numFixed(overallProgress * 100) }}%</span>
           </div>
           <div
-            class="h-2 w-full rounded-full bg-gray-200 sm:h-1.5 dark:bg-gray-600"
+            class="h-1.5 w-full rounded-full bg-gray-200 sm:h-2 dark:bg-gray-600"
           >
             <div
-              class="h-2 rounded-full bg-green-500 transition-all duration-300 sm:h-1.5 dark:bg-green-400"
+              class="h-1.5 rounded-full bg-green-500 transition-all duration-300 sm:h-2 dark:bg-green-400"
               :style="{ width: `${overallProgress * 100}%` }"
             />
           </div>

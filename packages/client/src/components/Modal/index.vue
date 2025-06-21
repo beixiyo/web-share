@@ -21,25 +21,25 @@
           :class="[variantStyles[variant].bg]"
           :style="modalStyle"
         >
-          <div class="h-full max-h-[90vh] flex flex-col gap-6 p-6">
+          <div class="h-full max-h-[85vh] flex flex-col gap-4 p-4 sm:max-h-[90vh] sm:gap-6 sm:p-6">
             <!-- 头部 -->
             <slot name="header">
               <div
                 class="flex items-start justify-between rounded-t"
                 :style="headerStyle"
               >
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
                   <div
-                    class="rounded-lg p-1.5"
+                    class="rounded-lg p-1 sm:p-1.5"
                     :class="[variantStyles[variant].iconBg]"
                   >
                     <component
                       :is="variantStyles[variant].icon"
-                      class="h-4 w-4"
+                      class="h-3.5 w-3.5 sm:h-4 sm:w-4"
                       :class="[variantStyles[variant].accent]"
                     />
                   </div>
-                  <h2 class="text-lg">
+                  <h2 class="text-base sm:text-lg">
                     {{ title }}
                   </h2>
                 </div>
@@ -59,7 +59,7 @@
             <!-- 底部 -->
             <slot name="footer">
               <div
-                class="mt-auto flex items-center justify-end gap-4"
+                class="mt-auto flex items-center justify-end gap-2 sm:gap-4"
                 :style="footerStyle"
               >
                 <Button
