@@ -6,6 +6,9 @@ import { FileDownloadManager, FileSendManager } from '@/utils'
 import { Peer, type PeerOpts } from './Peer'
 import { RTCConnect } from './RTCConnect'
 
+/**
+ * WebRTC 连接管理和消息路由
+ */
 export class RTCPeer extends Peer {
   private opts: PeerOpts & RTCPeerOpts
   onChannelReady?: Function
@@ -267,11 +270,12 @@ export class RTCPeer extends Peer {
     /** 将文件元数据传递给下载管理器 */
     this.fileDownloadManager.setFileMetaCache(fileMeta)
 
-    /** 立即处理断点续传信息并返回给发送方 */
+    // @11. [接收方] 立即处理断点续传信息并返回给发送方
     await this.fileDownloadManager.handleFileMetasForResume(fileMeta)
 
     this.opts.onFileMetas?.(fileMeta, (data) => {
       const { promise } = data
+      // @14. [接收方] 等待同意接收后发送
       promise
         .then(() => {
           this.sendJSON({
@@ -341,6 +345,7 @@ export class RTCPeer extends Peer {
          * 文件传输前
          */
         case Action.AcceptFile:
+          // @15. [发送方] 收到接收方同意接收，开始发送文件
           this.fileSendManager.handleAcceptFile()
           break
         case Action.DenyFile:
@@ -352,6 +357,7 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
+          // @18. [接收方] 收到新文件信号，开始处理
           await this.fileDownloadManager.handleNewFile(fileInfo)
           break
         case Action.FileDone:
@@ -365,10 +371,13 @@ export class RTCPeer extends Peer {
          * 断点续传相关
          */
         case Action.RequestResumeInfo:
+          // @04. [接收方] 收到断点续传请求，检查缓存并返回响应
           const resumeRequest: ResumeRequest = data.data
           await this.fileDownloadManager.handleResumeRequest(resumeRequest)
           break
         case Action.ResumeInfo:
+          // @06. [发送方] 收到断点续传响应，更新缓存信息
+          // @13. [发送方] 收到断点续传响应，更新缓存信息
           const resumeInfo: ResumeInfo = data.data
           this.fileSendManager.handleResumeInfo(resumeInfo)
           break

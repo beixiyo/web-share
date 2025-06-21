@@ -9,7 +9,7 @@ const RESUME_METADATA_KEY = 'resume_metadata'
 
 /**
  * 断点续传管理器
- * 负责管理文件传输的断点续传缓存
+ * 负责断点续传缓存存储和管理
  */
 export class ResumeManager {
   private localForageInstance: LocalForage
@@ -168,7 +168,7 @@ export class ResumeManager {
       await this.saveMetadata(metadata)
     }
 
-    console.warn(`添加数据块到缓存: ${fileHash}, 索引: ${chunkIndex}, 大小: ${chunk.byteLength}, 总计: ${cacheItem.downloadedBytes}`)
+    console.log(`添加数据块到缓存: ${fileHash}, 索引: ${chunkIndex}, 大小: ${chunk.byteLength}, 总计: ${cacheItem.downloadedBytes}`)
   }
 
   /**
@@ -391,7 +391,7 @@ export interface ResumeCacheItem {
 /**
  * 数据块信息
  */
-export interface ChunkInfo {
+export type ChunkInfo = {
   /** 数据块索引 */
   chunkIndex: number
   /** 数据块大小 */

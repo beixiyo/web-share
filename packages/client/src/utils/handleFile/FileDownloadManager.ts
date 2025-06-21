@@ -6,7 +6,7 @@ import { ResumeManager } from '@/utils/handleOfflineFile'
 
 /**
  * 独立的文件下载管理器
- * 负责处理文件接收、缓冲区管理和流式下载
+ * 负责文件接收和缓存管理、缓冲区管理和流式下载
  */
 export class FileDownloadManager {
   private config: FileDownloadConfig
@@ -36,7 +36,7 @@ export class FileDownloadManager {
         mimeType: fileInfo.type,
       })
 
-      /** 如果有缓存数据，恢复到下载缓冲区 */
+      // @19. [接收方] 如果有缓存数据，恢复到下载缓冲区
       if (this.currentFileHash) {
         await this.restoreCachedData()
       }
@@ -61,6 +61,7 @@ export class FileDownloadManager {
 
       /** 完成下载并等待文件保存 */
       await this.downloader.complete()
+      console.groupEnd()
     }
     catch (error) {
       const errorMessage = `文件下载完成失败: ${error}`
@@ -95,17 +96,11 @@ export class FileDownloadManager {
 
     /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
     if (this.currentFileHash) {
-      const arrayBuffer = data.buffer instanceof ArrayBuffer
-        ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-        : new ArrayBuffer(data.byteLength)
-
-      if (!(data.buffer instanceof ArrayBuffer)) {
-        new Uint8Array(arrayBuffer).set(data)
-      }
+      const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
 
       this.resumeManager.appendChunk(this.currentFileHash, arrayBuffer)
         .catch((error) => {
-          console.warn('添加数据块到缓存失败:', error)
+          console.error('添加数据块到缓存失败:', error)
         })
     }
   }
@@ -115,8 +110,7 @@ export class FileDownloadManager {
    */
   async handleResumeRequest(resumeRequest: ResumeRequest): Promise<void> {
     const { fileHash, fileName } = resumeRequest
-
-    /** 检查是否有缓存 */
+    // @05. [接收方] 收到断点续传请求，检查本地缓存并返回响应
     const resumeInfo = await this.resumeManager.getResumeInfo(fileHash)
 
     /** 发送断点续传信息响应 */
@@ -216,6 +210,7 @@ export class FileDownloadManager {
           fromId: fileMeta.fromId, // 返回给发送方
         }
 
+        // @12. [接收方] 立即返回断点续传信息
         this.config.sendJSON({
           type: Action.ResumeInfo,
           data: response,
@@ -253,7 +248,7 @@ export class FileDownloadManager {
       const chunkStream = this.resumeManager.getCachedChunksStream(this.currentFileHash)
       let chunkCount = 0
 
-      console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
+      console.group(`开始恢复缓存数据: ${this.currentFileHash}`)
 
       /** 流式处理每个数据块 */
       for await (const chunk of chunkStream) {
@@ -266,6 +261,7 @@ export class FileDownloadManager {
         }
       }
 
+      console.groupEnd()
       if (chunkCount > 0) {
         console.warn(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
       }

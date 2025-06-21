@@ -24,6 +24,7 @@ export class PeerManager {
     Events.on(Action.Offer, this.onOffer)
     Events.on(Action.Answer, this.onAnswer)
     Events.on(Action.Candidate, this.onCandidate)
+    // @10. [接收方] 收到文件元数据，处理断点续传信息并返回给发送方
     Events.on(Action.FileMetas, this.onFileMetas)
 
     /** 监听页面可见性变化，而不是页面隐藏 */

@@ -40,6 +40,7 @@ export function useFileTransfer() {
       currentFileSizes.value = files.map(f => f.size)
 
       me?.sendFileMetas(files)
+      // @16. [发送方] 发送文件，处理拒绝情况
       me?.sendFiles(files, () => {
         console.log('对方拒绝了你的文件')
         Message.warning('对方拒绝了文件传输')

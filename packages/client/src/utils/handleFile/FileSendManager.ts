@@ -1,4 +1,4 @@
-import type { FileMeta, ProgressData, ResumeRequest } from 'web-share-common'
+import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
 import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
 import { Action } from 'web-share-common'
@@ -6,7 +6,7 @@ import { ResumeManager } from '@/utils/handleOfflineFile'
 
 /**
  * 独立的文件发送管理器
- * 负责处理文件发送、元数据生成和进度跟踪
+ * 负责处理文件发送、元数据生成、断点续传协商和进度跟踪
  */
 export class FileSendManager {
   private config: FileSendConfig
@@ -15,6 +15,10 @@ export class FileSendManager {
   private onDenyFile?: Function
   private resumeManager: ResumeManager
   private resumeInfoMap: Map<string, { startOffset: number, hasCache: boolean }> = new Map()
+
+  /**
+   * 待处理的断点续传队列
+   */
   private pendingResumeRequests: Set<string> = new Set()
 
   constructor(config: FileSendConfig) {
@@ -104,9 +108,10 @@ export class FileSendManager {
 
       const data = await Promise.all(metaPromises)
 
-      /** 发送断点续传请求，获取接收方的缓存信息 */
+      // @01. [发送方] 发送断点续传请求，获取接收方的断点缓存信息
       await this.requestResumeInfo(files)
 
+      // @08. [发送方] 协商断点数据完毕，开始发送文件元数据
       /** 通过 WebSocket 发送，因为 WebRTC 接收文件大小有限 */
       this.config.relay({
         data,
@@ -123,8 +128,10 @@ export class FileSendManager {
 
   /**
    * 处理文件接受确认
+   * @see {@link FileSendManager.sendFiles}
    */
   handleAcceptFile(): void {
+    // @16. [发送方] 收到接收方同意接收，开始发送文件
     this.onAcceptFile?.()
   }
 
@@ -151,7 +158,7 @@ export class FileSendManager {
       return
     }
 
-    /** 清空之前的请求记录 */
+    // @02. [发送方] 清空之前的请求记录，重新等待接收方的断点缓存信息
     this.pendingResumeRequests.clear()
     this.resumeInfoMap.clear()
 
@@ -166,6 +173,7 @@ export class FileSendManager {
         fromId: this.config.getPeerId(),
       }
 
+      // @03. [发送方] 挨个发送文件元数据，发送断点续传请求
       this.config.sendJSON({
         type: Action.RequestResumeInfo,
         data: resumeRequest,
@@ -178,6 +186,7 @@ export class FileSendManager {
 
   /**
    * 等待断点续传响应
+   * ### 当 pendingResumeRequests 长度为 0，说明所有数据已经协商完毕
    */
   private async waitForResumeResponses(timeoutMs: number): Promise<void> {
     const startTime = Date.now()
@@ -187,7 +196,7 @@ export class FileSendManager {
       if (this.pendingResumeRequests.size > 0 && (Date.now() - startTime) < timeoutMs) {
         requestAnimationFrame(checkResumeRequests)
       }
-      else if (this.pendingResumeRequests.size > 0) {
+      else if (this.pendingResumeRequests.size <= 0) {
         resolve()
       }
       else {
@@ -204,13 +213,14 @@ export class FileSendManager {
   /**
    * 处理断点续传信息响应
    */
-  handleResumeInfo(resumeInfo: { fileHash: string, startOffset: number, hasCache: boolean }): void {
+  handleResumeInfo(resumeInfo: ResumeInfo): void {
     this.resumeInfoMap.set(resumeInfo.fileHash, {
       startOffset: resumeInfo.startOffset,
       hasCache: resumeInfo.hasCache,
     })
 
-    /** 从待处理列表中移除 */
+    // @07. [发送方] 收到响应，从待处理列表中移除，当队列空了，说明协商完毕。此时 waitForResumeResponses 会 resolve
+    // @14. [发送方] 收到响应，从待处理列表中移除，当队列空了，说明协商完毕。此时 waitForResumeResponses 会 resolve
     this.pendingResumeRequests.delete(resumeInfo.fileHash)
 
     console.warn(`收到断点续传响应: ${resumeInfo.fileHash}, 偏移: ${resumeInfo.startOffset}, 缓存: ${resumeInfo.hasCache}`)
@@ -242,7 +252,7 @@ export class FileSendManager {
       type: file.type as MIMEType,
     }
 
-    /** 发送文件开始信号 */
+    // @17. [发送方] 发送文件开始信号
     this.config.sendJSON({ type: Action.NewFile, data: fileInfo })
 
     /** 创建文件分片器，支持断点续传 */
@@ -255,6 +265,7 @@ export class FileSendManager {
     if (startOffset > 0) {
       console.warn(`断点续传: ${file.name}, 从 ${startOffset} 字节开始`)
     }
+    console.group('添加数据块到缓存')
 
     /** 发送文件分片 */
     while (!chunker.done) {
@@ -296,8 +307,8 @@ export interface FileSendConfig {
   /** 发送JSON消息的方法 */
   sendJSON: (data: any) => void
   /** 发送二进制数据的方法 */
-  send: (data: any) => void
-  /** 通过服务器中继消息的方法 */
+  send: (data: ArrayBuffer) => void
+  /** 【WebSocket】通过服务器中继消息的方法 */
   relay: (data: any) => void
   /** 等待通道空闲的方法 */
   waitUntilChannelIdle: () => Promise<void>

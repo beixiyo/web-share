@@ -201,6 +201,7 @@ export class ServerConnection {
        * 文件传输前
        */
       case Action.FileMetas:
+        // @09. [接收方] 收到文件元数据，处理断点续传信息并返回给发送方
         Events.emit(Action.FileMetas, data)
         break
 

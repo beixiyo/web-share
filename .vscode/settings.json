@@ -1,4 +1,41 @@
 {
+  // 高亮查看我的步骤
+  "todo-tree.tree.scanMode": "workspace only",
+  "todo-tree.regex.regex": "((%|#|//|<!--|^\\s*\\*)\\s*(($TAGS)|@\\d+\\. )\\s*(.*))",
+  "todo-tree.general.rootFolder": "${workspaceFolder}/",
+  "todo-tree.filtering.excludeGlobs": [
+    "/node_modules/*/**"
+  ],
+  "todo-tree.general.tags": [
+    "@todo",
+    "@bug",
+  ],
+  "todo-tree.regex.regexCaseSensitive": false,
+  "todo-tree.highlights.defaultHighlight": {
+    "background": "#002b02",
+    "foreground": "#a7e0be",
+    "iconColour": "#4CAF50",
+    "icon": "check",
+    "type": "tag"
+  },
+  "todo-tree.highlights.customHighlight": {
+    "@todo": {
+      "icon": "alert",
+      "background": "#F9D569",
+      "rulerColour": "#F9D569",
+      "iconColour": "#F9D569",
+      "foreground": "#2a2f11",
+    },
+    "@bug": {
+      "background": "#e75064",
+      "icon": "bug",
+      "rulerColour": "#e75064",
+      "iconColour": "#e75064",
+      "foreground": "#3c052c",
+    }
+  },
+  "todo-tree.filtering.useBuiltInExcludes": "search excludes",
+
   // Disable the default formatter, use eslint instead
   "prettier.enable": false,
   "editor.formatOnSave": false,
