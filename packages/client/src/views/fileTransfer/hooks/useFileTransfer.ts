@@ -42,7 +42,7 @@ export function useFileTransfer() {
       me?.sendFileMetas(files)
       // @18. [发送方] 发送文件，处理拒绝情况
       me?.sendFiles(files, () => {
-        console.log('对方拒绝了你的文件')
+        console.warn('对方拒绝了你的文件')
         Message.warning('对方拒绝了文件传输')
       })
     }
@@ -86,7 +86,7 @@ export function useFileTransfer() {
 
         /** 发送文件，处理拒绝情况 */
         await me.value.sendFiles(files, () => {
-          console.log('对方拒绝了你的文件')
+          console.warn('对方拒绝了你的文件')
           Message.warning(`${targetPeer.name.displayName} 拒绝了文件传输`)
           forceCloseLoading() // 确保关闭loading状态
         })

@@ -63,7 +63,7 @@ export class FileSendManager {
       throw new Error(error)
     }
 
-    console.log(`发送文件元数据: ${files[0].name}`)
+    console.warn(`发送文件元数据: ${files[0].name}`)
 
     try {
       const getMeta = (file: File): FileMeta => ({
@@ -265,7 +265,7 @@ export class FileSendManager {
     if (startOffset > 0) {
       console.warn(`断点续传: ${file.name}, 从 ${startOffset} 字节开始`)
     }
-    console.group('添加数据块到缓存')
+
 
     /** 发送文件分片 */
     while (!chunker.done) {

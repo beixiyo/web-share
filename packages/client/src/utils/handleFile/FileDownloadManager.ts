@@ -61,7 +61,6 @@ export class FileDownloadManager {
 
       /** 完成下载并等待文件保存 */
       await this.downloader.complete()
-      console.groupEnd()
     }
     catch (error) {
       const errorMessage = `文件下载完成失败: ${error}`
@@ -169,7 +168,7 @@ export class FileDownloadManager {
         this.currentFileHash = undefined
       }
 
-      console.log('文件下载和缓存清理完成')
+      console.warn('文件下载和缓存清理完成')
     }
     catch (error) {
       console.error('文件下载完成处理失败:', error)
@@ -248,8 +247,6 @@ export class FileDownloadManager {
       const chunkStream = this.resumeManager.getCachedChunksStream(this.currentFileHash)
       let chunkCount = 0
 
-      console.group(`开始恢复缓存数据: ${this.currentFileHash}`)
-
       /** 流式处理每个数据块 */
       for await (const chunk of chunkStream) {
         await this.writeFileBuffer(new Uint8Array(chunk))
@@ -260,8 +257,6 @@ export class FileDownloadManager {
           console.warn(`恢复缓存数据进度: ${this.currentFileHash}, 已处理: ${chunkCount} 个数据块`)
         }
       }
-
-      console.groupEnd()
       if (chunkCount > 0) {
         console.warn(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
       }

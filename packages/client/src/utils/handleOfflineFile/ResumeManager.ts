@@ -168,7 +168,7 @@ export class ResumeManager {
       await this.saveMetadata(metadata)
     }
 
-    console.log(`添加数据块到缓存: ${fileHash}, 索引: ${chunkIndex}, 大小: ${chunk.byteLength}, 总计: ${cacheItem.downloadedBytes}`)
+    console.warn(`添加数据块到缓存: ${fileHash}, 索引: ${chunkIndex}, 大小: ${chunk.byteLength}, 总计: ${cacheItem.downloadedBytes}`)
   }
 
   /**

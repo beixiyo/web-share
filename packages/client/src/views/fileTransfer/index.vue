@@ -152,7 +152,7 @@ import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useResumeCache } from '@/hooks/useResumeCache'
 import { formatByte, Message } from '@/utils'
-import { type CleanupOptions, type CleanupResult, TransferManager } from '@/utils/handleOfflineFile'
+import { ResumeManager } from '@/utils/handleOfflineFile'
 import AcceptModal from './AcceptModal.vue'
 import AcceptTextModal from './AcceptTextModal.vue'
 import CacheDetectionModal from './CacheDetectionModal.vue'
@@ -276,7 +276,6 @@ const clipboardText = ref<string>()
 
 /** 清理缓存相关状态 */
 const showClearCacheModal = ref(false)
-const transferManager = new TransferManager()
 
 /** 缓存检测模态框状态 */
 const showCacheDetectionModal = ref(false)
@@ -702,20 +701,26 @@ function onNotifyUserInfo(data: UserInfo) {
 }
 
 /**
- * 清理缓存处理函数
+ * 清理缓存处理函数（简化版本，直接使用 ResumeManager）
  */
-async function handleClearCache(options: CleanupOptions): Promise<CleanupResult> {
+async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
   try {
     setLoading(true, '正在清理缓存...')
 
-    const result = await transferManager.cleanup(options)
+    const resumeManager = new ResumeManager()
+    let result
+
+    if (type === 'all') {
+      result = await resumeManager.clearAllCache()
+    } else {
+      result = await resumeManager.cleanupExpiredCache(7) // 清理7天前的缓存
+    }
 
     /** 显示清理结果 */
-    const message = `清理完成！清理了 ${result.cleanedSessions} 个传输会话，${result.cleanedFiles} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`
+    const message = `清理完成！清理了 ${result.cleanedCount} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`
     Message.success(message)
 
     console.warn('缓存清理完成:', result)
-    return result
   }
   catch (error) {
     console.error('清理缓存失败:', error)
