@@ -282,7 +282,6 @@ export class FileSendManager {
 
       this.config.sendJSON({ type: Action.Progress, data: progressData })
       this.config.onProgress?.(progressData)
-      // await wait(2000)
     }
 
     /** 发送文件完成信号 */

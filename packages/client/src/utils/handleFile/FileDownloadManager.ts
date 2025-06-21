@@ -241,7 +241,7 @@ export class FileDownloadManager {
   }
 
   /**
-   * 恢复缓存的数据到下载缓冲区
+   * 恢复缓存的数据到下载缓冲区（优化版本 - 流式处理）
    */
   private async restoreCachedData(): Promise<void> {
     if (!this.currentFileHash) {
@@ -249,22 +249,42 @@ export class FileDownloadManager {
     }
 
     try {
-      const cachedChunks = await this.resumeManager.getCachedChunks(this.currentFileHash)
+      /** 使用流式处理，避免一次性加载所有数据到内存 */
+      const chunkStream = this.resumeManager.getCachedChunksStream(this.currentFileHash)
+      let chunkCount = 0
 
-      if (cachedChunks.length > 0) {
-        console.warn(`恢复缓存数据: ${this.currentFileHash}, 数据块数量: ${cachedChunks.length}`)
+      console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
 
-        /** 将缓存的数据块写入 StreamDownloader */
-        for (const chunk of cachedChunks) {
-          await this.writeFileBuffer(new Uint8Array(chunk))
+      /** 流式处理每个数据块 */
+      for await (const chunk of chunkStream) {
+        await this.writeFileBuffer(new Uint8Array(chunk))
+        chunkCount++
+
+        /** 每处理100个数据块输出一次进度 */
+        if (chunkCount % 100 === 0) {
+          console.warn(`恢复缓存数据进度: ${this.currentFileHash}, 已处理: ${chunkCount} 个数据块`)
         }
+      }
 
-        console.warn(`缓存数据恢复完成: ${this.currentFileHash}`)
+      if (chunkCount > 0) {
+        console.warn(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
       }
     }
     catch (error) {
       console.error('恢复缓存数据失败:', error)
-      /** 恢复失败不应该阻止文件下载，只是记录错误 */
+      /**
+       * 恢复失败不应该阻止文件下载，只是记录错误
+       * 如果缓存损坏，可以考虑清理缓存
+       */
+      if (this.currentFileHash) {
+        try {
+          await this.resumeManager.deleteResumeCache(this.currentFileHash)
+          console.warn(`缓存损坏已清理: ${this.currentFileHash}`)
+        }
+        catch (cleanupError) {
+          console.error('清理损坏缓存失败:', cleanupError)
+        }
+      }
     }
   }
 
@@ -283,7 +303,7 @@ export class FileDownloadManager {
         return Promise.reject(new Error('缓存清理后仍然存在，可能清理失败'))
       }
 
-      console.log(`断点续传缓存清理成功: ${fileHash}`)
+      console.warn(`断点续传缓存清理成功: ${fileHash}`)
     }
 
     return retryTask(rmCache, maxRetries)
