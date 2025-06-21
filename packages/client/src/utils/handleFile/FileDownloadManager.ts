@@ -12,7 +12,7 @@ export class FileDownloadManager {
   private config: FileDownloadConfig
 
   private downloader?: StreamDownloader
-  private downloadRafId: number[] = []
+  private downloadRafId?: number
   private downloadBuffer: Uint8Array[] = []
 
   private fileMetaCache: FileMeta[] = []
@@ -324,7 +324,7 @@ export class FileDownloadManager {
       const id = requestAnimationFrame(async () => {
         try {
           await this.appendBuffer()
-          this.downloadRafId.push(id)
+          this.downloadRafId = id
           if (!this.config.isChannelClosed()) {
             requestAnimationFrame(consume)
           }
@@ -342,8 +342,8 @@ export class FileDownloadManager {
    * 停止所有动画帧请求
    */
   private stopAllRaf(): void {
-    this.downloadRafId.forEach(cancelAnimationFrame)
-    this.downloadRafId = []
+    this.downloadRafId && cancelAnimationFrame(this.downloadRafId)
+    this.downloadRafId = undefined
   }
 }
 
