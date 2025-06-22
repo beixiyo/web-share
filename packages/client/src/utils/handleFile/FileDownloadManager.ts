@@ -15,6 +15,9 @@ export class FileDownloadManager {
   private downloadRafId?: number
   private downloadBuffer: Uint8Array[] = []
 
+  /** 添加数据块计数器，用于计算文件偏移量 */
+  private dataChunkCounter: number = 0
+
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
   private currentFileHash?: string
@@ -25,11 +28,21 @@ export class FileDownloadManager {
   }
 
   /**
+   * 重置数据块计数器，在每次开始新文件传输时调用
+   * @param startOffset 断点续传的起始偏移量，用于正确初始化计数器
+   */
+  resetDataChunkCounter(startOffset: number = 0): void {
+    /** 根据起始偏移量计算数据块计数器的初始值 */
+    this.dataChunkCounter = Math.floor(startOffset / this.config.chunkSize)
+    console.warn(`重置数据块计数器: startOffset=${startOffset}, chunkSize=${this.config.chunkSize}, dataChunkCounter=${this.dataChunkCounter}`)
+  }
+
+  /**
    * 创建文件下载器
    */
   async createFile(fileInfo: FileInfo): Promise<void> {
     try {
-      console.log('创建文件下载器:', fileInfo)
+      console.warn('创建文件下载器:', fileInfo)
       this.downloader = await createStreamDownloader(fileInfo.name, {
         swPath: '/sw.js',
         contentLength: fileInfo.size,
@@ -91,15 +104,29 @@ export class FileDownloadManager {
    * 接收数据块
    */
   receiveDataChunk(data: Uint8Array): void {
-    this.downloadBuffer.push(data)
+    /** 创建数据的安全拷贝，避免 detached buffer 问题 */
+    const safeData = new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
+
+    this.downloadBuffer.push(safeData)
 
     /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
     if (this.currentFileHash) {
-      const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
+      /** 计算当前块的偏移量 */
+      const currentOffset = this.dataChunkCounter * this.config.chunkSize
+      this.dataChunkCounter++
 
-      this.resumeManager.appendChunk(this.currentFileHash, arrayBuffer)
+      /** 异步添加到缓存，使用安全的数据拷贝 */
+      this.resumeManager.appendChunk(this.currentFileHash, safeData, currentOffset)
         .catch((error) => {
           console.error('添加数据块到缓存失败:', error)
+          /** 记录详细的错误信息用于调试 */
+          console.error('错误详情:', {
+            fileHash: this.currentFileHash,
+            offset: currentOffset,
+            dataLength: safeData.byteLength,
+            bufferDetached: safeData.buffer.byteLength === 0 && safeData.byteLength > 0,
+            error: error.message,
+          })
         })
     }
   }
@@ -140,13 +167,16 @@ export class FileDownloadManager {
     /** 生成文件哈希并创建缓存 */
     this.currentFileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size)
 
-    /** 检查是否有现有缓存 */
-    const hasCache = await this.resumeManager.hasResumeCache(this.currentFileHash)
+    /** 检查是否有现有缓存并获取断点续传信息 */
+    const resumeInfo = await this.resumeManager.getResumeInfo(this.currentFileHash)
 
-    if (!hasCache) {
+    if (!resumeInfo.hasCache) {
       /** 创建新的断点续传缓存 */
       await this.resumeManager.createResumeCache(fileInfo.name, fileInfo.size)
     }
+
+    /** 根据断点续传信息正确初始化数据块计数器 */
+    this.resetDataChunkCounter(resumeInfo.startOffset)
 
     await this.createFile(fileInfo)
   }
@@ -167,8 +197,6 @@ export class FileDownloadManager {
         await this.cleanupResumeCache(this.currentFileHash)
         this.currentFileHash = undefined
       }
-
-      console.warn('文件下载和缓存清理完成')
     }
     catch (error) {
       console.error('文件下载完成处理失败:', error)
@@ -249,7 +277,7 @@ export class FileDownloadManager {
 
       /** 流式处理每个数据块 */
       for await (const chunk of chunkStream) {
-        await this.writeFileBuffer(new Uint8Array(chunk))
+        await this.writeFileBuffer(chunk)
         chunkCount++
 
         /** 每处理100个数据块输出一次进度 */
@@ -257,6 +285,7 @@ export class FileDownloadManager {
           console.warn(`恢复缓存数据进度: ${this.currentFileHash}, 已处理: ${chunkCount} 个数据块`)
         }
       }
+
       if (chunkCount > 0) {
         console.warn(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
       }
@@ -370,4 +399,5 @@ export interface FileDownloadConfig {
   onError?: (error: string) => void
   /** 检查通道是否关闭 */
   isChannelClosed: () => boolean
+  chunkSize: number
 }

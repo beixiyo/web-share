@@ -62,6 +62,7 @@ export class RTCPeer extends Peer {
       onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_DOWNLOAD_ERROR'),
       isChannelClosed: () => this.isChannelClose,
+      chunkSize: this.chunkSize,
     })
 
     /** 初始化文件发送管理器 */
@@ -357,7 +358,7 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
-          // @21. [接收方] 收到新文件信号，开始处理
+          // @21. [接收方] 收到新文件信号，开始处理（数据块计数器会在 handleNewFile 中根据断点续传信息正确初始化）
           await this.fileDownloadManager.handleNewFile(fileInfo)
           break
         case Action.FileDone:

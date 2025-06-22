@@ -1,6 +1,6 @@
 import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, type MIMEType, wait } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
@@ -266,7 +266,6 @@ export class FileSendManager {
       console.warn(`断点续传: ${file.name}, 从 ${startOffset} 字节开始`)
     }
 
-
     /** 发送文件分片 */
     while (!chunker.done) {
       if (this.config.isChannelClosed()) {
@@ -293,6 +292,7 @@ export class FileSendManager {
 
       this.config.sendJSON({ type: Action.Progress, data: progressData })
       this.config.onProgress?.(progressData)
+      // await wait(1000)
     }
 
     /** 发送文件完成信号 */
