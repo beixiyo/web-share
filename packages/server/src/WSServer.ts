@@ -356,10 +356,7 @@ export class WSServer {
 
       case Action.LeaveRoom:
         console.log(`${sender.name.displayName} 离开房间`)
-        this.broadcastToRoom(sender.roomId, {
-          type: Action.LeaveRoom,
-          data: msg.data,
-        })
+        this.handlePeerDisconnect(sender)
         break
 
       /** 用户 A 请求创建一个用于直接连接的房间 */

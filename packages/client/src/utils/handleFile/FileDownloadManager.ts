@@ -17,6 +17,8 @@ export class FileDownloadManager {
 
   /** 添加数据块计数器，用于计算文件偏移量 */
   private dataChunkCounter: number = 0
+  /** 当前文件的起始偏移量（断点续传时使用） */
+  private currentStartOffset: number = 0
 
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
@@ -66,8 +68,11 @@ export class FileDownloadManager {
       mimeType: fileMeta.type as MIMEType,
     })
 
-    /** 如果有缓存数据，恢复到下载缓冲区 */
+    /**
+     * 避免缓存恢复和新数据接收之间的竞态条件
+     */
     if (resumeInfo.hasCache) {
+      console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
       await this.restoreCachedData()
     }
 
@@ -96,9 +101,9 @@ export class FileDownloadManager {
    * @param startOffset 断点续传的起始偏移量，用于正确初始化计数器
    */
   resetDataChunkCounter(startOffset: number = 0): void {
-    /** 根据起始偏移量计算数据块计数器的初始值 */
-    this.dataChunkCounter = Math.floor(startOffset / this.config.chunkSize)
-    console.warn(`重置数据块计数器: startOffset=${startOffset}, chunkSize=${this.config.chunkSize}, dataChunkCounter=${this.dataChunkCounter}`)
+    this.dataChunkCounter = 0
+    this.currentStartOffset = startOffset
+    console.warn(`重置数据块计数器: startOffset=${startOffset}, chunkSize=${this.config.chunkSize}, 将从偏移量 ${startOffset} 开始接收`)
   }
 
   /**
@@ -149,12 +154,15 @@ export class FileDownloadManager {
 
     /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
     if (this.currentFileHash) {
-      /** 计算当前块的偏移量 */
-      const currentOffset = this.dataChunkCounter * this.config.chunkSize
+      /**
+       * 偏移量 = 起始偏移量 + 已接收的数据块总大小
+       */
+      const currentOffset = this.currentStartOffset + (this.dataChunkCounter * this.config.chunkSize)
+
       this.dataChunkCounter++
 
       /** 异步添加到缓存，使用安全的数据拷贝 */
-      this.resumeManager.appendChunk(this.currentFileHash, safeData, currentOffset)
+      this.resumeManager.appendChunkToCache(this.currentFileHash, safeData, currentOffset)
         .catch((error) => {
           console.error('添加数据块到缓存失败:', error)
           /** 记录详细的错误信息用于调试 */

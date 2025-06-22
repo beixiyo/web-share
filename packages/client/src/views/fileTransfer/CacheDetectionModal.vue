@@ -96,7 +96,7 @@
       <div class="flex justify-between">
         <div class="flex space-x-2">
           <Button
-            variant="outline"
+             design-style="ghost"
             size="sm"
             :loading="isClearing"
             @click="handleCleanupExpired"
@@ -106,7 +106,7 @@
         </div>
         <div class="flex space-x-2">
           <Button
-            variant="outline"
+            design-style="ghost"
             @click="handleKeepCache"
           >
             保留缓存
