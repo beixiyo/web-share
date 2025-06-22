@@ -336,6 +336,12 @@ export class RTCConnect {
       return null
     }
 
+    /** 检查信令状态，只有在 stable 状态下才能处理 offer */
+    if (this.pc.signalingState !== 'stable') {
+      this.config.onError(`处理 offer 失败: 当前信令状态为 ${this.pc.signalingState}，期望状态为 stable`)
+      return null
+    }
+
     this.isCaller = false
     this.remotePeerId = offer.fromId
 
@@ -360,6 +366,12 @@ export class RTCConnect {
   async handleAnswer(answer: Sdp & To): Promise<boolean> {
     if (!this.pc) {
       this.config.onError('PeerConnection 未初始化，无法处理 answer')
+      return false
+    }
+
+    /** 检查信令状态，只有在 have-local-offer 状态下才能处理 answer */
+    if (this.pc.signalingState !== 'have-local-offer') {
+      this.config.onError(`处理 answer 失败: 当前信令状态为 ${this.pc.signalingState}，期望状态为 have-local-offer`)
       return false
     }
 

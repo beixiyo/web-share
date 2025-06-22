@@ -132,10 +132,13 @@ export class WSServer {
    */
   private removePeerFromRoom(peer: Peer) {
     const room = this.roomMap.get(peer.roomId)
-    if (room) {
+    if (room && room.has(peer.id)) {
       room.delete(peer.id)
+      console.log(`用户 ${peer.name.displayName} 已从房间 ${peer.roomId} 中移除`)
+
       if (room.size === 0) {
         this.roomMap.delete(peer.roomId)
+        console.log(`房间 ${peer.roomId} 已清空并删除`)
         /** 清理对应的房间码映射 */
         this.cleanupRoomCode(peer.roomId)
       }
@@ -221,6 +224,41 @@ export class WSServer {
   private onConnection = (peer: Peer) => {
     const { socket } = peer
     socket.on('message', data => this.onMessage(peer, data))
+
+    /** 监听WebSocket关闭事件 */
+    socket.on('close', (code, reason) => {
+      console.log(`${peer.name.displayName} WebSocket连接关闭 (code: ${code}, reason: ${reason})`)
+      this.handlePeerDisconnect(peer)
+    })
+
+    /** 监听WebSocket错误事件 */
+    socket.on('error', (error) => {
+      console.log(`${peer.name.displayName} WebSocket连接错误:`, error)
+      this.handlePeerDisconnect(peer)
+    })
+  }
+
+  /**
+   * 处理用户断开连接
+   */
+  private handlePeerDisconnect(peer: Peer) {
+    console.log(`处理用户断开连接: ${peer.name.displayName}`)
+
+    /** 检查用户是否仍在房间中，避免重复处理 */
+    const room = this.roomMap.get(peer.roomId)
+    if (!room || !room.has(peer.id)) {
+      console.log(`用户 ${peer.name.displayName} 已经不在房间中，跳过断开连接处理`)
+      return
+    }
+
+    /** 从房间中移除用户 */
+    this.removePeerFromRoom(peer)
+
+    /** 通知房间内其他用户该用户已离开 */
+    this.broadcastToRoom(peer.roomId, {
+      type: Action.LeaveRoom,
+      data: peer.getInfo(),
+    })
   }
 
   private send<T = any>(sender: Peer, data: SendData<T>) {
@@ -447,7 +485,7 @@ export class WSServer {
 
       const peersToRemove: Peer[] = []
 
-      this.roomMap.forEach((room, roomId) => {
+      this.roomMap.forEach((room) => {
         room.forEach((peer) => {
           const now = Date.now()
           let shouldRemove = false
@@ -475,11 +513,15 @@ export class WSServer {
 
       /** 移除离线用户并通知房间内其他用户 */
       peersToRemove.forEach((peer) => {
-        this.removePeerFromRoom(peer)
-        this.broadcastToRoom(peer.roomId, {
-          type: Action.LeaveRoom,
-          data: peer.getInfo(),
-        })
+        /** 检查peer是否仍在房间中，避免重复处理 */
+        const room = this.roomMap.get(peer.roomId)
+        if (room && room.has(peer.id)) {
+          this.removePeerFromRoom(peer)
+          this.broadcastToRoom(peer.roomId, {
+            type: Action.LeaveRoom,
+            data: peer.getInfo(),
+          })
+        }
       })
     }, this.opts.clearTime)
   }

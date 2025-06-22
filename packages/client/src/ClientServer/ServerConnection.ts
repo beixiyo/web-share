@@ -241,6 +241,10 @@ export class ServerConnection {
        * RTC错误广播
        */
       case Action.RTCErrorBroadcast:
+        console.warn('收到RTC错误广播:', data.data)
+        this.opts.onError?.({
+          message: `RTC连接出现错误: ${data.data?.errorMessage || '未知错误'}`,
+        })
         window.location.reload()
         break
 
