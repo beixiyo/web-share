@@ -1,6 +1,6 @@
-import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
+import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { createStreamDownloader, retryTask, type StreamDownloader } from '@jl-org/tool'
+import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
@@ -21,10 +21,74 @@ export class FileDownloadManager {
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
   private currentFileHash?: string
+  private currentFileIndex: number = -1
 
   constructor(config: FileDownloadConfig) {
     this.config = config
     this.resumeManager = new ResumeManager()
+  }
+
+  /**
+   * 开始接收文件队列
+   */
+  async start(fileMetas: FileMeta[]): Promise<void> {
+    this.setFileMetaCache(fileMetas)
+    this.currentFileIndex = -1
+    await this.prepareNextFile()
+  }
+
+  /**
+   * 为下一个文件准备下载环境
+   */
+  private async prepareNextFile(): Promise<void> {
+    this.currentFileIndex++
+    if (this.currentFileIndex >= this.fileMetaCache.length) {
+      console.warn('所有文件接收完成')
+      this.cleanup()
+      return
+    }
+
+    const fileMeta = this.fileMetaCache[this.currentFileIndex]
+    this.currentFileHash = fileMeta.fileHash
+
+    if (!this.currentFileHash) {
+      this.config.onError?.('文件缺少 fileHash，无法处理')
+      return
+    }
+
+    /** 检查是否有缓存并获取断点续传信息 */
+    const resumeInfo = await this.resumeManager.getResumeInfo(this.currentFileHash)
+
+    /** 创建下载器 */
+    this.downloader = await createStreamDownloader(fileMeta.name, {
+      swPath: '/sw.js',
+      contentLength: fileMeta.size,
+      mimeType: fileMeta.type as MIMEType,
+    })
+
+    /** 如果有缓存数据，恢复到下载缓冲区 */
+    if (resumeInfo.hasCache) {
+      await this.restoreCachedData()
+    }
+
+    /** 开始处理缓冲区 */
+    this.appendDownloadBuffer()
+
+    /** 发送准备就绪消息，包含偏移量 */
+    const response: ResumeInfo = {
+      fileHash: this.currentFileHash,
+      startOffset: resumeInfo.startOffset,
+      hasCache: resumeInfo.hasCache,
+      fromId: fileMeta.fromId, // fromId in fileMeta is the sender's peerId
+    }
+
+    // @9. [接收方] 发送准备下载响应
+    this.config.sendJSON({
+      type: Action.ResumeInfo,
+      data: response,
+    })
+
+    console.warn(`准备接收文件: ${fileMeta.name}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
   }
 
   /**
@@ -35,32 +99,6 @@ export class FileDownloadManager {
     /** 根据起始偏移量计算数据块计数器的初始值 */
     this.dataChunkCounter = Math.floor(startOffset / this.config.chunkSize)
     console.warn(`重置数据块计数器: startOffset=${startOffset}, chunkSize=${this.config.chunkSize}, dataChunkCounter=${this.dataChunkCounter}`)
-  }
-
-  /**
-   * 创建文件下载器
-   */
-  async createFile(fileInfo: FileInfo): Promise<void> {
-    try {
-      console.warn('创建文件下载器:', fileInfo)
-      this.downloader = await createStreamDownloader(fileInfo.name, {
-        swPath: '/sw.js',
-        contentLength: fileInfo.size,
-        mimeType: fileInfo.type,
-      })
-
-      // @22. [接收方] 如果有缓存数据，恢复到下载缓冲区
-      if (this.currentFileHash) {
-        await this.restoreCachedData()
-      }
-
-      /** 开始处理缓冲区 */
-      this.appendDownloadBuffer()
-    }
-    catch (error) {
-      this.config.onError?.(`创建文件下载器失败: ${error}`)
-      throw error
-    }
   }
 
   /**
@@ -132,30 +170,6 @@ export class FileDownloadManager {
   }
 
   /**
-   * 处理断点续传请求
-   */
-  async handleResumeRequest(resumeRequest: ResumeRequest): Promise<void> {
-    const { fileHash, fileName } = resumeRequest
-    // @05. [接收方] 收到断点续传请求，检查本地缓存并返回响应
-    const resumeInfo = await this.resumeManager.getResumeInfo(fileHash)
-
-    /** 发送断点续传信息响应 */
-    const response: ResumeInfo = {
-      fileHash,
-      startOffset: resumeInfo.startOffset,
-      hasCache: resumeInfo.hasCache,
-      fromId: resumeRequest.fromId, // 使用请求方的ID作为响应目标
-    }
-
-    this.config.sendJSON({
-      type: Action.ResumeInfo,
-      data: response,
-    })
-
-    console.warn(`断点续传请求: ${fileName}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
-  }
-
-  /**
    * 处理文件开始消息
    */
   async handleNewFile(fileInfo: FileInfo): Promise<void> {
@@ -164,8 +178,11 @@ export class FileDownloadManager {
       return
     }
 
-    /** 生成文件哈希并创建缓存 */
-    this.currentFileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size)
+    const fileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size)
+    if (fileHash !== this.currentFileHash) {
+      this.config.onError?.('收到的新文件与预期的不符')
+      return
+    }
 
     /** 检查是否有现有缓存并获取断点续传信息 */
     const resumeInfo = await this.resumeManager.getResumeInfo(this.currentFileHash)
@@ -177,14 +194,13 @@ export class FileDownloadManager {
 
     /** 根据断点续传信息正确初始化数据块计数器 */
     this.resetDataChunkCounter(resumeInfo.startOffset)
-
-    await this.createFile(fileInfo)
   }
 
   /**
    * 处理文件完成消息
    */
   async handleFileDone(): Promise<void> {
+    // @17. [接收方] 收到文件完成信号，完成文件下载，清理所有数据
     this.stopAllRaf()
     await this.appendBuffer()
 
@@ -197,6 +213,9 @@ export class FileDownloadManager {
         await this.cleanupResumeCache(this.currentFileHash)
         this.currentFileHash = undefined
       }
+
+      /** 准备接收下一个文件 */
+      await this.prepareNextFile()
     }
     catch (error) {
       console.error('文件下载完成处理失败:', error)
@@ -219,33 +238,6 @@ export class FileDownloadManager {
    */
   handleProgress(progressData: ProgressData): void {
     this.config.onProgress?.(progressData)
-  }
-
-  /**
-   * 处理文件元数据并立即返回断点续传信息
-   */
-  async handleFileMetasForResume(fileMetas: FileMeta[]): Promise<void> {
-    for (const fileMeta of fileMetas) {
-      if (fileMeta.fileHash) {
-        /** 检查是否有缓存并返回断点续传信息 */
-        const resumeInfo = await this.resumeManager.getResumeInfo(fileMeta.fileHash)
-
-        const response: ResumeInfo = {
-          fileHash: fileMeta.fileHash,
-          startOffset: resumeInfo.startOffset,
-          hasCache: resumeInfo.hasCache,
-          fromId: fileMeta.fromId, // 返回给发送方
-        }
-
-        // @12. [接收方] 立即返回断点续传信息
-        this.config.sendJSON({
-          type: Action.ResumeInfo,
-          data: response,
-        })
-
-        console.warn(`文件元数据断点续传检查: ${fileMeta.name}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
-      }
-    }
   }
 
   /**
@@ -343,6 +335,7 @@ export class FileDownloadManager {
     this.fileMetaCache = []
     this.downloader = undefined
     this.currentFileHash = undefined
+    this.currentFileIndex = -1
   }
 
   /**

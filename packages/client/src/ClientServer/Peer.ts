@@ -22,8 +22,11 @@ export abstract class Peer {
    *                   Abstract
    ***************************************************/
   abstract close(): void
+
   abstract sendText(text: string): void
+
   abstract sendFileMetas(files: File[]): Promise<void>
+
   abstract sendFiles(
     files: File[],
     onDeny?: Function

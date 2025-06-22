@@ -27,19 +27,6 @@ export type FileMeta = {
   /** 文件唯一标识，基于文件名和大小生成 */
   fileHash?: string
 }
-export type RTCFileMeta = RTCBaseData<FileMeta[]>
-
-/** 断点续传请求数据 */
-export type ResumeRequest = {
-  /** 文件唯一标识 */
-  fileHash: string
-  /** 文件名 */
-  fileName: string
-  /** 文件大小 */
-  fileSize: number
-  /** 请求方ID */
-  fromId: string
-}
 
 /** 断点续传响应数据 */
 export type ResumeInfo = {

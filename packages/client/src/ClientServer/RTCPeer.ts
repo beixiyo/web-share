@@ -1,8 +1,9 @@
-import type { Candidate, FileMeta, ProgressData, ResumeInfo, ResumeRequest, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
+import type { Candidate, FileMeta, ProgressData, ResumeInfo, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
 import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
 import { FileDownloadManager, FileSendManager } from '@/utils'
+import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Peer, type PeerOpts } from './Peer'
 import { RTCConnect } from './RTCConnect'
 
@@ -19,6 +20,9 @@ export class RTCPeer extends Peer {
   /** 文件传输管理器 */
   private fileDownloadManager: FileDownloadManager
   private fileSendManager: FileSendManager
+  private originalFiles: Map<string, File> = new Map()
+
+  private onDenyFile?: VoidFunction
 
   constructor(opts: PeerOpts & RTCPeerOpts) {
     super(opts)
@@ -75,6 +79,7 @@ export class RTCPeer extends Peer {
       isChannelClosed: () => this.isChannelClose,
       getToId: () => this.toId || undefined,
       getPeerId: () => this.peerId,
+      getOriginalFile: (fileHash: string) => this.originalFiles.get(fileHash),
       chunkSize: this.chunkSize,
       onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_SEND_ERROR'),
@@ -150,13 +155,24 @@ export class RTCPeer extends Peer {
     files: File[],
     onDenyFile?: VoidFunction,
   ) {
-    return this.fileSendManager.sendFiles(files, onDenyFile)
+    /** 存储文件以供将来检索 */
+    this.originalFiles.clear()
+    this.onDenyFile = onDenyFile
+
+    const resumeManager = new ResumeManager() // 用于生成哈希的临时实例
+    for (const file of files) {
+      const fileHash = resumeManager.generateFileHash(file.name, file.size)
+      this.originalFiles.set(fileHash, file)
+    }
+
+    return this.fileSendManager.sendFileMetas(files)
   }
 
   /**
    * 发送元数据和预览图
    */
   async sendFileMetas(files: File[]) {
+    // @1. [发送方] 发送文件元数据
     return this.fileSendManager.sendFileMetas(files)
   }
 
@@ -267,28 +283,23 @@ export class RTCPeer extends Peer {
     }
   }
 
-  async handleFileMetas(fileMeta: FileMeta[]) {
-    /** 将文件元数据传递给下载管理器 */
-    this.fileDownloadManager.setFileMetaCache(fileMeta)
-
-    // @11. [接收方] 立即处理断点续传信息并返回给发送方
-    await this.fileDownloadManager.handleFileMetasForResume(fileMeta)
-
-    this.opts.onFileMetas?.(fileMeta, (data) => {
+  async handleFileMetas(fileMetas: FileMeta[]) {
+    // @4. [接收方] 收到文件元数据，调用回调发给前端
+    this.opts.onFileMetas?.(fileMetas, (data) => {
       const { promise } = data
-      // @15. [接收方] 等待同意接收后发送
+
       promise
         .then(() => {
-          this.sendJSON({
-            type: Action.AcceptFile,
-            data: null,
-          })
+          // @8. [接收方] 用户确认接收，开始文件下载
+          this.fileDownloadManager.start(fileMetas)
         })
         .catch(() => {
           this.sendJSON({
             type: Action.DenyFile,
             data: null,
           })
+          /** 清理下载管理器状态 */
+          this.fileDownloadManager.cleanup()
         })
     })
   }
@@ -345,12 +356,8 @@ export class RTCPeer extends Peer {
         /**
          * 文件传输前
          */
-        case Action.AcceptFile:
-          // @16. [发送方] 收到接收方同意接收，开始发送文件
-          this.fileSendManager.handleAcceptFile()
-          break
         case Action.DenyFile:
-          this.fileSendManager.handleDenyFile()
+          this.onDenyFile?.()
           break
 
         /**
@@ -358,10 +365,11 @@ export class RTCPeer extends Peer {
          */
         case Action.NewFile:
           const fileInfo: FileInfo = data.data
-          // @21. [接收方] 收到新文件信号，开始处理（数据块计数器会在 handleNewFile 中根据断点续传信息正确初始化）
+          // @12. [接收方] 收到新文件信号，开始处理...
           await this.fileDownloadManager.handleNewFile(fileInfo)
           break
         case Action.FileDone:
+          // @16. [接收方] 收到文件完成信号，完成文件下载
           await this.fileDownloadManager.handleFileDone()
           break
         case Action.Progress:
@@ -371,15 +379,9 @@ export class RTCPeer extends Peer {
         /**
          * 断点续传相关
          */
-        case Action.RequestResumeInfo:
-          // @04. [接收方] 收到断点续传请求，检查缓存并返回响应
-          const resumeRequest: ResumeRequest = data.data
-          await this.fileDownloadManager.handleResumeRequest(resumeRequest)
-          break
         case Action.ResumeInfo:
-          // @06. [发送方] 收到断点续传响应，更新缓存信息
-          // @13. [发送方] 收到断点续传响应，更新缓存信息
           const resumeInfo: ResumeInfo = data.data
+          // @10. [发送方] 收到断点续传响应，开始发送文件
           this.fileSendManager.handleResumeInfo(resumeInfo)
           break
 
@@ -388,7 +390,7 @@ export class RTCPeer extends Peer {
       }
     }
     else {
-      // @17. [接收方] 接收二进制数据，传递给文件下载管理器
+      // @14. [接收方] 接收二进制数据，传递给文件下载管理器
       this.fileDownloadManager.receiveDataChunk(new Uint8Array(e.data))
     }
   }

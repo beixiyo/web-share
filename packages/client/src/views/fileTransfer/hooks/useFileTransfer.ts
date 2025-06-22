@@ -40,7 +40,7 @@ export function useFileTransfer() {
       currentFileSizes.value = files.map(f => f.size)
 
       me?.sendFileMetas(files)
-      // @18. [发送方] 发送文件，处理拒绝情况
+
       me?.sendFiles(files, () => {
         console.warn('对方拒绝了你的文件')
         Message.warning('对方拒绝了文件传输')
@@ -114,6 +114,8 @@ export function useFileTransfer() {
     fromUserName?: string,
   ) {
     acceptPromise = Promise.withResolvers()
+
+    // @6. [接收方] 收到文件元数据，生成 Promise，等待用户确认或取消
     acceptCallback(acceptPromise)
     showAcceptFile.value = true
     currentFileMetas.value = fileMetas
@@ -139,6 +141,7 @@ export function useFileTransfer() {
     previewSrc: { value: string },
   ) {
     showAcceptFile.value = false
+    // @7. [接收方] 用户确认接收，resolve Promise
     acceptPromise?.resolve()
     previewSrc.value = ''
   }

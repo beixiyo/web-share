@@ -633,10 +633,11 @@ function onNotifyUserInfo(data: UserInfo) {
   setUserInfo(data)
   if (!peerManager.getPeer(data.peerId)) {
     const peer = peerManager.createPeer(data.peerId, {
+      // @5. [接收方] 收到文件元数据，获取元数据提示用户接收消息
       /**
        * 在获取元数据时被调用 {@link RTCPeer.handleFileMetas}
        */
-      onFileMetas(fileMetas: any, acceptCallback: any) {
+      onFileMetas(fileMetas, acceptCallback) {
         /** 根据 fromId 查找发送方用户信息 */
         let fromUserName = '未知用户'
         if (fileMetas && fileMetas.length > 0 && fileMetas[0].fromId) {

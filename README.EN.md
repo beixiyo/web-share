@@ -20,8 +20,6 @@
 
 <br />
 
-https://web-share.beixiyo.dpdns.org/fileTransfer
-
 Browser-based **local network** file transfer with no server data collection, making browsers great again!!
 
 ## ✨ Core Features

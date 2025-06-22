@@ -1,6 +1,6 @@
-import type { FileMeta, ProgressData, ResumeInfo, ResumeRequest } from 'web-share-common'
+import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { compressImg, FileChunker, getImg, type MIMEType, wait } from '@jl-org/tool'
+import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
@@ -11,45 +11,11 @@ import { ResumeManager } from '@/utils/handleOfflineFile'
 export class FileSendManager {
   private config: FileSendConfig
   private fileMetaCache: FileMeta[] = []
-  private onAcceptFile?: Function
-  private onDenyFile?: Function
   private resumeManager: ResumeManager
-  private resumeInfoMap: Map<string, { startOffset: number, hasCache: boolean }> = new Map()
-
-  /**
-   * 待处理的断点续传队列
-   */
-  private pendingResumeRequests: Set<string> = new Set()
 
   constructor(config: FileSendConfig) {
     this.config = config
     this.resumeManager = new ResumeManager()
-  }
-
-  /**
-   * 发送文件
-   */
-  async sendFiles(files: File[], onDenyFile?: VoidFunction): Promise<void> {
-    /** 发送文件后，等待对方同意或拒绝 */
-    const { promise, resolve } = Promise.withResolvers<void>()
-    this.onAcceptFile = resolve
-    this.onDenyFile = onDenyFile
-
-    return promise.then(async () => {
-      try {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i]
-          await this.sendSingleFile(file, i)
-        }
-
-        /** 清理缓存 */
-        this.fileMetaCache = []
-      }
-      catch (error) {
-        this.config.onError?.(`发送文件失败: ${error}`)
-        throw error
-      }
-    })
   }
 
   /**
@@ -107,11 +73,8 @@ export class FileSendManager {
       })
 
       const data = await Promise.all(metaPromises)
+      this.fileMetaCache = data
 
-      // @01. [发送方] 发送断点续传请求，获取接收方的断点缓存信息
-      await this.requestResumeInfo(files)
-
-      // @08. [发送方] 协商断点数据完毕，开始发送文件元数据
       /** 通过 WebSocket 发送，因为 WebRTC 接收文件大小有限 */
       this.config.relay({
         data,
@@ -127,22 +90,6 @@ export class FileSendManager {
   }
 
   /**
-   * 处理文件接受确认
-   * @see {@link FileSendManager.sendFiles}
-   */
-  handleAcceptFile(): void {
-    // @19. [发送方] 收到接收方同意接收，开始发送文件
-    this.onAcceptFile?.()
-  }
-
-  /**
-   * 处理文件拒绝
-   */
-  handleDenyFile(): void {
-    this.onDenyFile?.()
-  }
-
-  /**
    * 获取文件元数据缓存
    */
   getFileMetaCache(): FileMeta[] {
@@ -150,78 +97,22 @@ export class FileSendManager {
   }
 
   /**
-   * 请求断点续传信息
-   */
-  async requestResumeInfo(files: File[]): Promise<void> {
-    const toId = this.config.getToId()
-    if (!toId) {
-      return
-    }
-
-    // @02. [发送方] 清空之前的请求记录，重新等待接收方的断点缓存信息
-    this.pendingResumeRequests.clear()
-    this.resumeInfoMap.clear()
-
-    for (const file of files) {
-      const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
-      this.pendingResumeRequests.add(fileHash)
-
-      const resumeRequest: ResumeRequest = {
-        fileHash,
-        fileName: file.name,
-        fileSize: file.size,
-        fromId: this.config.getPeerId(),
-      }
-
-      // @03. [发送方] 挨个发送文件元数据，发送断点续传请求
-      this.config.sendJSON({
-        type: Action.RequestResumeInfo,
-        data: resumeRequest,
-      })
-    }
-
-    /** 等待所有断点续传响应（最多等待3秒） */
-    await this.waitForResumeResponses(3000)
-  }
-
-  /**
-   * 等待断点续传响应
-   * ### 当 pendingResumeRequests 长度为 0，说明所有数据已经协商完毕
-   */
-  private async waitForResumeResponses(timeoutMs: number): Promise<void> {
-    const startTime = Date.now()
-    const { promise, resolve } = Promise.withResolvers<void>()
-
-    const checkResumeRequests = () => {
-      if (this.pendingResumeRequests.size > 0 && (Date.now() - startTime) < timeoutMs) {
-        requestAnimationFrame(checkResumeRequests)
-      }
-      else if (this.pendingResumeRequests.size <= 0) {
-        resolve()
-      }
-      else {
-        resolve()
-        console.warn(`断点续传响应超时，未收到 ${this.pendingResumeRequests.size} 个文件的响应`)
-      }
-    }
-
-    checkResumeRequests()
-
-    return promise
-  }
-
-  /**
    * 处理断点续传信息响应
+   * 在新的流程中，此方法将触发单个文件的发送
    */
-  handleResumeInfo(resumeInfo: ResumeInfo): void {
-    this.resumeInfoMap.set(resumeInfo.fileHash, {
-      startOffset: resumeInfo.startOffset,
-      hasCache: resumeInfo.hasCache,
-    })
+  async handleResumeInfo(resumeInfo: ResumeInfo): Promise<void> {
+    const { fileHash, startOffset } = resumeInfo
+    const fileMeta = this.fileMetaCache.find(meta => meta.fileHash === fileHash)
+    const file = this.config.getOriginalFile(fileHash)
 
-    // @07. [发送方] 收到响应，从待处理列表中移除，当队列空了，说明协商完毕。此时 waitForResumeResponses 会 resolve
-    // @14. [发送方] 收到响应，从待处理列表中移除，当队列空了，说明协商完毕。此时 waitForResumeResponses 会 resolve
-    this.pendingResumeRequests.delete(resumeInfo.fileHash)
+    if (!fileMeta || !file) {
+      const errorMsg = `找不到文件信息: ${fileHash}`
+      this.config.onError?.(errorMsg)
+      throw new Error(errorMsg)
+    }
+
+    const fileIndex = this.fileMetaCache.findIndex(meta => meta.fileHash === fileHash)
+    await this.sendSingleFile(file, fileIndex, startOffset)
 
     console.warn(`收到断点续传响应: ${resumeInfo.fileHash}, 偏移: ${resumeInfo.startOffset}, 缓存: ${resumeInfo.hasCache}`)
   }
@@ -231,20 +122,12 @@ export class FileSendManager {
    */
   cleanup(): void {
     this.fileMetaCache = []
-    this.onAcceptFile = undefined
-    this.onDenyFile = undefined
-    this.resumeInfoMap.clear()
-    this.pendingResumeRequests.clear()
   }
 
   /**
    * 发送单个文件
    */
-  private async sendSingleFile(file: File, fileIndex: number): Promise<void> {
-    const fileHash = this.resumeManager.generateFileHash(file.name, file.size)
-    const resumeInfo = this.resumeInfoMap.get(fileHash)
-    const startOffset = resumeInfo?.startOffset || 0
-
+  private async sendSingleFile(file: File, fileIndex: number, startOffset: number): Promise<void> {
     const fileInfo: FileInfo = {
       lastModified: file.lastModified,
       name: file.name,
@@ -252,7 +135,7 @@ export class FileSendManager {
       type: file.type as MIMEType,
     }
 
-    // @20. [发送方] 发送文件开始信号
+    // @11. [发送方] 发送新文件信号
     this.config.sendJSON({ type: Action.NewFile, data: fileInfo })
 
     /** 创建文件分片器，支持断点续传 */
@@ -280,6 +163,7 @@ export class FileSendManager {
         await this.config.waitUntilChannelIdle()
       }
 
+      // @13. [发送方] 发送文件数据
       this.config.send(arrayBuffer)
 
       /** 发送进度更新 */
@@ -295,7 +179,7 @@ export class FileSendManager {
       // await wait(1000)
     }
 
-    /** 发送文件完成信号 */
+    // @15. [发送方] 发送文件完成信号
     this.config.sendJSON({ type: Action.FileDone, data: null })
   }
 }
@@ -320,6 +204,8 @@ export interface FileSendConfig {
   getToId: () => string | undefined
   /** 获取当前用户ID */
   getPeerId: () => string
+  /** 原始文件 Getter */
+  getOriginalFile: (fileHash: string) => File | undefined
   /** 文件分片大小 */
   chunkSize: number
   /** 进度回调 */

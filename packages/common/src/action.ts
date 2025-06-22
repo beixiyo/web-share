@@ -24,7 +24,6 @@ export enum Action {
 
   Text = 'Text',
   FileMetas = 'FileMetas',
-  AcceptFile = 'AcceptFile',
   DenyFile = 'DenyFile',
 
   FileBufferIndex = 'FileBufferIndex',
@@ -37,6 +36,5 @@ export enum Action {
   RTCError = 'RTCError',
   RTCErrorBroadcast = 'RTCErrorBroadcast',
 
-  RequestResumeInfo = 'RequestResumeInfo',
   ResumeInfo = 'ResumeInfo',
 }
