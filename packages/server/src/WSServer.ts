@@ -1,6 +1,7 @@
 import type { Server } from 'node:http'
 import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import type { RawData } from 'ws'
+import { randomStr } from '@jl-org/tool'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
@@ -53,7 +54,7 @@ export class WSServer {
    */
   private generateDeviceKey(peer: Peer): string {
     /** 使用IP + 设备名称 + 浏览器信息生成唯一标识 */
-    return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}`.replace(/\s+/g, '_')
+    return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}_${randomStr()}`.replace(/\s+/g, '_')
   }
 
   /**
