@@ -713,7 +713,8 @@ async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
 
     if (type === 'all') {
       result = await resumeManager.clearAllCache()
-    } else {
+    }
+    else {
       result = await resumeManager.cleanupExpiredCache(7) // 清理7天前的缓存
     }
 

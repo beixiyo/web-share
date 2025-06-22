@@ -292,7 +292,9 @@ export class ResumeManager {
   }
 
   /**
-   * 获取缓存统计信息
+   * 获取详细缓存统计信息（包含数据块数量）
+   * 注意：此方法需要异步查询 IndexedDB，性能较慢
+   * 推荐使用 useResumeCache.getCacheStats() 获取基础统计信息
    */
   async getCacheStats(): Promise<{
     totalFiles: number

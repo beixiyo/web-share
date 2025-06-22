@@ -2,46 +2,46 @@
   <Modal
     v-model="show"
     title="清理缓存"
-    width="400"
-    height="300"
+    width="min(400px, 90vw)"
+    height="auto"
   >
-    <div class="space-y-4">
+    <div class="p-1 space-y-4">
       <!-- 清理选项 -->
       <div class="space-y-3">
         <h3 class="text-sm text-gray-700 font-medium dark:text-gray-300">
           选择清理类型
         </h3>
 
-        <div class="space-y-2">
-          <label class="flex cursor-pointer items-center space-x-3">
+        <div class="space-y-3">
+          <label class="flex cursor-pointer items-start border border-gray-200 rounded-lg p-3 transition-colors space-x-3 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
             <input
               v-model="cleanupType"
               type="radio"
               value="expired"
-              class="h-4 w-4 text-blue-600"
+              class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600"
             >
-            <div class="flex-1">
+            <div class="min-w-0 flex-1">
               <div class="text-sm text-gray-900 font-medium dark:text-gray-100">
                 清理过期数据
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 清理超过 7 天的断点续传缓存
               </div>
             </div>
           </label>
 
-          <label class="flex cursor-pointer items-center space-x-3">
+          <label class="flex cursor-pointer items-start border border-red-200 rounded-lg p-3 transition-colors space-x-3 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20">
             <input
               v-model="cleanupType"
               type="radio"
               value="all"
-              class="h-4 w-4 text-red-600"
+              class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
             >
-            <div class="flex-1">
+            <div class="min-w-0 flex-1">
               <div class="text-sm text-red-600 font-medium dark:text-red-400">
                 清理所有数据
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 清理所有断点续传缓存（不可恢复）
               </div>
             </div>
@@ -51,15 +51,17 @@
     </div>
 
     <template #footer>
-      <div class="flex justify-end space-x-2">
+      <div class="flex flex-col justify-end gap-2 sm:flex-row sm:gap-2">
         <Button
           variant="default"
+          class="order-2 w-full sm:order-1 sm:w-auto"
           @click="show = false"
         >
           取消
         </Button>
         <Button
           variant="danger"
+          class="order-1 w-full sm:order-2 sm:w-auto"
           :loading="isClearing"
           loading-text="清理中..."
           @click="handleClearCache"

@@ -96,7 +96,7 @@
       <div class="flex justify-between">
         <div class="flex space-x-2">
           <Button
-             design-style="ghost"
+            design-style="ghost"
             size="sm"
             :loading="isClearing"
             @click="handleCleanupExpired"

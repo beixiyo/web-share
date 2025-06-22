@@ -97,7 +97,7 @@ export function useResumeCache() {
   }
 
   /**
-   * 获取缓存统计信息
+   * 获取缓存统计信息（基于内存数据，性能更好）
    */
   const getCacheStats = () => {
     const totalFiles = Object.keys(cacheInfo.value).length
@@ -111,6 +111,13 @@ export function useResumeCache() {
       totalBytes,
       cacheInfo: cacheInfo.value,
     }
+  }
+
+  /**
+   * 获取详细缓存统计信息（包含数据块信息，需要异步查询）
+   */
+  const getDetailedCacheStats = async () => {
+    return await resumeManager.getCacheStats()
   }
 
   /**
@@ -139,6 +146,7 @@ export function useResumeCache() {
     cleanupExpiredCache,
     clearAllCache,
     getCacheStats,
+    getDetailedCacheStats,
     formatCacheInfo,
 
     /** 管理器实例 */
