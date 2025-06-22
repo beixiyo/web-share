@@ -5,6 +5,7 @@ import { randomStr } from '@jl-org/tool'
 import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
+import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 
 export class WSServer {
   ws: WebSocketServer
@@ -28,6 +29,8 @@ export class WSServer {
     lastSeen: number
   }>()
 
+  private rtcErrorBroadcastManager: RTCErrorBroadcastManager
+
   constructor(
     server: Server,
     opts: WSServerOpts = {},
@@ -47,6 +50,14 @@ export class WSServer {
     })
 
     this.keepAliveClear()
+
+    /** 全局错误广播管理器实例 */
+    this.rtcErrorBroadcastManager = new RTCErrorBroadcastManager()
+
+    /** 定期清理过期记录 */
+    setInterval(() => {
+      this.rtcErrorBroadcastManager.cleanup()
+    }, 20 * 1000)
   }
 
   /**
@@ -448,6 +459,16 @@ export class WSServer {
       case Action.RTCError:
         /** 处理 RTC 错误，广播给房间内所有其他成员 */
         console.log(`收到来自 ${sender.name.displayName} 的RTC错误:`, msg.data)
+
+        /** 检查是否可以广播错误（防止频繁广播） */
+        const errorData = msg.data as any
+        const errorType = errorData?.errorType || 'UNKNOWN_ERROR'
+
+        if (!this.rtcErrorBroadcastManager.canBroadcast(sender.roomId, errorType)) {
+          console.warn(`跳过RTC错误广播，房间 ${sender.roomId} 的错误类型 ${errorType} 过于频繁`)
+          break
+        }
+
         this.broadcastToRoom(sender.roomId, {
           type: Action.RTCErrorBroadcast,
           data: msg.data,

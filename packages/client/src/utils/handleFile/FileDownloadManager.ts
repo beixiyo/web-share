@@ -1,6 +1,6 @@
 import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
-import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader } from '@jl-org/tool'
+import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
 import { Action } from 'web-share-common'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
@@ -74,6 +74,7 @@ export class FileDownloadManager {
     if (resumeInfo.hasCache) {
       console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
       await this.restoreCachedData()
+      await wait(20)
     }
 
     /** 开始处理缓冲区 */
