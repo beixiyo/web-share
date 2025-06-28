@@ -131,7 +131,10 @@ cd web-share
 #### Docker 部署
 
 ```bash
-docker compose up
+# 启动
+docker compose up -d
+# 停止并删除容器
+docker compose down
 ```
 
 #### 本地开发

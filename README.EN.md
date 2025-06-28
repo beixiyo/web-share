@@ -131,22 +131,10 @@ cd web-share
 #### Docker Deployment
 
 ```bash
-# Remove existing containers/images
-docker rm web-share -f && docker rmi web-share
-
-# Build image
-# VITE_SERVER_URL_ARG sets WebSocket URL (auto-detected if empty)
-docker build \
-  --build-arg VITE_SERVER_URL_ARG=wss://YourHost:YourPort \
-  -t web-share .
-
-# Run container
-docker run -d \
-  --name=web-share \
-  -p 7001:3001 \
-  -e PORT=3001 \
-  --restart=always \
-  web-share
+# start
+docker compose up -d
+# remove and stop
+docker compose down
 ```
 
 #### Local Development

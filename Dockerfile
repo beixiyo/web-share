@@ -29,13 +29,6 @@ FROM dependencies AS builder
 # .dockerignore 文件会确保不必要的的文件 (如 node_modules, .git, 已有的 dist 目录等) 不会被复制。
 COPY . .
 
-# 定义构建时默认参数 (Build-time Argument)
-# 这个参数可以在执行 'docker build' 命令时通过 '--build-arg' 传递进来。
-ARG VITE_SERVER_URL_ARG=http://localhost:3001
-# 将构建时参数 VITE_SERVER_URL_ARG 赋值给环境变量 VITE_SERVER_URL。
-# 这样，在执行 pnpm build 命令时，Vite (或其他构建工具) 就可以读取到这个环境变量。
-ENV VITE_SERVER_URL=${VITE_SERVER_URL_ARG}
-
 RUN pnpm build && \
 pnpm deploy:server
 
@@ -44,10 +37,6 @@ pnpm deploy:server
 # 使用一个新的、干净的 Node.js Alpine 基础镜像，以减小最终镜像的体积。
 FROM node:22-alpine AS production
 WORKDIR /app
-
-ENV NODE_ENV=production
-# 您可以在 'docker run' 时通过 '-e PORT=xxxx' 来覆盖这个默认值。
-ENV PORT=3001
 
 # 从 'builder' 阶段复制
 COPY --from=builder /app/packages/server/dist ./dist

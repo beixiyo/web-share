@@ -1,15 +1,18 @@
-version: '3.8'
-
 services:
   web-share:
+    container_name: web-share
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VITE_SERVER_URL_ARG: http://localhost:3001
     ports:
       - "7001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - VITE_SERVER_URL=http://localhost:3001
+    networks:
+      - net
     restart: unless-stopped
+
+networks:
+  net:
