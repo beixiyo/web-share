@@ -1,7 +1,7 @@
 # 🔗 Web Airdrop
 
 <p align="center">
-  <a href="./README.md">中文文档</a>
+  <a href="./README.EN.md">English</a>
 </p>
 
 <p align="center">
@@ -20,114 +20,108 @@
 
 <br />
 
-Browser-based **local network** file transfer with no server data collection, making browsers great again!!
+Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!
 
-## ✨ Core Features
+## ✨ Core Feature Highlights
 
-🚫 **No App Needed - Works 100% in browser**
+🚫 **No app installation required, runs purely in browser**
+  - 🖱️ Drag-and-drop file transfer
+  - 📋 Paste file transfer
+  - 🖼️ File preview
+  - 🔢 Room QRCode connection
+  - 🔑 End-to-end encryption
 
-#### ⚡ High-Performance Peer-to-Peer Transfer
-- **🫗 Streaming Download**: Traditional frontend downloads store all chunks in memory, which can crash with large files
-- **⬇️ Unlimited File Size Transfer**: Implements background streaming downloads using Service Worker or File System Access API (browser support required)
-- **🔄 Flow Control Mechanism**: Intelligent buffer management to prevent memory overflow and transfer blockage
-- **🌐 Direct Connection**: Browser-to-browser direct connections based on WebRTC DataChannel
+#### ⚡ High-performance P2P transfer
+- **🫗 Streaming download**: Traditional frontend downloads require saving all chunks to memory, large transfers may crash
+- **⬇️ Unlimited file size transfer**: Uses Service Worker or File System Access API for background streaming download (requires browser support)
+- **🔄 Flow control mechanism**: Intelligent buffer management prevents memory overflow and transfer blockage
+- **🌐 Direct connection**: Browser-to-browser direct connection via WebRTC DataChannel
 
 ### 🔄 Smart Resume Transfer
-> **Reliability guarantee for large file transfers**
+> **Reliable solution for large file transfers**
 
-- **🧠 Intelligent Caching**: Generates unique hash identifiers based on filename and file size to ensure accurate resume transfers
-- **💾 Local Data Persistence**: Uses IndexedDB to store transfer progress and data blocks, supporting transfer resumption after browser restart
-- **🔄 Automatic Negotiation**: Sender and receiver automatically negotiate transfer starting position via WebRTC without manual intervention
-- **⚡ Rapid Recovery**: After reconnection, the system automatically detects and continues from the breakpoint, significantly saving transfer time
-- **🛡️ Data Integrity Guarantee**: Multiple verification mechanisms ensure the integrity and consistency of resumed data
+- **🧠 Smart caching**: Generates unique hash IDs based on filename + file size for accurate resume
+- **💾 Local persistence**: Uses IndexedDB to store transfer progress and data chunks, survives browser restarts
+- **🔄 Auto-negotiation**: Sender/receiver automatically negotiate resume position via WebRTC
+- **⚡ Instant resume**: Reconnects and continues from breakpoint, saving significant time
+- **🛡️ Data integrity**: Multiple verification mechanisms ensure consistency
 
 ### 🎯 Convenient File Operations
-> **Ultimate user experience design**
+> **Ultimate UX design**
 
-- **🖱️ Drag and Drop**: Support for directly dragging files to the browser window, with automatic recognition and transfer preparation
-- **📋 Paste to Transfer**: Use `Ctrl + V` shortcut to directly paste files from clipboard, supporting screenshots, copied files, and more
-- **📁 Batch Selection**: Support for selecting multiple files for batch transfer to improve work efficiency
-- **🔍 File Preview**: Automatically generates file previews and detailed information before transfer to ensure accuracy
-- **📊 Real-time Progress**: Precisely displays transfer progress, speed, and remaining time for each file
+- **🖱️ Drag-to-send**: Drag files directly into browser window
+- **📋 Paste transfer**: Use `Ctrl + V` to paste files from clipboard
+- **📁 Batch selection**: Transfer multiple files simultaneously
+- **🔍 File preview**: Auto-generates previews before transfer
+- **📊 Real-time progress**: Shows transfer speed and ETA
 
-### 💬 Cross-Device Text Sharing
-> **Seamless text transfer experience**
+### 💬 Cross-device Text Sharing
+> **Seamless text transfer**
 
-- **📝 Instant Text Transfer**: Supports quick transfer of plain text, rich text, code snippets, and other text formats
-- **🔄 Bidirectional Sync**: Any device can send and receive text content, truly enabling cross-device collaboration
-- **📋 One-Click Copy**: Received text content can be copied to clipboard with one click for convenient use
-- **🎨 Format Preservation**: Maintains original text formatting and encoding, ensuring accurate transfer of special characters and line breaks
-- **⚡ Millisecond-Level Transfer**: Extremely low text transfer latency, achieving near real-time cross-device text synchronization
+- **📝 Instant transfer**: Supports plain/rich text, code snippets
+- **🔄 Bidirectional sync**: Any device can send/receive
+- **📋 One-click copy**: Easy clipboard integration
+- **🎨 Format preservation**: Maintains original formatting
+- **⚡ Millisecond transfer**: Near real-time sync
 
-### 📱 QR Code Quick Connection
-> **Best connection solution for mobile devices**
+### 📱 QR Code Quick Connect
+> **Best solution for mobile**
 
-- **📲 Scan to Connect**: Automatically generates high-definition QR codes; mobile phones can quickly join transfer sessions by scanning
-- **🔄 Dynamic Updates**: QR codes contain complete connection information and support real-time updates of room status
-- **📱 Mobile Optimization**: QR code size and recognition algorithms optimized for mobile devices to ensure quick recognition
-- **🔒 Secure Encoding**: QR code content is encrypted to prevent malicious interception and forgery
-- **⏰ Smart Expiration**: QR codes have time validity and automatically expire to ensure connection security
+- **📲 Scan-to-connect**: Auto-generates HD QR codes
+- **🔄 Dynamic updates**: QR codes contain real-time room status
+- **📱 Mobile optimized**: Optimized QR size/recognition
+- **🔒 Secure encoding**: Encrypted QR content
+- **⏰ Smart expiration**: Auto-expires for security
 
-### 🔢 Room Code Convenient Connection
-> **Simple and memorable connection method**
+### 🔢 Room Code Connection
+> **Simple memorable connection**
 
-- **🎲 Smart Generation**: Automatically generates 6-digit room codes that are easy to remember and input
-- **⏱️ Flexible Validity Period**: Supports customizable room code validity periods, balancing convenience and security
-- **🔄 One Code, Multiple Connections**: A single room code supports multiple devices connecting simultaneously for multi-party file sharing
-- **📞 Voice Transmission**: Pure numeric design facilitates telephone or voice communication, suitable for various communication scenarios
-- **🛡️ Brute Force Protection**: Built-in frequency limits and error count limits to prevent malicious attempts
-
-### 🔄 Smart Auto-Reconnection
-> **Stable transfer under network fluctuations**
-
-- **🔍 Real-time Monitoring**: Continuously monitors WebRTC connection status and network quality to promptly detect connection issues
-- **⚡ Fast Reconnection**: Automatically attempts to reestablish connections after network interruptions, with average reconnection time under 3 seconds
-- **🎯 Intelligent Strategy**: Automatically adjusts reconnection strategy and frequency based on network environment to avoid ineffective attempts
-- **💾 State Preservation**: Maintains transfer state and progress information during reconnection to ensure seamless recovery
-- **🔔 User Notifications**: Provides clear visual feedback when connection status changes to keep users informed
+- **🎲 Smart generation**: 6-digit room codes
+- **🔄 Multi-connect**: Single code for multiple devices
+- **📞 Voice-friendly**: Numbers easy to communicate
 
 ### 🚀 Other Technical Highlights
 
-#### 🔐 End-to-End Secure Transfer
-- **🛡️ WebRTC Native Encryption**: Provides end-to-end encryption protection using DTLS and SRTP protocols
-- **🚫 Zero Server Storage**: Files transfer directly between devices; the server stores no user data
-- **🔒 Session Isolation**: Each transfer session is independently encrypted to ensure data security isolation
+#### 🔐 End-to-end Encryption
+- **🛡️ WebRTC native encryption**: DTLS/SRTP protocols
+- **🚫 Zero server storage**: Files transfer directly
+- **🔒 Session isolation**: Independent encryption per transfer
 
-#### 🌍 Cross-Platform Compatibility
-- **💻 Desktop Support**: Perfect support for Windows, macOS, Linux, and other mainstream operating systems
-- **📱 Mobile Optimization**: Specialized optimization for iOS and Android mobile browsers
-- **🌐 Browser Compatibility**: Supports Chrome, Firefox, Safari, Edge, and other mainstream browsers
+#### 🌍 Cross-platform Compatibility
+- **💻 Desktop support**: Windows/macOS/Linux
+- **📱 Mobile optimized**: iOS/Android browsers
+- **🌐 Browser support**: Chrome/Firefox/Safari/Edge
 
-#### 🎨 Modern User Interface
-- **📱 Responsive Design**: Perfect adaptation to various screen sizes, from mobile phones to large displays
-- **🌙 Dark Mode**: Supports light and dark theme switching to protect users' vision
+#### 🎨 Modern UI
+- **📱 Responsive design**: Adapts to all screen sizes
+- **🌙 Dark mode**: Eye-friendly themes
 
 ---
 
 ## 📋 Table of Contents
 
-- [📚 Usage Instructions](#-usage-instructions)
+- [📚 Usage Guide](#-usage-guide)
 - [🎯 Project Overview](#-project-overview)
-- [🏗️ Architecture Design](#️-architecture-design)
-- [🔧 Core Technology Analysis](#-core-technology-analysis)
-  - [WebRTC Connection Mechanism Explained](#webrtc-connection-mechanism-explained)
-  - [Resume Transfer Mechanism In-Depth Analysis](#resume-transfer-mechanism-in-depth-analysis)
-- [🛠️ Technology Stack and Dependencies](#️-technology-stack-and-dependencies)
-- [❓ Frequently Asked Questions](#-frequently-asked-questions)
+- [🏗️ Architecture](#️-architecture)
+- [🔧 Technical Deep Dive](#-technical-deep-dive)
+  - [WebRTC Connection Mechanism](#webrtc-connection-mechanism)
+  - [Resume Transfer Mechanism](#resume-transfer-mechanism)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [❓ FAQ](#-faq)
 
 ---
 
-## 📚 Usage Instructions
+## 📚 Usage Guide
 
 ### Requirements
 
 - **Node.js**: >= 22.0.0
 - **pnpm**: >= 9.7.1
-- **Modern Browsers**: Browsers supporting WebRTC (Chrome 60+, Firefox 55+, Safari 14+)
+- **Modern browsers**: WebRTC supported (Chrome 60+, Firefox 55+, Safari 14+)
 
-### Installation and Startup
+### Installation
 
-#### Clone the Project
+#### Clone Project
 
 ```bash
 git clone https://github.com/beixiyo/web-share
@@ -137,11 +131,11 @@ cd web-share
 #### Docker Deployment
 
 ```bash
-# Remove existing image and container
+# Remove existing containers/images
 docker rm web-share -f && docker rmi web-share
 
-# Build Docker image
-# VITE_SERVER_URL_ARG tells the frontend the WebSocket address, if not specified it will be automatically inferred from the current domain
+# Build image
+# VITE_SERVER_URL_ARG sets WebSocket URL (auto-detected if empty)
 docker build \
   --build-arg VITE_SERVER_URL_ARG=wss://YourHost:YourPort \
   -t web-share .
@@ -161,265 +155,217 @@ docker run -d \
 # Install pnpm globally
 npm i -g pnpm@9.7.1
 
-# Install project dependencies
+# Install dependencies
 pnpm i
 
-# Start development environment (first run needs to be executed twice to build the common package)
+# Start dev (run twice first time to build common package)
 pnpm run dev
 
-# Start each service separately
-pnpm run dev:server  # Start signaling server
-pnpm run dev:client  # Start frontend client
-pnpm run dev:common  # Build common type package
+# Start services individually
+pnpm run dev:server  # Signaling server
+pnpm run dev:client  # Frontend client
+pnpm run dev:common  # Build common types
 ```
 
 #### Production Build
 
 ```bash
-# Build all packages
+# Build all
 pnpm run build
 
-# Build separately
+# Build individually
 pnpm run build:common  # Build common package first
-pnpm run build:server  # Build server
-pnpm run build:client  # Build client
+pnpm run build:server  # Server build
+pnpm run build:client  # Client build
 ```
 
-### Basic Usage Flow
+### Basic Usage
 
-#### 🏠 Creating Connections
+#### 🏠 Create Connection
 
-**Method 1: Room Code Connection**
-1. Click the "Generate Room Code" button
-2. System generates a 6-digit room code
-3. Share the room code with other users
-4. Other users enter the room code to join the room
+**Method 1: Room Code**
+1. Click "Generate Room Code"
+2. Share 6-digit code
+3. Others enter code to join
 
-**Method 2: Direct Room Connection**
+**Method 2: Direct Link**
 1. Click "Create Direct Room"
-2. System generates a unique room link
-3. Share with other devices via QR code or link
-4. Scan code or click link to join directly
-
-![Connection Method Example](placeholder for connection method screenshot - to be added)
+2. Share QR code/link
+3. Scan/click to join
 
 #### 📁 File Transfer
 
-**Sending Files**:
-1. Select files to send (supports multiple file selection), or directly paste with `Ctrl + V`
-2. System displays file preview and size information
-3. Click "Send Files" button
+**Send Files**:
+1. Select files (or `Ctrl + V` paste)
+2. Preview files
+3. Click "Send"
 4. Wait for receiver confirmation
 
-**Receiving Files**:
-1. Receive file transfer request
-2. View file information and preview
-3. Click "Accept" or "Reject"
-4. Download starts automatically after acceptance
-
-<img src="./docAssets/save.webp" alt="File Transfer Interface" width="300px" />
+**Receive Files**:
+1. Receive transfer request
+2. Preview file info
+3. Accept/decline
+4. Auto-download on accept
 
 #### ⚡ Resume Transfer
 
-**Automatic Resume Transfer**:
-- System automatically saves progress when transfer is interrupted
-- Prompts whether to continue transfer after reconnection
-- Supports cleaning expired transfer cache
+**Auto-resume**:
+- Saves progress automatically
+- Prompts to continue after reconnect
+- Supports cache cleanup
 
 **Manual Management**:
-- Click "Clean Cache" in the toolbar
-- Select cleaning strategy (all/expired/failed)
-- View cache space usage
+- Click "Clear Cache" in toolbar
+- Select cleanup policy (all/expired/failed)
+- View cache usage
 
 ### Advanced Features
 
 #### 🔧 Cache Management
 
-The system provides comprehensive cache management functions:
-
 ```typescript
 /** Clean expired cache (7 days) */
 await resumeManager.cleanupExpiredCache(7)
 
-/** Get cache statistics */
+/** Get cache stats */
 const stats = await resumeManager.getCacheStats()
 
-/** Manually clean specific file cache */
+/** Manual cache cleanup */
 await resumeManager.deleteResumeCache(fileHash)
 ```
 
 #### 📊 Transfer Monitoring
 
-Real-time monitoring of transfer status and performance:
+Real-time stats:
+- Transfer speed
+- ETA
+- Error retries
+- Connection quality
 
-- **Transfer Speed**: Real-time display of current transfer speed
-- **Remaining Time**: Estimated time to complete transfer
-- **Error Retry**: Automatic retry of failed transfers
-- **Connection Status**: Display of WebRTC connection quality
+#### 🛠️ Debug Tools
 
-#### 🛠️ Debugging Tools
-
-Debugging features available in development environment:
-
-- **Console Logs**: Detailed transfer logs
-- **Network Status**: WebRTC connection statistics
-- **Performance Monitoring**: Memory and CPU usage
+Dev environment features:
+- Detailed logs
+- Network stats
+- Performance metrics
 
 ---
 
-## 🛠️ Technology Stack and Dependencies
+## 🛠️ Tech Stack
 
-### Frontend Technology Stack
+### Frontend
 
-#### 🎨 Core Framework
-- **Vue 3.5.13**: Progressive JavaScript framework
-- **TypeScript 5.7.2**: Static type checking
-- **Vite**: Modern build tool
-- **Vue Router 4.4.5**: Single-page application routing
+#### 🎨 Core Frameworks
+- **Vue 3.5.13**
+- **TypeScript 5.7.2**
+- **Vite**
+- **Vue Router 4.4.5**
 
-#### 🎯 UI and Styling
-- **UnoCSS**: Atomic CSS engine
-- **Tailwind CSS**: Utility-first CSS framework
-- **Lucide Vue Next**: Modern icon library
+#### 🎯 UI/Styling
+- **UnoCSS**
+- **Tailwind CSS**
+- **Lucide Vue Next**
 
-#### 🔧 Utility Libraries
-- **@jl-org/tool**: General utility function library
-- **LocalForage**: Client-side storage solution
-- **QRCode**: QR code generation library
+#### 🔧 Utilities
+- **@jl-org/tool**
+- **LocalForage**
+- **QRCode**
 
-### Backend Technology Stack
+### Backend
 
-#### 🌐 Server Framework
-- **Express 5.1.0**: Web application framework
-- **WebSocket (ws 8.18.2)**: WebSocket server
-- **Connect History API Fallback**: SPA routing support
+#### 🌐 Server
+- **Express 5.1.0**
+- **WebSocket (ws 8.18.2)**
+- **Connect History API Fallback**
 
-#### 🔧 Utility Libraries
-- **UA Parser JS**: User agent parsing
-- **Unique Names Generator**: Random name generation
+#### 🔧 Utilities
+- **UA Parser JS**
+- **Unique Names Generator**
 
-### Development Tools
+### Dev Tools
 
 #### 📦 Package Management
-- **pnpm**: Efficient package manager
-- **Monorepo**: Multi-package management architecture
+- **pnpm**
+- **Monorepo**
 
 #### 🔍 Code Quality
-- **ESLint**: Code checking tool
-- **@antfu/eslint-config**: ESLint configuration preset
+- **ESLint**
+- **@antfu/eslint-config**
 
 ---
 
-## ❓ Frequently Asked Questions
+## ❓ FAQ
 
 ### 🔧 Technical Issues
 
-**Q: What to do if WebRTC connection fails?**
+**Q: WebRTC connection fails?**
+A: Try:
+1. Disable browser extensions/use incognito
+2. Check browser support
+3. Check network/NAT settings
 
-A: Common solutions:
-1. Try closing all browser plugins or use incognito mode
-2. Check if your browser supports WebRTC
-3. Check network environment, ensure you're not behind strict NAT or firewall
+**Q: Resume not working?**
+A: Check:
+1. Browser storage space
+2. LocalForage initialization
+3. File hash consistency
+4. Console errors
 
-**Q: Resume transfer not working?**
+### 🚀 Deployment
 
-A: Troubleshooting steps:
-1. Check if browser storage space is sufficient
-2. Confirm LocalForage initialization was successful
-3. Verify file hash generation consistency
-4. Check console for cache-related errors
+**Q: Docker deployment issues?**
+A: Verify:
+1. WebSocket URL config
+2. Port mapping
+3. Firewall settings
+4. HTTPS/WSS certificates
 
-### 🚀 Deployment Issues
+### 📱 Compatibility
 
-**Q: Cannot connect after Docker deployment?**
-
-A: Checklist:
-1. Ensure WebSocket server URL configuration is correct
-2. Check port mapping is correct
-3. Verify firewall settings
-4. Confirm HTTPS/WSS certificate configuration
-
-### 📱 Compatibility Issues
-
-**Q: Mobile browser compatibility?**
-
-A: Support status:
+**Q: Mobile browser support?**
+A: Supported:
 - ✅ Chrome Mobile 60+
 - ✅ Safari Mobile 14+
 - ✅ Firefox Mobile 55+
-- ❌ WeChat built-in browser (some features limited)
+- ❌ WeChat browser (limited)
 
-**Q: File size limitations?**
+**Q: File size limits?**
+A: Theoretically unlimited with streaming
 
-A: Limitation details:
-- Theoretically no size limit, modern browsers can support my streaming transfer
-- Supports multiple file batch transfer
+### 🔒 Security
 
-### 🔒 Security Issues
-
-**Q: Is file transfer secure?**
-
-A: Security guarantees:
-1. WebRTC provides end-to-end encryption
-2. Files do not pass through server storage
-3. Can disconnect from signaling server after connection is established
-4. Supports room code expiration mechanism
+**Q: Is transfer secure?**
+A: Yes:
+1. WebRTC end-to-end encryption
+2. No server storage
+3. Session isolation
+4. Room code expiry
 
 ---
 
 ## 🎯 Project Overview
 
-### Feature Introduction
+### Features
 
-**WebRTC File Transfer System** is a peer-to-peer file transfer solution built on modern Web technologies. The project implements the following core functions:
+**WebRTC File Transfer** enables:
 
-- 🔗 **Peer-to-Peer Direct Transfer**: Uses WebRTC technology to implement direct connections between browsers, no need for files to pass through servers
-- 📱 **Cross-Platform Support**: Supports desktop and mobile browsers, enabling seamless file transfer between devices
-- ⚡ **Resume Transfer**: Supports resuming transfer after interruption, improving reliability for large file transfers
-- 🏠 **Room Mechanism**: Supports creating room codes or direct rooms, facilitating file sharing between multiple devices
-- 🔒 **Secure Transfer**: End-to-end encryption based on WebRTC, ensuring file transfer security
-- 📊 **Real-time Progress**: Provides detailed transfer progress display and status management
+- 🔗 **P2P direct transfer**
+- 📱 **Cross-platform support**
+- ⚡ **Resume interrupted transfers**
+- 🏠 **Room-based sharing**
+- 🔒 **Encrypted transfers**
+- 📊 **Real-time progress**
 
 ### Technical Highlights
 
-1. **🎨 Modern Architecture**: Uses Monorepo architecture, clearly separating client, server, and common code
-2. **⚡ High-Performance Transfer**: Uses WebRTC DataChannel for high-speed file transfer
-3. **🔄 Smart Resume Transfer**: File hash-based resume transfer mechanism, supporting interrupted transfer recovery
-4. **📱 Responsive Design**: Fully responsive user interface, adapting to various device screens
-5. **🛡️ Type Safety**: Comprehensive use of TypeScript, providing complete type definitions and checking
-6. **🔧 Extensibility**: Modular design, easy to extend and maintain
+1. **🎨 Modern architecture**: Monorepo structure
+2. **⚡ High performance**: WebRTC DataChannel
+3. **🔄 Smart resume**: File hash-based
+4. **📱 Responsive UI**: All screen sizes
+5. **🛡️ Type safety**: Full TypeScript
+6. **🔧 Extensible**: Modular design
 
----
-
-### Resume Transfer Mechanism In-Depth Analysis
-
-Resume transfer is one of the core features of this project, implementing reliable large file transfer through carefully designed caching and negotiation mechanisms.
-
-#### 🏗️ Overall Architecture Design
-
-The resume transfer system consists of the following core components:
-
-1. **ResumeManager**: Resume transfer cache management
-2. **FileSendManager**: Sender-side resume transfer logic
-3. **FileDownloadManager**: Receiver-side resume transfer logic
-4. **WebRTC Negotiation Mechanism**: Offset negotiation and synchronization
-
-#### 🔍 Code Flow Markers
-
-To help developers understand the complex resume transfer flow, we have added flow markers in the format `@number. description` at key code locations.
-
-**How to view flow markers**:
-
-1. **Using VSCode Todo Tree Plugin** (Recommended):
-   - The project has configured `.vscode/settings.json` to automatically recognize `@number.` format markers
-   - View the "TODO TREE" panel in VSCode sidebar
-   - Click markers to jump directly to corresponding code locations
-
-2. **Manual Search**:
-   - Search for `@01.` `@02.` etc. markers in the project
-   - View the complete flow in numerical order
-
-### Architecture Overview
+### Architecture
 
 ```
 ┌─────────────────┐    WebSocket     ┌─────────────────┐
@@ -439,17 +385,261 @@ To help developers understand the complex resume transfer flow, we have added fl
 ┌─────────────────┐    WebSocket     ┌───────┴─────────┐
 │   Client B      │◄─────────────────┤                 │
 │                 │                  │                 │
+│  ┌─────────────┐│                  │                 │
+│  │ Vue3 + TS   ││                  │                 │
+│  │ WebRTC      ││                  │                 │
+│  │ LocalForage ││                  │                 │
+│  └─────────────┘│                  │                 │
+└─────────────────┘                  └─────────────────┘
 ```
-
-<div align="center">
-
-**🌟 If this project helps you, please give it a ⭐ Star!**
 
 ---
 
-**📧 Contact Me**
+## 🏗️ Architecture
 
-For questions or suggestions, feel free to contact:
+### Structure
+
+```
+web-share/
+├── packages/
+│   ├── client/          # Frontend
+│   │   ├── src/
+│   │   │   ├── ClientServer/     # WebRTC
+│   │   │   ├── utils/           # Utilities
+│   │   │   ├── views/           # Pages
+│   │   │   └── components/      # Components
+│   │   └── package.json
+│   ├── server/          # Signaling
+│   │   ├── src/
+│   │   │   ├── WSServer.ts      # WebSocket
+│   │   │   └── main.ts          # Entry
+│   │   └── package.json
+│   └── common/          # Shared
+│       ├── src/
+│       │   ├── action.ts        # Actions
+│       │   ├── RTCData.ts       # WebRTC
+│       │   └── message.ts       # Messages
+│       └── package.json
+└── package.json         # Root
+```
+
+### Core Modules
+
+#### 📦 client - Frontend
+
+**Responsibilities**:
+- UI/UX
+- WebRTC management
+- File transfer logic
+- Resume cache
+
+**Components**:
+- `RTCPeer`: WebRTC connection
+- `FileSendManager`: Sender
+- `FileDownloadManager`: Receiver
+- `ResumeManager`: Resume logic
+
+#### 🌐 server - Signaling
+
+**Responsibilities**:
+- WebRTC signaling
+- Room management
+- Connection state
+- Heartbeat
+
+**Features**:
+- WebSocket management
+- Room code generation
+- Reconnect handling
+- Message routing
+
+#### 📋 common - Shared
+
+**Responsibilities**:
+- Type definitions
+- Constants
+- Message protocols
+
+**Contents**:
+- Action enums
+- WebRTC types
+- File transfer types
+- Resume data
+
+---
+
+## 🔧 Technical Deep Dive
+
+### WebRTC Connection Mechanism
+
+#### 🔄 Connection Flow
+
+**1. Initialization**
+```typescript
+private initialize(): void {
+  this.pc = new RTCPeerConnection({
+    iceServers: this.config.iceServers,
+  })
+
+  this.pc.ondatachannel = this.onDataChannel
+  this.pc.onicecandidate = this.onIceCandidate
+  this.pc.onconnectionstatechange = this.onConnectionStateChange
+}
+```
+
+**2. Signaling**
+
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant S as Signal Server
+    participant B as Client B
+
+    A->>S: 1. Create Offer
+    S->>B: 2. Forward Offer
+    B->>S: 3. Create Answer
+    S->>A: 4. Forward Answer
+    A->>S: 5. Send ICE
+    S->>B: 6. Forward ICE
+    B->>S: 7. Send ICE
+    S->>A: 8. Forward ICE
+    A->>B: 9. P2P Established
+```
+
+**3. Key Steps**
+
+**Step 1: Create Offer**
+- Generates SDP Offer
+- Sends via signaling server
+
+**Step 2: Handle Answer**
+- Processes remote SDP Answer
+- Begins ICE exchange
+
+**Step 3: ICE Exchange**
+- Gathers network candidates
+- Establishes optimal path
+
+**Step 4: Data Channel**
+- Opens transfer channel
+- Begins file transfer
+
+#### 🔧 Signaling Server Role
+
+1. **SDP relay**: Forwards Offers/Answers
+2. **ICE relay**: Shares connection candidates
+3. **Room management**: Tracks connections
+4. **Health monitoring**: Checks connection status
+
+#### 📡 Data Channel
+
+```typescript
+const channelOptions = {
+  ordered: true,
+  maxRetransmits: 3,
+}
+
+if (this.channel.bufferedAmount > threshold) {
+  await this.waitUntilChannelIdle()
+}
+```
+
+**Flow Control**:
+- Monitors `bufferedAmount`
+- Implements backpressure
+- Supports pause/resume
+
+---
+
+### Resume Transfer Mechanism
+
+#### 🏗️ Architecture
+
+Components:
+1. **ResumeManager**: Cache
+2. **FileSendManager**: Sender logic
+3. **FileDownloadManager**: Receiver logic
+4. **WebRTC**: Offset negotiation
+
+#### 🔍 Code Flow Tags
+
+Key positions marked with `@number. description` format
+
+**How to view**:
+
+1. **Use VSCode Todo Tree Enhanced**:
+   - Configured in `.vscode/settings.json`
+   - View in "TODO TREE Enhanced" panel
+   - Click to navigate
+
+2. **Manual search**:
+   - Search for `@01.` `@02.` etc.
+
+#### 🔄 Offset Negotiation
+
+```mermaid
+sequenceDiagram
+    participant S as Sender
+    participant R as Receiver
+
+    S->>R: 1. FileMetas
+    R->>R: 2. Check cache
+    R->>S: 3. ResumeInfo (offset)
+    S->>S: 4. Set FileChunker
+
+    S->>R: 5. NewFile
+    S->>R: 6. Data chunks
+    R->>R: 7. Rebuild file
+    S->>R: 8. FileDone
+```
+
+#### 💾 Cache Management
+
+**Data Structure**:
+
+```typescript
+interface ResumeCacheItem {
+  fileHash: string
+  fileName: string
+  fileSize: number
+  chunks: ArrayBuffer[]
+  downloadedBytes: number
+  createdAt: number
+  updatedAt: number
+}
+```
+
+**Operations**:
+- `createResumeCache()`
+- `appendChunk()`
+- `getResumeInfo()`
+- `deleteResumeCache()`
+- `cleanupExpiredCache()`
+
+#### ⚠️ Error Handling
+
+**Fallback**:
+
+```typescript
+try {
+  const cachedChunks = await this.resumeManager.getCachedChunks(fileHash)
+}
+catch (error) {
+  await this.resumeManager.deleteResumeCache(fileHash)
+}
+```
+
+Ensures basic transfer works even if resume fails.
+
+---
+
+<div align="center">
+
+**🌟 If you find this useful, give it a ⭐!**
+
+---
+
+**📧 Contact**
 
 [![Email](https://img.shields.io/badge/Email-Contact-blue?style=flat-square&logo=gmail)](mailto:2662442385@qq.com)
 

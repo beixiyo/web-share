@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web-share:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SERVER_URL_ARG: http://localhost:3001
+    ports:
+      - "7001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped

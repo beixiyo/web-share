@@ -1,5 +1,7 @@
 export const THEME_KEY = 'theme'
 
+export const CHUNK_SIZE = 12 * 1024
+
 export const ResumeConfig = {
   /** 断点续传缓存键前缀 */
   RESUME_CACHE_KEY_PREFIX: 'resume_cache_',

@@ -1,4 +1,5 @@
-import type { AppendChunkPayload, WorkerMessage, WorkerResponse } from './types'
+import type { StoreChunkPayload, WorkerMessage, WorkerResponse } from './types'
+import type { ChunkInfo } from '@/types'
 import ResumeWorker from './resumeWorker?worker'
 
 /**
@@ -61,29 +62,36 @@ export class WorkerManager {
   }
 
   /**
-   * 在 Worker 中执行 appendChunk 操作
+   * 在 Worker 中存储数据块
+   * 使用指定的键名直接存储数据块
    */
-  async appendChunk(
-    fileHash: string,
-    chunk: Uint8Array,
-    offset: number,
+  async storeChunk(
+    chunkKey: string,
+    chunkInfo: ChunkInfo,
     config?: LocalForageOptions,
   ): Promise<void> {
     try {
       /** 创建数据的深拷贝，确保传输到 Worker 时数据完整 */
-      const safeChunk = new Uint8Array(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength))
+      const safeData = new Uint8Array(chunkInfo.data.buffer.slice(
+        chunkInfo.data.byteOffset,
+        chunkInfo.data.byteOffset + chunkInfo.data.byteLength,
+      ))
 
-      const payload: AppendChunkPayload = {
-        fileHash,
-        chunk: safeChunk,
-        offset,
+      const safeChunkInfo: ChunkInfo = {
+        ...chunkInfo,
+        data: safeData,
+      }
+
+      const payload: StoreChunkPayload = {
+        chunkKey,
+        chunkInfo: safeChunkInfo,
         config,
       }
 
-      await this.sendMessage('appendChunk', payload)
+      await this.sendMessage('storeChunk', payload)
     }
     catch (error) {
-      console.error(`Worker appendChunk 失败: ${fileHash}, offset: ${offset}`, error)
+      console.error(`Worker storeChunk 失败: ${chunkKey}`, error)
       throw error
     }
   }

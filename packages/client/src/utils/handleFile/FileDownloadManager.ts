@@ -1,8 +1,11 @@
 import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
-import type { FileInfo } from '@/types/fileInfo'
+import type { ChunkMetaData, FileInfo } from '@/types'
 import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
 import { Action } from 'web-share-common'
+import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
+import { Log, Message } from '..'
+import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
 /**
  * 独立的文件下载管理器
@@ -14,11 +17,6 @@ export class FileDownloadManager {
   private downloader?: StreamDownloader
   private downloadRafId?: number
   private downloadBuffer: Uint8Array[] = []
-
-  /** 添加数据块计数器，用于计算文件偏移量 */
-  private dataChunkCounter: number = 0
-  /** 当前文件的起始偏移量（断点续传时使用） */
-  private currentStartOffset: number = 0
 
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
@@ -68,13 +66,14 @@ export class FileDownloadManager {
       mimeType: fileMeta.type as MIMEType,
     })
 
+    let lastOffset = -1
     /**
      * 避免缓存恢复和新数据接收之间的竞态条件
      */
     if (resumeInfo.hasCache) {
       console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
-      await this.restoreCachedData()
-      await wait(20)
+      lastOffset = await this.restoreCachedData()
+      await wait(80)
     }
 
     /** 开始处理缓冲区 */
@@ -83,8 +82,10 @@ export class FileDownloadManager {
     /** 发送准备就绪消息，包含偏移量 */
     const response: ResumeInfo = {
       fileHash: this.currentFileHash,
-      startOffset: resumeInfo.startOffset,
-      hasCache: resumeInfo.hasCache,
+      startOffset: lastOffset === -1
+        ? 0
+        : lastOffset + CHUNK_SIZE,
+      hasCache: lastOffset !== -1,
       fromId: fileMeta.fromId, // fromId in fileMeta is the sender's peerId
     }
 
@@ -95,16 +96,6 @@ export class FileDownloadManager {
     })
 
     console.warn(`准备接收文件: ${fileMeta.name}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
-  }
-
-  /**
-   * 重置数据块计数器，在每次开始新文件传输时调用
-   * @param startOffset 断点续传的起始偏移量，用于正确初始化计数器
-   */
-  resetDataChunkCounter(startOffset: number = 0): void {
-    this.dataChunkCounter = 0
-    this.currentStartOffset = startOffset
-    console.warn(`重置数据块计数器: startOffset=${startOffset}, chunkSize=${this.config.chunkSize}, 将从偏移量 ${startOffset} 开始接收`)
   }
 
   /**
@@ -148,33 +139,44 @@ export class FileDownloadManager {
    * 接收数据块
    */
   receiveDataChunk(data: Uint8Array): void {
-    /** 创建数据的安全拷贝，避免 detached buffer 问题 */
-    const safeData = new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
+    try {
+      /** 使用BinaryMetadataEncoder解码数据 */
+      const decoded = BinaryMetadataEncoder.decode<ChunkMetaData>(data.buffer as ArrayBuffer)
 
-    this.downloadBuffer.push(safeData)
+      /** 从解码后的元数据中获取偏移量和文件哈希 */
+      const { metadata, buffer } = decoded
+      const { fileHash, offset } = metadata
 
-    /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
-    if (this.currentFileHash) {
-      /**
-       * 偏移量 = 起始偏移量 + 已接收的数据块总大小
-       */
-      const currentOffset = this.currentStartOffset + (this.dataChunkCounter * this.config.chunkSize)
+      /** 确保文件哈希匹配 */
+      if (this.currentFileHash && fileHash !== this.currentFileHash) {
+        console.warn(`收到的文件哈希不匹配: 期望=${this.currentFileHash}, 实际=${fileHash}`)
+        return
+      }
 
-      this.dataChunkCounter++
+      /** 将解码后的实际数据添加到下载缓冲区 */
+      const actualData = new Uint8Array(buffer)
+      this.downloadBuffer.push(actualData)
 
-      /** 异步添加到缓存，使用安全的数据拷贝 */
-      this.resumeManager.appendChunkToCache(this.currentFileHash, safeData, currentOffset)
-        .catch((error) => {
-          console.error('添加数据块到缓存失败:', error)
-          /** 记录详细的错误信息用于调试 */
-          console.error('错误详情:', {
-            fileHash: this.currentFileHash,
-            offset: currentOffset,
-            dataLength: safeData.byteLength,
-            bufferDetached: safeData.buffer.byteLength === 0 && safeData.byteLength > 0,
-            error: error.message,
+      /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
+      if (this.currentFileHash) {
+        /** 异步添加到缓存，使用安全的数据拷贝和准确的偏移量 */
+        this.resumeManager.appendChunkToCache(this.currentFileHash, actualData, offset)
+          .catch((error) => {
+            console.error('添加数据块到缓存失败:', error)
+            /** 记录详细的错误信息用于调试 */
+            console.error('错误详情:', {
+              fileHash: this.currentFileHash,
+              offset,
+              dataLength: actualData.byteLength,
+              bufferDetached: actualData.buffer.byteLength === 0 && actualData.byteLength > 0,
+              error: error.message,
+            })
           })
-        })
+      }
+    }
+    catch (error) {
+      console.error('解码数据块失败:', error)
+      this.config.onError?.(`解码数据块失败: ${error}`)
     }
   }
 
@@ -200,9 +202,6 @@ export class FileDownloadManager {
       /** 创建新的断点续传缓存 */
       await this.resumeManager.createResumeCache(fileInfo.name, fileInfo.size)
     }
-
-    /** 根据断点续传信息正确初始化数据块计数器 */
-    this.resetDataChunkCounter(resumeInfo.startOffset)
   }
 
   /**
@@ -266,47 +265,35 @@ export class FileDownloadManager {
   /**
    * 恢复缓存的数据到下载缓冲区（优化版本 - 流式处理）
    */
-  private async restoreCachedData(): Promise<void> {
+  private async restoreCachedData(): Promise<number> {
     if (!this.currentFileHash) {
-      return
+      return -1
     }
 
-    try {
-      /** 使用流式处理，避免一次性加载所有数据到内存 */
-      const chunkStream = this.resumeManager.getCachedChunksStream(this.currentFileHash)
-      let chunkCount = 0
+    /** 使用流式处理，避免一次性加载所有数据到内存 */
+    const chunkStream = this.resumeManager.getCachedChunksStream(this.currentFileHash)
+    let chunkCount = 0
+    let lastOffset = 0
 
-      /** 流式处理每个数据块 */
-      for await (const chunk of chunkStream) {
-        await this.writeFileBuffer(chunk)
-        chunkCount++
+    /** 流式处理每个数据块 */
+    for await (const chunk of chunkStream) {
+      lastOffset = chunk.offset
+      await this.writeFileBuffer(chunk.data)
+      chunkCount++
 
-        /** 每处理100个数据块输出一次进度 */
-        if (chunkCount % 100 === 0) {
-          console.warn(`恢复缓存数据进度: ${this.currentFileHash}, 已处理: ${chunkCount} 个数据块`)
-        }
-      }
-
-      if (chunkCount > 0) {
-        console.warn(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
+      /** 每处理100个数据块输出一次进度 */
+      if (chunkCount % 100 === 0) {
+        console.warn(`恢复缓存数据进度: ${this.currentFileHash}, 已处理: ${chunkCount} 个数据块`)
       }
     }
-    catch (error) {
-      console.error('恢复缓存数据失败:', error)
-      /**
-       * 恢复失败不应该阻止文件下载，只是记录错误
-       * 如果缓存损坏，可以考虑清理缓存
-       */
-      if (this.currentFileHash) {
-        try {
-          await this.resumeManager.deleteResumeCache(this.currentFileHash)
-          console.warn(`缓存损坏已清理: ${this.currentFileHash}`)
-        }
-        catch (cleanupError) {
-          console.error('清理损坏缓存失败:', cleanupError)
-        }
-      }
+
+    if (chunkCount > 0) {
+      Log.info(`恢复数据偏移量: ${lastOffset}`)
+      Log.success(`缓存数据恢复完成: ${this.currentFileHash}, 总计: ${chunkCount} 个数据块`)
+      return lastOffset
     }
+
+    return -1
   }
 
   /**
@@ -401,5 +388,4 @@ export interface FileDownloadConfig {
   onError?: (error: string) => void
   /** 检查通道是否关闭 */
   isChannelClosed: () => boolean
-  chunkSize: number
 }

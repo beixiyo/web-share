@@ -1,6 +1,8 @@
+import type { ChunkInfo } from '@/types'
 import localforage from 'localforage'
-import { ResumeConfig } from '@/config'
+import { CHUNK_SIZE, ResumeConfig } from '@/config'
 import { cleanupWorkerManager, getWorkerManager } from '@/worker/WorkerManager'
+import { Log } from '..'
 
 /**
  * 断点续传管理器
@@ -44,8 +46,18 @@ export class ResumeManager {
   /**
    * 获取缓存键名
    */
-  private getCacheKey(fileHash: string): string {
+  static getCacheKey(fileHash: string): string {
     return `${ResumeConfig.RESUME_CACHE_KEY_PREFIX}${fileHash}`
+  }
+
+  /**
+   * 获取数据块键名
+   * 使用文件哈希和偏移量确保唯一性
+   */
+  static getChunkKey(fileHash: string, offset?: number): string {
+    return offset === undefined
+      ? `${ResumeConfig.RESUME_CHUNK_KEY_PREFIX}${fileHash}_`
+      : `${ResumeConfig.RESUME_CHUNK_KEY_PREFIX}${fileHash}_${offset}`
   }
 
   /**
@@ -97,7 +109,7 @@ export class ResumeManager {
     }
 
     /** 保存缓存项 */
-    const cacheKey = this.getCacheKey(fileHash)
+    const cacheKey = ResumeManager.getCacheKey(fileHash)
     await this.localForageInstance.setItem(cacheKey, cacheItem)
 
     /** 更新元数据 */
@@ -123,9 +135,50 @@ export class ResumeManager {
    */
   async appendChunkToCache(fileHash: string, chunk: Uint8Array, offset: number): Promise<void> {
     try {
-      /** 使用 Web Worker 执行 appendChunk 操作 */
+      /** 更新缓存项的最大偏移量和总块数 */
+      const cacheKey = ResumeManager.getCacheKey(fileHash)
+      const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
+
+      if (cacheItem) {
+        /** 更新缓存项信息 */
+        const chunkSize = chunk.byteLength
+        const newOffset = offset + chunkSize
+        const downloadedBytes = Math.max(cacheItem.downloadedBytes, newOffset)
+
+        /** 更新缓存项 */
+        const updatedCacheItem: ResumeCacheItem = {
+          ...cacheItem,
+          totalChunks: cacheItem.totalChunks + 1,
+          downloadedBytes,
+          updatedAt: Date.now(),
+        }
+
+        await this.localForageInstance.setItem(cacheKey, updatedCacheItem)
+
+        /** 更新元数据 */
+        const metadata = await this.getMetadata()
+        if (metadata[fileHash]) {
+          metadata[fileHash].downloadedBytes = downloadedBytes
+          metadata[fileHash].updatedAt = Date.now()
+          await this.saveMetadata(metadata)
+        }
+      }
+
+      const chunkKey = ResumeManager.getChunkKey(fileHash, offset)
+      const existChunk = await this.localForageInstance.getItem(chunkKey)
+      if (existChunk) {
+        console.warn(`数据块已存在: ${fileHash}, 偏移: ${offset}`)
+        return
+      }
+
       const workerManager = getWorkerManager()
-      await workerManager.appendChunk(fileHash, chunk, offset, ResumeConfig.localForageOptions)
+      const chunkInfo: ChunkInfo = {
+        chunkSize: chunk.byteLength,
+        data: chunk,
+        offset,
+      }
+
+      await workerManager.storeChunk(chunkKey, chunkInfo, ResumeConfig.localForageOptions)
     }
     catch (error) {
       console.error(`Worker appendChunk 失败: ${fileHash}, 偏移: ${offset}`, error)
@@ -138,46 +191,64 @@ export class ResumeManager {
    * 避免一次性加载所有数据到内存
    * 按照文件偏移量顺序逐个读取数据块
    */
-  async* getCachedChunksStream(fileHash: string): AsyncGenerator<Uint8Array, void, unknown> {
-    try {
-      const cacheKey = this.getCacheKey(fileHash)
-      const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
+  async* getCachedChunksStream(fileHash: string): AsyncGenerator<ChunkInfo, void, unknown> {
+    const cacheKey = ResumeManager.getCacheKey(fileHash)
+    const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
 
-      if (!cacheItem || cacheItem.totalChunks === 0) {
-        console.warn(`没有找到缓存数据: ${fileHash}`)
-        return
-      }
+    if (!cacheItem || cacheItem.totalChunks === 0) {
+      console.warn(`没有找到缓存数据: ${fileHash}`)
+      return
+    }
 
-      /** 获取所有数据块键并按偏移量排序 */
-      const chunkKeys = await this.getAllChunkKeys(fileHash)
+    /** 获取所有数据块键并按偏移量排序 */
+    const chunkKeys = await this.getAllChunkKeys(fileHash)
 
-      if (chunkKeys.length === 0) {
-        console.warn(`没有找到数据块: ${fileHash}`)
-        return
-      }
+    if (chunkKeys.length === 0) {
+      console.warn(`没有找到数据块: ${fileHash}`)
+      return
+    }
 
-      const sortedOffsets = chunkKeys
-        .map((key) => {
-          const offsetStr = key.split('_').pop()
-          return { key, offset: Number.parseInt(offsetStr || '0', 10) }
-        })
-        .sort((a, b) => a.offset - b.offset)
+    let sortedOffsets = chunkKeys
+      .map((key) => {
+        const offsetStr = key.split('_').pop()
+        return { key, offset: Number.parseInt(offsetStr || '0', 10) }
+      })
+      .sort((a, b) => a.offset - b.offset)
 
-      console.warn(`开始恢复缓存数据: ${fileHash}, 数据块数量: ${sortedOffsets.length}`)
+    // ======================
+    // * 校验数据偏移连续性
+    // ======================
+    let offsetIndex = 0
+    let isInvalid = false
 
-      for (const { key, offset } of sortedOffsets) {
-        const chunkInfo = await this.localForageInstance.getItem<ChunkInfo>(key)
-        if (chunkInfo && chunkInfo.data && chunkInfo.data.byteLength > 0) {
-          yield chunkInfo.data
-        }
-        else {
-          console.warn(`数据块损坏或为空: offset=${offset}`)
-        }
+    for (const { offset } of sortedOffsets) {
+      if (offset !== offsetIndex++ * CHUNK_SIZE) {
+        Log.error(`数据块不连续: ${fileHash}，期望偏移: ${offsetIndex * CHUNK_SIZE}, 实际偏移: ${offset}， 放弃部分数据 ${offsetIndex * CHUNK_SIZE}`)
+
+        isInvalid = true
+        sortedOffsets = sortedOffsets.slice(0, offsetIndex - 1)
+        break
       }
     }
-    catch (error) {
-      console.error(`流式读取缓存数据块失败: ${fileHash}`, error)
-      throw error
+    // ======================
+    // * 校验数据偏移连续性
+    // ======================
+
+    console.warn(`开始恢复缓存数据: ${fileHash}, 数据块数量: ${sortedOffsets.length}`)
+
+    for (const { key, offset } of sortedOffsets) {
+      const chunkInfo = await this.localForageInstance.getItem<ChunkInfo>(key)
+      if (chunkInfo && chunkInfo.data && chunkInfo.data.byteLength > 0) {
+        yield chunkInfo
+      }
+      else {
+        console.warn(`数据块损坏或为空: offset=${offset}`)
+      }
+    }
+
+    if (isInvalid) {
+      this.deleteResumeCache(fileHash)
+      Log.warn(`数据块不连续，已删除缓存: ${fileHash}`)
     }
   }
 
@@ -190,7 +261,8 @@ export class ResumeManager {
 
     /** 遍历所有存储的键，找到属于该文件的数据块 */
     await this.localForageInstance.iterate((_value, key) => {
-      if (key.startsWith(`${ResumeConfig.RESUME_CHUNK_KEY_PREFIX}${fileHash}_`)) {
+      const prefix = ResumeManager.getChunkKey(fileHash)
+      if (key.startsWith(prefix)) {
         keys.push(key)
       }
     })
@@ -203,7 +275,7 @@ export class ResumeManager {
    */
   async deleteResumeCache(fileHash: string): Promise<void> {
     try {
-      const cacheKey = this.getCacheKey(fileHash)
+      const cacheKey = ResumeManager.getCacheKey(fileHash)
       const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
 
       /** 删除所有数据块 - 使用正确的方式获取所有数据块键 */
@@ -311,7 +383,7 @@ export class ResumeManager {
       totalSize += info.downloadedBytes
 
       /** 获取数据块数量 */
-      const cacheKey = this.getCacheKey(fileHash)
+      const cacheKey = ResumeManager.getCacheKey(fileHash)
       const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
       if (cacheItem) {
         totalChunks += cacheItem.totalChunks
@@ -333,7 +405,7 @@ export class ResumeManager {
 /**
  * 断点续传缓存项（优化后，不再存储 chunks 数组）
  */
-export interface ResumeCacheItem {
+export type ResumeCacheItem = {
   /** 文件唯一标识 */
   fileHash: string
   /** 原始文件名 */
@@ -351,21 +423,9 @@ export interface ResumeCacheItem {
 }
 
 /**
- * 数据块信息
- */
-export type ChunkInfo = {
-  /** 数据块大小 */
-  chunkSize: number
-  /** 数据块数据 */
-  data: Uint8Array
-  /** 文件偏移量 */
-  offset: number
-}
-
-/**
  * 断点续传元数据
  */
-export interface ResumeMetadata {
+export type ResumeMetadata = {
   [fileHash: string]: {
     fileName: string
     fileSize: number

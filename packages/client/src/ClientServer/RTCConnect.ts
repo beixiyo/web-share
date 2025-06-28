@@ -1,6 +1,7 @@
 import type { Optional } from '@jl-org/ts-tool'
 import type { Candidate, Sdp, To } from 'web-share-common'
 import { Action } from 'web-share-common'
+import { CHUNK_SIZE } from '@/config'
 
 /**
  * RTCConnect 类 - 专门负责 WebRTC 连接的建立、维护和状态管理
@@ -50,7 +51,6 @@ export class RTCConnect {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       channelLabel: 'data-channel',
       channelOptions: { ordered: true },
-      chunkSize: 1024 * 12,
       bufferedAmountLowThreshold: undefined,
       autoReconnect: true,
       connectionTimeout: 30000,
@@ -546,7 +546,7 @@ export class RTCConnect {
     }
     else if (this.pc?.sctp?.maxMessageSize) {
       /** 默认设置为最大消息大小减去分块大小和一些余量 */
-      channel.bufferedAmountLowThreshold = this.pc.sctp.maxMessageSize - this.config.chunkSize - 50
+      channel.bufferedAmountLowThreshold = this.pc.sctp.maxMessageSize - CHUNK_SIZE - 50
     }
 
     /** 设置事件监听器 */
@@ -629,9 +629,6 @@ export interface RTCConnectConfig {
 
   /** 数据通道选项 */
   channelOptions?: RTCDataChannelInit
-
-  /** 文件分片大小 */
-  chunkSize?: number
 
   /** 缓冲区低阈值 */
   bufferedAmountLowThreshold?: number

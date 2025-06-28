@@ -1,8 +1,11 @@
 import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
-import type { FileInfo } from '@/types/fileInfo'
+import type { ChunkMetaData, FileInfo } from '@/types'
 import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
 import { Action } from 'web-share-common'
+import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
+import { Log } from '..'
+import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
 /**
  * 独立的文件发送管理器
@@ -36,7 +39,7 @@ export class FileSendManager {
         name: file.name,
         size: file.size,
         type: file.type,
-        totalChunkSize: Math.ceil(file.size / this.config.chunkSize),
+        totalChunkSize: Math.ceil(file.size / CHUNK_SIZE),
         fromId: this.config.getPeerId(),
         fileHash: this.resumeManager.generateFileHash(file.name, file.size),
       })
@@ -140,9 +143,10 @@ export class FileSendManager {
 
     /** 创建文件分片器，支持断点续传 */
     const chunker = new FileChunker(file, {
-      chunkSize: this.config.chunkSize,
+      chunkSize: CHUNK_SIZE,
       startOffset,
     })
+    Log.info(`从 ${startOffset} 开始发送数据`)
 
     /** 如果是断点续传，记录日志 */
     if (startOffset > 0) {
@@ -155,16 +159,25 @@ export class FileSendManager {
         throw new Error('RTC channel 已关闭, 中断文件传输')
       }
 
+      const chunkOffset = chunker.currentOffset
       const blob = chunker.next()
       const arrayBuffer = await blob.arrayBuffer()
+
+      /** 使用BinaryMetadataEncoder编码数据块 */
+      const chunkMetadata: ChunkMetaData = {
+        fileHash: this.resumeManager.generateFileHash(file.name, file.size),
+        offset: chunkOffset,
+      }
+
+      const encodedBuffer = BinaryMetadataEncoder.encode(chunkMetadata, arrayBuffer)
 
       /** 处理通道流控制 */
       if (this.config.isChannelAmountHigh()) {
         await this.config.waitUntilChannelIdle()
       }
 
-      // @13. [发送方] 发送文件数据
-      this.config.send(arrayBuffer)
+      // @13. [发送方] 发送文件数据（现在包含元数据）
+      this.config.send(encodedBuffer)
 
       /** 发送进度更新 */
       const progressData: ProgressData = {
@@ -206,8 +219,6 @@ export interface FileSendConfig {
   getPeerId: () => string
   /** 原始文件 Getter */
   getOriginalFile: (fileHash: string) => File | undefined
-  /** 文件分片大小 */
-  chunkSize: number
   /** 进度回调 */
   onProgress?: (data: ProgressData) => void
   /** 错误处理回调 */

@@ -31,7 +31,6 @@ export class RTCPeer extends Peer {
     /** 初始化 RTC 连接管理器 */
     this.rtcConnect = new RTCConnect({
       peerId: this.peerId,
-      chunkSize: this.chunkSize,
       onChannelOpen: (channel) => {
         console.log('RTC: channel 已打开，对端ID:', this.peerId)
         this.onChannelReady?.()
@@ -66,7 +65,6 @@ export class RTCPeer extends Peer {
       onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_DOWNLOAD_ERROR'),
       isChannelClosed: () => this.isChannelClose,
-      chunkSize: this.chunkSize,
     })
 
     /** 初始化文件发送管理器 */
@@ -80,7 +78,6 @@ export class RTCPeer extends Peer {
       getToId: () => this.toId || undefined,
       getPeerId: () => this.peerId,
       getOriginalFile: (fileHash: string) => this.originalFiles.get(fileHash),
-      chunkSize: this.chunkSize,
       onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_SEND_ERROR'),
     })
