@@ -11,7 +11,7 @@ const app = express()
 app
   .use(cors())
   .use(history())
-  .use(express.static(fileURLToPath(new URL('../dist/static', import.meta.url))))
+  .use(express.static(fileURLToPath(new URL('../dist/public', import.meta.url))))
 
 const server = app.listen(PORT, () => {
   console.log(`信令服务器运行在端口 ${PORT}`)

@@ -40,7 +40,7 @@ WORKDIR /app
 
 # 从 'builder' 阶段复制
 COPY --from=builder /app/packages/server/dist ./dist
-COPY --from=builder /app/packages/client/dist ./dist/static
+COPY --from=builder /app/packages/client/dist ./dist/public
 COPY --from=builder /app/deploy/node_modules ./node_modules
 
 # 声明容器在运行时会监听的端口。

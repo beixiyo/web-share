@@ -131,10 +131,7 @@ cd web-share
 #### Docker Deployment
 
 ```bash
-# start
-docker compose up -d
-# remove and stop
-docker compose down
+docker compose down && docker compose up -d
 ```
 
 #### Local Development

@@ -16,3 +16,4 @@ services:
 
 networks:
   net:
+    external: true # 告诉 Docker Compose 使用已存在的 `net` 网络
