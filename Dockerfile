@@ -25,6 +25,12 @@ RUN pnpm install
 # ---- 构建器阶段 (Builder Stage) ----
 FROM dependencies AS builder
 
+# 定义构建参数，用于接收环境变量
+ARG VITE_SERVER_URL
+
+# 设置环境变量，使其在构建过程中可用
+ENV VITE_SERVER_URL=${VITE_SERVER_URL}
+
 # 复制项目的其余所有源代码到工作目录。
 # .dockerignore 文件会确保不必要的的文件 (如 node_modules, .git, 已有的 dist 目录等) 不会被复制。
 COPY . .

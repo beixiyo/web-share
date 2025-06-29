@@ -71,20 +71,9 @@ export class WorkerManager {
     config?: LocalForageOptions,
   ): Promise<void> {
     try {
-      /** 创建数据的深拷贝，确保传输到 Worker 时数据完整 */
-      const safeData = new Uint8Array(chunkInfo.data.buffer.slice(
-        chunkInfo.data.byteOffset,
-        chunkInfo.data.byteOffset + chunkInfo.data.byteLength,
-      ))
-
-      const safeChunkInfo: ChunkInfo = {
-        ...chunkInfo,
-        data: safeData,
-      }
-
       const payload: StoreChunkPayload = {
         chunkKey,
-        chunkInfo: safeChunkInfo,
+        chunkInfo,
         config,
       }
 

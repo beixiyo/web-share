@@ -130,9 +130,11 @@ cd web-share
 
 #### Docker 部署
 
-```bash
-docker compose down && docker compose up -d
-```
+1. 修改 `docker-compose.yaml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址
+2. 启动容器
+  ```bash
+  docker compose down && docker compose up -d
+  ```
 
 #### 本地开发
 

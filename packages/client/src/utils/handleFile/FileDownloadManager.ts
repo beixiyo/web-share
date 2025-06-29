@@ -4,7 +4,7 @@ import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader
 import { Action } from 'web-share-common'
 import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
-import { Log, Message } from '..'
+import { Log } from '..'
 import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
 /**
@@ -159,8 +159,9 @@ export class FileDownloadManager {
 
       /** 如果有当前文件哈希，将数据块添加到断点续传缓存 */
       if (this.currentFileHash) {
-        /** 异步添加到缓存，使用安全的数据拷贝和准确的偏移量 */
-        this.resumeManager.appendChunkToCache(this.currentFileHash, actualData, offset)
+        const safeData = actualData.slice()
+
+        this.resumeManager.appendChunkToCache(this.currentFileHash, safeData, offset)
           .catch((error) => {
             console.error('添加数据块到缓存失败:', error)
             /** 记录详细的错误信息用于调试 */

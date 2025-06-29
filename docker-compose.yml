@@ -4,12 +4,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - VITE_SERVER_URL=wss://YourHost:YourPort
     ports:
       - "7001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - VITE_SERVER_URL=http://localhost:3001
     networks:
       - net
     restart: unless-stopped

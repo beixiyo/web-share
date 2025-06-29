@@ -130,9 +130,11 @@ cd web-share
 
 #### Docker Deployment
 
-```bash
-docker compose down && docker compose up -d
-```
+1. modify `docker-compose.yaml` file's `VITE_SERVER_URL` environment variable to your WebSocket server address
+2. start docker containers
+  ```bash
+  docker compose down && docker compose up -d
+  ```
 
 #### Local Development
 
