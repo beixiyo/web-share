@@ -48,29 +48,36 @@ export class FileSendManager {
       this.fileMetaCache = files.map(getMeta)
 
       const metaPromises = files.map((file) => {
-        return new Promise<FileMeta>(async (resolve, reject) => {
+        return new Promise<FileMeta>(async (resolve) => {
           const res: FileMeta = getMeta(file)
 
-          /** 为第一个图片文件生成预览 */
-          if (res.type.includes('image') && !hasImg) {
+          /**
+           * 为首张可被浏览器解码的图片生成预览
+           * 1. 仅尝试常见浏览器支持的格式，排除 HEIC/HEIF 等
+           * 2. 若生成失败，记录 warning 并继续，不再 reject，避免整个 Promise.all 失败
+           */
+          if (res.type.startsWith('image/') && !hasImg) {
             hasImg = true
             try {
               const url = URL.createObjectURL(file)
               const img = await getImg(url)
-              if (!img) {
-                return reject(new Error('文件预览失败'))
+
+              if (img) {
+                const base64 = await compressImg(img, 'base64', 0.1, 'image/webp')
+                res.base64 = base64
+              }
+              else {
+                console.warn('无法加载图片，跳过预览: ', file.name)
               }
 
-              const base64 = await compressImg(img, 'base64', 0.1, 'image/webp')
-              res.base64 = base64
-              URL.revokeObjectURL(url) // 清理URL
+              URL.revokeObjectURL(url)
             }
             catch (error) {
-              console.warn('生成预览图失败:', error)
-              /** 预览失败不影响文件发送 */
+              console.warn('生成预览图失败，将继续发送文件而不附带预览:', error)
             }
           }
 
+          /** 无论预览是否成功，都正常 resolve，确保元数据发送流程不中断 */
           resolve(res)
         })
       })
