@@ -32,7 +32,7 @@ Enable **LAN** file transfer directly in browsers, no server collects informatio
   - 🔑 End-to-end encryption
 
 #### ⚡ High-performance P2P transfer
-- **🫗 Streaming download**: Traditional frontend downloads require saving all chunks to memory, large transfers may crash
+- **💧 Streaming download**: Traditional frontend downloads require saving all chunks to memory, large transfers may crash. To ensure a proper download on mobile, use Chrome
 - **⬇️ Unlimited file size transfer**: Uses Service Worker or File System Access API for background streaming download (requires browser support)
 - **🔄 Flow control mechanism**: Intelligent buffer management prevents memory overflow and transfer blockage
 - **🌐 Direct connection**: Browser-to-browser direct connection via WebRTC DataChannel
@@ -284,6 +284,9 @@ Dev environment features:
 ## ❓ FAQ
 
 ### 🔧 Technical Issues
+
+**Q: Download failed？**
+A: It's hard to debug browsers on mobile phones, and using Chrome directly can avoid all problems
 
 **Q: WebRTC connection fails?**
 A: Try:
