@@ -22,7 +22,7 @@ export default defineConfig({
     }),
     codeInspectorPlugin({
       bundler: 'vite',
-      editor: 'code',
+      editor: 'cursor',
     }),
   ],
   resolve: {

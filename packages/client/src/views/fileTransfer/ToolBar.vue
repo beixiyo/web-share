@@ -46,12 +46,23 @@
       @click="emit('clearCache')"
     />
 
+    <!-- GitHub仓库链接按钮 -->
+    <Button
+      variant="default"
+      design-style="neumorphic"
+      size="md"
+      :icon-only="true"
+      :left-icon="Github"
+      title="GitHub"
+      @click="openGithubRepo"
+    />
+
     <!-- 其他工具按钮可以在这里添加 -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { KeyRound, Moon, QrCode, Sun, Trash2 } from 'lucide-vue-next'
+import { Github, KeyRound, Moon, QrCode, Sun, Trash2 } from 'lucide-vue-next'
 import Button from '@/components/Button/index.vue'
 import { useTheme } from '@/hooks/useTheme'
 import { toggleThemeWithTransition } from '@/utils/theme'
@@ -75,6 +86,11 @@ const emit = defineEmits<{
 /** 主题相关逻辑 */
 const [theme, setTheme] = useTheme()
 const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
+
+/** 打开GitHub仓库 */
+const openGithubRepo = () => {
+  window.open('https://github.com/beixiyo/web-share', '_blank')
+}
 </script>
 
 <style scoped>

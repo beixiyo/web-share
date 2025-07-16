@@ -2,10 +2,15 @@
   "name": "web-share",
   "type": "module",
   "version": "1.0.0",
-  "description": "",
-  "author": "",
+  "description": "Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!",
+  "author": "CJL <2662442385@qq.com>",
   "license": "MIT",
   "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beixiyo/web-share"
+  },
+  "homepage": "https://github.com/beixiyo/web-share",
   "main": "index.js",
   "scripts": {
     "---dev---": "---dev---",

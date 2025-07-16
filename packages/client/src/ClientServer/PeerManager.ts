@@ -16,6 +16,7 @@ export class PeerManager {
   ) {
     if (typeof RTCPeerConnection === 'undefined') {
       modal.error({
+        title: 'WebRTC 不可用',
         content: 'WebRTC 在你的设备不可用，请尝试关闭浏览器扩展，或者开启无痕模式。如果还不能用，请更新浏览器版本，推荐使用 Chrome 浏览器',
       })
       return
