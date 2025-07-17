@@ -4,18 +4,22 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
-      "runtimeExecutable": "npm",
+      "name": "Debug Server",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": [
+        "--filter",
+        "web-share-server",
         "run",
-        "dev:server"
+        "start:debug"
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "sourceMaps": true // 启用 source map 支持
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/packages/server/dist/**/*.mjs"],
+      "restart": true
     }
   ]
 }

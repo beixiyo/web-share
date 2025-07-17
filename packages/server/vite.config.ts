@@ -23,7 +23,6 @@ export default defineConfig({
   },
 
   build: {
-    sourcemap: true,
     lib: {
       entry: fileURLToPath(new URL('./src/main.ts', import.meta.url)),
       fileName: format => `server.${format === 'es'

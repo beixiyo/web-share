@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "nodemon -w src -e ts -x run-s build start",
     "start": "node dist/server.mjs",
+    "start:debug": "run-s build:debug start",
     "build": "vite build",
+    "build:debug": "vite build --sourcemap",
     "lint": "eslint . --fix"
   },
   "dependencies": {
