@@ -149,9 +149,20 @@ const props = withDefaults(
 const show = defineModel<boolean>()
 /** 计算总体进度 */
 const overallProgress = computed(() => {
-  if (props.progress.total === 0)
+  if (!props.fileSizes || props.fileSizes.length === 0)
     return 0
-  return (props.progress.curIndex + props.progress.progress) / props.progress.total
+
+  const totalSize = props.fileSizes.reduce((acc, size) => acc + size, 0)
+  if (totalSize === 0)
+    return 0
+
+  const completedFilesSize = props.fileSizes
+    .slice(0, props.progress.curIndex)
+    .reduce((acc, size) => acc + size, 0)
+
+  const currentFileProgress = (props.fileSizes[props.progress.curIndex] || 0) * props.progress.progress
+  const totalProgress = completedFilesSize + currentFileProgress
+  return totalProgress / totalSize
 })
 
 /** 当前文件大小 */

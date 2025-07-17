@@ -73,7 +73,7 @@ export class FileDownloadManager {
     if (resumeInfo.hasCache) {
       console.warn(`开始恢复缓存数据: ${this.currentFileHash}`)
       lastOffset = await this.restoreCachedData()
-      await wait(80)
+      await wait(40)
     }
 
     /** 开始处理缓冲区 */
@@ -243,13 +243,6 @@ export class FileDownloadManager {
   }
 
   /**
-   * 处理进度更新
-   */
-  handleProgress(progressData: ProgressData): void {
-    this.config.onProgress?.(progressData)
-  }
-
-  /**
    * 设置文件元数据缓存
    */
   setFileMetaCache(fileMetas: FileMeta[]): void {
@@ -383,8 +376,6 @@ export class FileDownloadManager {
 export interface FileDownloadConfig {
   /** 发送JSON消息的方法 */
   sendJSON: (data: any) => void
-  /** 进度回调 */
-  onProgress?: (data: ProgressData) => void
   /** 错误处理回调 */
   onError?: (error: string) => void
   /** 检查通道是否关闭 */

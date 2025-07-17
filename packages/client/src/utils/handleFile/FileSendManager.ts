@@ -194,9 +194,8 @@ export class FileSendManager {
         filename: this.fileMetaCache[fileIndex].name,
       }
 
-      this.config.sendJSON({ type: Action.Progress, data: progressData })
       this.config.onProgress?.(progressData)
-      // await wait(10)
+      this.config.sendJSON({ type: Action.Progress, data: progressData })
     }
 
     // @15. [发送方] 发送文件完成信号

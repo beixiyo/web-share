@@ -62,7 +62,6 @@ export class RTCPeer extends Peer {
     /** 初始化文件下载管理器 */
     this.fileDownloadManager = new FileDownloadManager({
       sendJSON: data => this.sendJSON(data),
-      onProgress: this.opts.onProgress,
       onError: error => this.broadcastRTCError(error, 'FILE_DOWNLOAD_ERROR'),
       isChannelClosed: () => this.isChannelClose,
     })
@@ -370,7 +369,7 @@ export class RTCPeer extends Peer {
           await this.fileDownloadManager.handleFileDone()
           break
         case Action.Progress:
-          this.fileDownloadManager.handleProgress(data.data)
+          this.opts.onProgress?.(data.data)
           break
 
         /**
