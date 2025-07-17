@@ -111,6 +111,10 @@ export default defineConfig({
       // Safari and Chrome (using variant group for pseudo-element)
       '[&::-webkit-scrollbar]:hidden', // 'hidden' is a utility for 'display: none;'
     ].join(' '),
+
+    'center-x': 'left-1/2 -translate-x-1/2',
+    'center-y': 'top-1/2 -translate-y-1/2',
+    'center': 'center-x center-y',
   },
 
   content: {

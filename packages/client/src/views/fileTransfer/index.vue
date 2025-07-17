@@ -11,6 +11,16 @@
       @clear-cache="showClearCacheModal = true"
     />
 
+    <!-- Chrome 浏览器提示 -->
+    <div class="absolute top-20 center-x p-3 rounded-lg bg-white/80 shadow-md backdrop-blur-sm dark:bg-gray-800/80 dark:shadow-gray-700/50 w-fit">
+      <div class="flex items-center gap-2">
+        <Info class="text-amber-3 dark:text-amber-5" />
+        <p class="text-sm text-gray-700 dark:text-gray-300 text-nowrap">
+          建议使用 Chrome 以确保功能正常
+        </p>
+      </div>
+    </div>
+
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div
       v-if="info"
@@ -173,6 +183,7 @@ import SendTextModal from './SendTextModal.vue'
 import ToolBar from './ToolBar.vue'
 import User from './User.vue'
 import UserSelectorModal from './UserSelectorModal.vue'
+import { Info } from 'lucide-vue-next'
 
 /** 使用各种hooks */
 const userManagement = useUserManagement()
