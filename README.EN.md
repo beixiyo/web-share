@@ -22,7 +22,7 @@
 
 Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!
 
-**Note**: On mobile devices, selecting a file may close the connection and cause the page to refresh. Therefore, try to select files quickly on mobile and avoid choosing too many at once.
+**Note**: On mobile devices, selecting a file may close the connection and cause the page to refresh. Therefore, try to select files quickly on mobile and avoid choosing too many at once. The computer, as the sender, can provide the fastest transmission speed.
 
 ## ✨ Core Feature Highlights
 

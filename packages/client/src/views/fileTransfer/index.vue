@@ -414,7 +414,10 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
   }
 }
 
-/** 事件处理函数 */
+// ======================
+// * 事件处理函数
+// ======================
+
 async function onRequestCreateDirectRoom() {
   const shouldShowModal = await requestCreateDirectRoom(info.value)
   if (shouldShowModal) {
@@ -431,6 +434,7 @@ async function onHandleFileSelect(event: Event) {
     return
   }
 
+  server.connect()
   await connectRTCChannel(selectedPeer.value)
   handleFileSelect(event, selectedPeer.value, me.value)
 }

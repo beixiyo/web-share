@@ -117,7 +117,7 @@ export class ServerConnection {
     return JSON.parse(sessionStorage.getItem(USER_INFO) || '{}') as UserInfo
   }
 
-  private connect() {
+  connect() {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline)
       return
 
