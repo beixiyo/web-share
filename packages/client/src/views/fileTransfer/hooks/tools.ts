@@ -33,5 +33,5 @@ export function handleExpired() {
 
   setTimeout(() => {
     location.reload()
-  }, 300)
+  }, 200)
 }
