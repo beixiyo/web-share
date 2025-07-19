@@ -128,8 +128,3 @@ export function cleanupWorkerManager(): void {
     globalWorkerManager = null
   }
 }
-
-/** 页面卸载时清理 Worker */
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', cleanupWorkerManager)
-}

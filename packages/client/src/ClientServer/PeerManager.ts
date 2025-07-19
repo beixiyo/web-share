@@ -57,17 +57,17 @@ export class PeerManager {
      * 只在真正关闭页面时发送离开消息
      * 移动端切后台也会触发
      */
-    window.addEventListener('beforeunload', () => {
-      const userInfo = sessionStorage.getItem(USER_INFO)
-      console.log('页面即将关闭，发送离开消息', userInfo)
-      if (!userInfo)
-        return
+    // window.addEventListener('beforeunload', () => {
+    //   const userInfo = sessionStorage.getItem(USER_INFO)
+    //   console.log('页面即将关闭，发送离开消息', userInfo)
+    //   if (!userInfo)
+    //     return
 
-      this.server.send({
-        type: Action.LeaveRoom,
-        data: JSON.parse(userInfo),
-      })
-    })
+    //   this.server.send({
+    //     type: Action.LeaveRoom,
+    //     data: JSON.parse(userInfo),
+    //   })
+    // })
   }
 
   /**

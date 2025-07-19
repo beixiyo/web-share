@@ -135,7 +135,7 @@ export class ServerConnection {
       url: ServerConnection.endPoint().href,
       leaveTime: -1,
       heartbeatInterval: HEART_BEAT_TIME / 2,
-      stopOnHidden: true,
+      stopOnHidden: false,
       genHeartbeatMsg: () => ({
         data: null,
         type: Action.Ping,
