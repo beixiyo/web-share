@@ -2,7 +2,7 @@ import type { Candidate, FileMeta, ProgressData, ResumeInfo, RTCBaseData, RTCTex
 import type { FileInfo } from '@/types/fileInfo'
 import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
-import { FileDownloadManager, FileSendManager } from '@/utils'
+import { FileDownloadManager, FileSendManager, Message } from '@/utils'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Peer, type PeerOpts } from './Peer'
 import { RTCConnect } from './RTCConnect'
@@ -40,7 +40,6 @@ export class RTCPeer extends Peer {
       },
       onChannelError: (error) => {
         console.warn('RTC Channel: 对方关闭了连接', error)
-        this.broadcastRTCError(`数据通道错误: ${error.type}`, 'CHANNEL_ERROR')
         this.opts.onOtherChannelClose?.(error)
       },
       onMessage: this.onMessage,
@@ -50,19 +49,26 @@ export class RTCPeer extends Peer {
       },
       onConnectionStateChange: (state) => {
         console.log('RTC: 连接状态:', state)
-        if (state === 'failed') {
-          this.broadcastRTCError('RTC连接失败', 'CONNECTION_FAILED')
-        }
       },
-      onError: (error) => {
-        this.broadcastRTCError(error, 'RTC_CONNECT_ERROR')
+      onError: (error, needReload = false) => {
+        const errorText = `RTC错误 [RTC_CONNECT_ERROR]: ${error}`
+        console.error(errorText)
+        Message.error(errorText)
+
+        if (needReload) {
+          this.broadcastRTCError(error, 'RTC_CONNECT_ERROR')
+        }
       },
     })
 
     /** 初始化文件下载管理器 */
     this.fileDownloadManager = new FileDownloadManager({
       sendJSON: data => this.sendJSON(data),
-      onError: error => this.broadcastRTCError(error, 'FILE_DOWNLOAD_ERROR'),
+      onError: (error) => {
+        const errorText = `文件下载错误 [FILE_DOWNLOAD_ERROR]: ${error}`
+        console.error(errorText)
+        Message.error(errorText)
+      },
       isChannelClosed: () => this.isChannelClose,
     })
 
@@ -78,7 +84,11 @@ export class RTCPeer extends Peer {
       getPeerId: () => this.peerId,
       getOriginalFile: (fileHash: string) => this.originalFiles.get(fileHash),
       onProgress: this.opts.onProgress,
-      onError: error => this.broadcastRTCError(error, 'FILE_SEND_ERROR'),
+      onError: (error) => {
+        const errorText = `文件发送错误 [FILE_SEND_ERROR]: ${error}`
+        console.error(errorText)
+        Message.error(errorText)
+      },
     })
   }
 
@@ -205,7 +215,7 @@ export class RTCPeer extends Peer {
       ])
 
       if (!offer) {
-        this.broadcastRTCError('创建 offer 失败', 'SEND_OFFER_ERROR')
+        this.broadcastRTCError('创建 offer 超时', 'SEND_OFFER_TIMEOUT')
         return
       }
 
@@ -308,7 +318,7 @@ export class RTCPeer extends Peer {
    * 广播 RTC 错误到房间内所有成员
    */
   private broadcastRTCError(errorMessage: string, errorType: string) {
-    console.error(`RTC错误 [${errorType}]: ${errorMessage}`)
+    Message.error(`RTC错误 [${errorType}]: ${errorMessage}`)
 
     /** 通过服务端广播错误消息 */
     this.server.send({

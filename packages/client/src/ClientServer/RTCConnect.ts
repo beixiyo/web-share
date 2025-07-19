@@ -681,6 +681,7 @@ export interface RTCConnectConfig {
   /**
    * 错误发生时的回调
    * @param error 错误信息
+   * @param needReload 是否需要重新加载
    */
-  onError?: (error: string) => void
+  onError?: (error: string, needReload?: boolean) => void
 }
