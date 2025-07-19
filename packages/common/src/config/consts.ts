@@ -10,7 +10,7 @@ export const USER_INFO = '__web-share__userInfo'
 export const SELECTED_PEER_ID = '__web-share__selectedPeerId'
 
 export const HEART_BEAT = '__web-share__heartBeat'
-export const HEART_BEAT_TIME = 1000 * 8
+export const HEART_BEAT_TIME = 1000 * 60 * 5
 
 /***************************************************
  *                    Env

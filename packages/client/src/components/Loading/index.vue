@@ -46,7 +46,7 @@ const props = withDefaults(
     loading: undefined,
     __loading: undefined,
     __loadingText: undefined,
-    zIndex: 99,
+    zIndex: 999,
     bgc: '#0005',
     size: 'lg',
   },

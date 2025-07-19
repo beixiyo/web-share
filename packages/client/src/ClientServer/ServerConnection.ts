@@ -134,12 +134,13 @@ export class ServerConnection {
     const ws = new WS({
       url: ServerConnection.endPoint().href,
       leaveTime: -1,
-      heartbeatInterval: HEART_BEAT_TIME - 1000,
+      heartbeatInterval: HEART_BEAT_TIME / 2,
+      stopOnHidden: true,
       genHeartbeatMsg: () => ({
         data: null,
         type: Action.Ping,
       }),
-      onVisible: onConnect,
+      // onVisible: onConnect,
     })
 
     onConnect(ws.connect())
