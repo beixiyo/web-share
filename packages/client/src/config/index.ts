@@ -1,6 +1,6 @@
 export const THEME_KEY = 'theme'
 
-export const CHUNK_SIZE = 12 * 1024
+export const CHUNK_SIZE = 16 * 1024
 
 export const ResumeConfig = {
   /** 断点续传缓存键前缀 */

@@ -1,5 +1,6 @@
 /**
- * 混合编码工具：将元数据与二进制数据合并为单一ArrayBuffer
+ * ## 混合编码工具：将元数据与二进制数据合并为单一ArrayBuffer
+ *
  * @example
  * ```ts
  * const metadata = { offset: 1024, type: "video" }
@@ -12,7 +13,7 @@
  * const encodedLarge = BinaryMetadataEncoder.encode(metadata, buffer, "Uint32")
  *
  * // 解码数据
- * const result = BinaryMetadataEncoder.decode<{ offset: number; type: string }>(encoded);
+ * const result = BinaryMetadataEncoder.decode<{ offset: number; type: string }>(encoded)
  * console.log(result.metadata); // { offset: 1024, type: "video" }
  * console.log(new Uint8Array(result.buffer)); // Uint8Array [1, 2, 3]
  *```
@@ -23,27 +24,30 @@ export class BinaryMetadataEncoder {
    */
   public static readonly Config = {
     MetaLengthType: {
-      Uint8: 1, // 1字节，最大255
-      Uint16: 2, // 2字节，最大65,535
-      Uint32: 4, // 4字节，最大4,294,967,295
-    } as const,
+      Uint8: 1,
+      Uint16: 2,
+      Uint32: 4,
+    } as Record<MetaLengthType, number>,
   }
 
   /**
-   * 编码元数据和二进制数据
+   * ### 编码元数据和二进制数据
+   * - [元数据长度 (x字节)] + [元数据JSON字符串 (n字节)] + [文件块二进制数据 (m字节)]
+   *
    * @param metadata 元数据对象（可JSON序列化）
    * @param buffer 二进制数据（ArrayBuffer或TypedArray）
    * @param metaLengthType 元数据长度存储类型（默认Uint16）
    * @returns 合并后的ArrayBuffer
    */
-  public static encode<T extends Record<string, any>>(
-    metadata: T,
+  public static encode(
+    metadata: any,
     buffer: ArrayBuffer | ArrayBufferView,
-    metaLengthType: keyof typeof BinaryMetadataEncoder.Config.MetaLengthType = 'Uint16',
+    metaLengthType: MetaLengthType = 'Uint16',
   ): ArrayBuffer {
     // 1. 序列化元数据
     const metaStr = JSON.stringify(metadata)
     const metaBuffer = new TextEncoder().encode(metaStr)
+    /** 元数据长度 */
     const metaLength = metaBuffer.length
 
     // 2. 验证元数据长度是否超出范围
@@ -58,7 +62,13 @@ export class BinaryMetadataEncoder {
       : buffer.buffer
 
     // 4. 创建总Buffer
+
+    /** 类型长度 */
     const lengthBytes = BinaryMetadataEncoder.Config.MetaLengthType[metaLengthType]
+    /**
+     * 总长度
+     * 类型长度 + 元数据长度 + 二进制数据长度
+     */
     const totalBuffer = new Uint8Array(lengthBytes + metaLength + dataBuffer.byteLength)
     const view = new DataView(totalBuffer.buffer)
 
@@ -92,7 +102,7 @@ export class BinaryMetadataEncoder {
    */
   public static decode<T extends Record<string, any>>(
     combinedBuffer: ArrayBuffer,
-    metaLengthType: keyof typeof BinaryMetadataEncoder.Config.MetaLengthType = 'Uint16',
+    metaLengthType: MetaLengthType = 'Uint16',
   ): { metadata: T, buffer: ArrayBuffer } {
     const view = new DataView(combinedBuffer)
     const lengthBytes = BinaryMetadataEncoder.Config.MetaLengthType[metaLengthType]
@@ -125,14 +135,21 @@ export class BinaryMetadataEncoder {
     return { metadata, buffer }
   }
 
-  private static getMaxMetaLength(
-    type: keyof typeof BinaryMetadataEncoder.Config.MetaLengthType,
+  public static getMaxMetaLength(
+    type: MetaLengthType,
   ): number {
-    switch (type) {
-      case 'Uint8': return 255
-      case 'Uint16': return 65535
-      case 'Uint32': return 4294967295
-      default: throw new Error('Unknown type')
+    const lenMap = {
+      Uint8: 255,
+      Uint16: 65535,
+      Uint32: 4294967295,
     }
+
+    const res = lenMap[type]
+    if (!res) {
+      throw new Error(`Unknown type: ${type}`)
+    }
+    return res
   }
 }
+
+export type MetaLengthType = 'Uint8' | 'Uint16' | 'Uint32'

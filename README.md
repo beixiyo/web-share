@@ -488,16 +488,24 @@ WebRTC（Web Real-Time Communication）是本项目的核心技术，实现了�
 
 **1. 初始化阶段**
 ```typescript
-// RTCConnect.ts - initialize() 方法
-private initialize(): void {
-  this.pc = new RTCPeerConnection({
-    iceServers: this.config.iceServers, // STUN/TURN 服务器配置
-  })
+class RTCConnect {
+  private pc: RTCPeerConnection | null = null
+  private config: any
 
-  // 设置事件监听器
-  this.pc.ondatachannel = this.onDataChannel
-  this.pc.onicecandidate = this.onIceCandidate
-  this.pc.onconnectionstatechange = this.onConnectionStateChange
+  private initialize(): void {
+    this.pc = new RTCPeerConnection({
+      iceServers: this.config.iceServers, // STUN/TURN 服务器配置
+    })
+
+    /** 设置事件监听器 */
+    this.pc.ondatachannel = this.onDataChannel
+    this.pc.onicecandidate = this.onIceCandidate
+    this.pc.onconnectionstatechange = this.onConnectionStateChange
+  }
+
+  private onDataChannel(event: RTCDataChannelEvent) {}
+  private onIceCandidate(event: RTCPeerConnectionIceEvent) {}
+  private onConnectionStateChange(event: Event) {}
 }
 ```
 
@@ -653,8 +661,8 @@ interface ResumeCacheItem {
   fileHash: string
   fileName: string
   fileSize: number
-  chunks: ArrayBuffer[] // 数据块数组
   downloadedBytes: number // 已下载字节数
+  totalChunks: number // 数据块总数
   createdAt: number // 创建时间
   updatedAt: number // 更新时间
 }
@@ -680,7 +688,7 @@ interface ResumeMetadata {
 **缓存管理操作**：
 
 - `createResumeCache()`: 创建新的断点续传缓存
-- `appendChunk()`: 追加数据块到缓存
+- `appendChunkToCache()`: 追加数据块到缓存
 - `getResumeInfo()`: 获取断点续传信息
 - `deleteResumeCache()`: 删除指定缓存
 - `cleanupExpiredCache()`: 清理过期缓存

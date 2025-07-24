@@ -468,14 +468,23 @@ web-share/
 
 **1. Initialization**
 ```typescript
-private initialize(): void {
-  this.pc = new RTCPeerConnection({
-    iceServers: this.config.iceServers,
-  })
+class RTCConnect {
+  private pc: RTCPeerConnection | null = null
+  private config: any
 
-  this.pc.ondatachannel = this.onDataChannel
-  this.pc.onicecandidate = this.onIceCandidate
-  this.pc.onconnectionstatechange = this.onConnectionStateChange
+  private initialize(): void {
+    this.pc = new RTCPeerConnection({
+      iceServers: this.config.iceServers,
+    })
+
+    this.pc.ondatachannel = this.onDataChannel
+    this.pc.onicecandidate = this.onIceCandidate
+    this.pc.onconnectionstatechange = this.onConnectionStateChange
+  }
+
+  private onDataChannel(event: RTCDataChannelEvent) {}
+  private onIceCandidate(event: RTCPeerConnectionIceEvent) {}
+  private onConnectionStateChange(event: Event) {}
 }
 ```
 
@@ -594,8 +603,8 @@ interface ResumeCacheItem {
   fileHash: string
   fileName: string
   fileSize: number
-  chunks: ArrayBuffer[]
   downloadedBytes: number
+  totalChunks: number
   createdAt: number
   updatedAt: number
 }
@@ -603,7 +612,7 @@ interface ResumeCacheItem {
 
 **Operations**:
 - `createResumeCache()`
-- `appendChunk()`
+- `appendChunkToCache()`
 - `getResumeInfo()`
 - `deleteResumeCache()`
 - `cleanupExpiredCache()`
