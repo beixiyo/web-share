@@ -235,7 +235,6 @@ const {
   handleJoinWithCode,
   copyLink,
   handleQuery,
-  restoreRoomCodeIfNeeded,
   handleRoomCodeExpired,
 } = serverConnection
 
@@ -305,9 +304,6 @@ onMounted(() => {
 
   handleQuery(route)
   setupVisibilityHandling()
-
-  /** 恢复保存的房间码 */
-  restoreRoomCodeIfNeeded()
 
   /** 设置剪贴板处理 */
   const setupPasteHandler = createPasteHandler(

@@ -1,3 +1,4 @@
+import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
 import { ref } from 'vue'
 import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
@@ -11,21 +12,8 @@ import { handleExpired } from './tools'
 export function useServerConnection() {
   /** 二维码和房间码相关状态 */
   const qrCodeValue = ref('')
-  const roomCode = ref(getStoredRoomCode())
+  const roomCode = ref('')
   let qrData: string
-
-  /**
-   * 从 sessionStorage 获取已保存的房间码
-   */
-  function getStoredRoomCode(): string {
-    try {
-      return sessionStorage.getItem(ROOM_CODE_KEY) || ''
-    }
-    catch (error) {
-      console.warn('无法从 sessionStorage 读取房间码:', error)
-      return ''
-    }
-  }
 
   /**
    * 保存房间码到 sessionStorage
@@ -97,12 +85,11 @@ export function useServerConnection() {
       return
     }
 
-    if (qrCodeValue.value) {
-      return true // 表示应该显示二维码模态框
-    }
+    /** 每次都重新向后端申请新的二维码，确保房间始终有效 */
+    qrCodeValue.value = ''
 
     server.createDirectRoom()
-    return false
+    return false // 告知外层：正在等待新的二维码
   }
 
   /**
@@ -166,6 +153,7 @@ export function useServerConnection() {
         server.saveUserInfoToSession(info)
       }
 
+      /** 总是更新为最新的房间码 */
       roomCode.value = data.roomCode
       saveRoomCodeToSession(data.roomCode)
       console.log('创建房间码成功:', data.roomCode)
@@ -199,26 +187,13 @@ export function useServerConnection() {
   /**
    * 处理URL查询参数
    */
-  function handleQuery(route: any) {
-    const { roomId, peerId } = route.query
+  function handleQuery(route: RouteLocationNormalized) {
+    const { roomId, peerId } = route.query as { roomId: string, peerId: string }
     if (!roomId || !peerId) {
       return
     }
 
-    // @ts-ignore
     server.joinDirectRoom(roomId, peerId)
-  }
-
-  /**
-   * 检查并恢复房间码状态
-   * 在页面加载时调用，如果有保存的房间码但当前状态为空，则恢复
-   */
-  function restoreRoomCodeIfNeeded() {
-    const storedCode = getStoredRoomCode()
-    if (storedCode && !roomCode.value) {
-      roomCode.value = storedCode
-      console.log('恢复保存的房间码:', storedCode)
-    }
   }
 
   /**
@@ -261,7 +236,6 @@ export function useServerConnection() {
     handleJoinWithCode,
     copyLink,
     handleQuery,
-    restoreRoomCodeIfNeeded,
     handleRoomCodeExpired,
   }
 }

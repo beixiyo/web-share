@@ -1,8 +1,7 @@
 import type { Server } from 'node:http'
 import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import type { RawData } from 'ws'
-import { randomStr } from '@jl-org/tool'
-import { Action, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
+import { Action, ErrorCode, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
 import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
@@ -64,8 +63,14 @@ export class WSServer {
    * 生成设备唯一标识
    */
   private generateDeviceKey(peer: Peer): string {
-    /** 使用IP + 设备名称 + 浏览器信息生成唯一标识 */
-    return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}_${randomStr()}`.replace(/\s+/g, '_')
+    /**
+     * 使用稳定字段(IP + 设备名称 + 浏览器)生成设备唯一标识。
+     * 同一设备短时间内重复连接将得到相同的 key，
+     * 便于服务器识别并进行重连处理。
+     */
+    return `${peer.ip}_${peer.name.deviceName}_${peer.name.browser}`
+      .replace(/\s+/g, '_')
+      .toLowerCase()
   }
 
   /**
@@ -399,7 +404,13 @@ export class WSServer {
           })
         }
         else {
-          this.send(sender, { type: Action.Error, data: { message: '指定的房间或用户不存在' } })
+          this.send(sender, {
+            type: Action.Error,
+            data: {
+              code: ErrorCode.QRCodeExpired,
+              message: '指定的房间或用户不存在',
+            },
+          })
         }
         break
 

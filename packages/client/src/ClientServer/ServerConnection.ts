@@ -1,6 +1,6 @@
 import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import { WS } from '@jl-org/tool'
-import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import { Action, DISPLAY_NAME, ErrorCode, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
 
 /**
@@ -228,6 +228,13 @@ export class ServerConnection {
         break
 
       case Action.Error:
+        const errorCode = data?.data?.code
+        if (errorCode === ErrorCode.QRCodeExpired) {
+          const url = new URL(location.href)
+          /** 拼接新的地址（不带查询参数和哈希），并刷新 */
+          location.href = `${url.protocol}//${url.host}${url.pathname}`
+        }
+
         this.opts.onError?.(data.data)
         break
 
