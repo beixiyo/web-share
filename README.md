@@ -214,40 +214,6 @@ pnpm run build:client  # 构建客户端
 - 选择清理策略（全部/过期/失败）
 - 查看缓存占用空间
 
-### 高级功能
-
-#### 🔧 缓存管理
-
-系统提供了完善的缓存管理功能：
-
-```typescript
-/** 清理过期缓存（7天） */
-await resumeManager.cleanupExpiredCache(7)
-
-/** 获取缓存统计信息 */
-const stats = await resumeManager.getCacheStats()
-
-/** 手动清理指定文件缓存 */
-await resumeManager.deleteResumeCache(fileHash)
-```
-
-#### 📊 传输监控
-
-实时监控传输状态和性能：
-
-- **传输速度**：实时显示当前传输速度
-- **剩余时间**：预估传输完成时间
-- **错误重试**：自动重试失败的传输
-- **连接状态**：显示 WebRTC 连接质量
-
-#### 🛠️ 调试工具
-
-开发环境下提供调试功能：
-
-- **控制台日志**：详细的传输日志
-- **网络状态**：WebRTC 连接统计
-- **性能监控**：内存和 CPU 使用情况
-
 ---
 
 ## 🛠️ 技术栈和依赖
@@ -307,14 +273,6 @@ A: 常见解决方案：
 2. 检查浏览器是否支持 WebRTC
 3. 检查网络环境，确保不在严格的 NAT 或防火墙后
 
-**Q: 断点续传不工作？**
-
-A: 排查步骤：
-1. 检查浏览器存储空间是否充足
-2. 确认 LocalForage 初始化成功
-3. 验证文件哈希生成是否一致
-4. 查看控制台是否有缓存相关错误
-
 ### 🚀 部署问题
 
 **Q: Docker 部署后无法连接？**
@@ -326,14 +284,6 @@ A: 检查清单：
 4. 确认 HTTPS/WSS 证书配置
 
 ### 📱 兼容性问题
-
-**Q: 移动端浏览器兼容性？**
-
-A: 支持情况：
-- ✅ Chrome Mobile 60+
-- ✅ Safari Mobile 14+
-- ✅ Firefox Mobile 55+
-- ❌ 微信内置浏览器（部分功能受限）
 
 **Q: 文件大小限制？**
 
@@ -650,74 +600,6 @@ sequenceDiagram
 1. **偏移量计算**：基于已缓存的数据块大小
 2. **缓存验证**：确保缓存数据的完整性
 3. **状态同步**：发送端和接收端状态保持一致
-4. **错误恢复**：协商失败时的降级处理
-
-#### 💾 状态管理和数据持久化
-
-**缓存数据结构**：
-
-```typescript
-interface ResumeCacheItem {
-  fileHash: string
-  fileName: string
-  fileSize: number
-  downloadedBytes: number // 已下载字节数
-  totalChunks: number // 数据块总数
-  createdAt: number // 创建时间
-  updatedAt: number // 更新时间
-}
-
-interface ResumeMetadata {
-  [fileHash: string]: {
-    fileName: string
-    fileSize: number
-    downloadedBytes: number
-    createdAt: number
-    updatedAt: number
-  }
-}
-```
-
-**持久化策略**：
-
-1. **LocalForage 存储**：使用 IndexedDB 作为主要存储引擎
-2. **分离式设计**：元数据和实际数据分开存储
-3. **过期清理**：自动清理过期的缓存数据
-4. **容错处理**：存储失败不影响正常传输
-
-**缓存管理操作**：
-
-- `createResumeCache()`: 创建新的断点续传缓存
-- `appendChunkToCache()`: 追加数据块到缓存
-- `getResumeInfo()`: 获取断点续传信息
-- `deleteResumeCache()`: 删除指定缓存
-- `cleanupExpiredCache()`: 清理过期缓存
-
-#### ⚠️ 错误处理和边界情况
-
-**常见错误场景**：
-
-1. **缓存损坏**：检测到缓存不一致时，重新开始传输
-2. **网络中断**：保存当前进度，支持重新连接后继续
-3. **存储空间不足**：清理旧缓存或提示用户
-4. **文件变更**：检测文件修改时间，决定是否使用缓存
-
-**容错机制**：
-
-```typescript
-/** 缓存恢复失败的降级处理 */
-try {
-  const cachedChunks = await this.resumeManager.getCachedChunks(fileHash)
-  /** 恢复缓存数据... */
-}
-catch (error) {
-  console.error('恢复缓存数据失败:', error)
-  /** 降级为全新下载，不阻止文件传输 */
-  await this.resumeManager.deleteResumeCache(fileHash)
-}
-```
-
-这种设计确保了即使断点续传功能出现问题，基本的文件传输功能仍然可用，提高了系统的健壮性。
 
 ---
 

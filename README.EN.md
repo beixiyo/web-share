@@ -208,36 +208,6 @@ pnpm run build:client  # Client build
 - Select cleanup policy (all/expired/failed)
 - View cache usage
 
-### Advanced Features
-
-#### 🔧 Cache Management
-
-```typescript
-/** Clean expired cache (7 days) */
-await resumeManager.cleanupExpiredCache(7)
-
-/** Get cache stats */
-const stats = await resumeManager.getCacheStats()
-
-/** Manual cache cleanup */
-await resumeManager.deleteResumeCache(fileHash)
-```
-
-#### 📊 Transfer Monitoring
-
-Real-time stats:
-- Transfer speed
-- ETA
-- Error retries
-- Connection quality
-
-#### 🛠️ Debug Tools
-
-Dev environment features:
-- Detailed logs
-- Network stats
-- Performance metrics
-
 ---
 
 ## 🛠️ Tech Stack
@@ -296,13 +266,6 @@ A: Try:
 2. Check browser support
 3. Check network/NAT settings
 
-**Q: Resume not working?**
-A: Check:
-1. Browser storage space
-2. LocalForage initialization
-3. File hash consistency
-4. Console errors
-
 ### 🚀 Deployment
 
 **Q: Docker deployment issues?**
@@ -313,13 +276,6 @@ A: Verify:
 4. HTTPS/WSS certificates
 
 ### 📱 Compatibility
-
-**Q: Mobile browser support?**
-A: Supported:
-- ✅ Chrome Mobile 60+
-- ✅ Safari Mobile 14+
-- ✅ Firefox Mobile 55+
-- ❌ WeChat browser (limited)
 
 **Q: File size limits?**
 A: Theoretically unlimited with streaming
@@ -566,6 +522,8 @@ Components:
 
 Key positions marked with `@number. description` format
 
+![流程图](./docAssets/code-flow.webp)
+
 **How to view**:
 
 1. **Use VSCode Todo Tree Enhanced**:
@@ -593,44 +551,6 @@ sequenceDiagram
     R->>R: 7. Rebuild file
     S->>R: 8. FileDone
 ```
-
-#### 💾 Cache Management
-
-**Data Structure**:
-
-```typescript
-interface ResumeCacheItem {
-  fileHash: string
-  fileName: string
-  fileSize: number
-  downloadedBytes: number
-  totalChunks: number
-  createdAt: number
-  updatedAt: number
-}
-```
-
-**Operations**:
-- `createResumeCache()`
-- `appendChunkToCache()`
-- `getResumeInfo()`
-- `deleteResumeCache()`
-- `cleanupExpiredCache()`
-
-#### ⚠️ Error Handling
-
-**Fallback**:
-
-```typescript
-try {
-  const cachedChunks = await this.resumeManager.getCachedChunks(fileHash)
-}
-catch (error) {
-  await this.resumeManager.deleteResumeCache(fileHash)
-}
-```
-
-Ensures basic transfer works even if resume fails.
 
 ---
 
