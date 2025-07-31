@@ -43,7 +43,7 @@ export function useServerConnection() {
     onNotifyUserInfo: (data: UserInfo) => void
     onJoinRoom: (data: UserInfo[]) => void
     onLeaveRoom: (data: UserInfo) => void
-    onDirectRoomCreated: (data: RoomInfo) => void
+    onQRCodeRoomCreated: (data: RoomInfo) => void
     onRoomCodeCreated: (data: RoomCodeInfo) => void
     onUserReconnected: (data: any) => void
     setLoading: (state: boolean) => void
@@ -53,7 +53,7 @@ export function useServerConnection() {
       onNotifyUserInfo: callbacks.onNotifyUserInfo,
       onJoinRoom: callbacks.onJoinRoom,
       onLeaveRoom: callbacks.onLeaveRoom,
-      onDirectRoomCreated: callbacks.onDirectRoomCreated,
+      onQRCodeRoomCreated: callbacks.onQRCodeRoomCreated,
       onRoomCodeCreated: callbacks.onRoomCodeCreated,
       onUserReconnected: callbacks.onUserReconnected,
 
@@ -109,9 +109,9 @@ export function useServerConnection() {
   }
 
   /**
-   * 处理服务器创建直接房间的响应
+   * 处理服务器创建二维码
    */
-  async function handleDirectRoomCreated(
+  async function handleQRCodeRommCreate(
     data: RoomInfo,
     info: UserInfo | undefined,
     setLoading: (state: boolean) => void,
@@ -231,7 +231,7 @@ export function useServerConnection() {
     initializeServer,
     requestQRCode,
     requestCreateRoomWithCode,
-    handleDirectRoomCreated,
+    handleQRCodeRommCreate,
     handleRoomCodeCreated,
     handleJoinWithCode,
     copyLink,

@@ -230,7 +230,7 @@ const {
   initializeServer,
   requestQRCode,
   requestCreateRoomWithCode,
-  handleDirectRoomCreated,
+  handleQRCodeRommCreate,
   handleRoomCodeCreated,
   handleJoinWithCode,
   copyLink,
@@ -279,7 +279,7 @@ const { server, peerManager } = initializeServer({
   onNotifyUserInfo,
   onJoinRoom,
   onLeaveRoom,
-  onDirectRoomCreated,
+  onQRCodeRoomCreated,
   onRoomCodeCreated,
   onUserReconnected,
   setLoading,
@@ -446,8 +446,8 @@ async function onHandleFileSelect(event: Event) {
   handleFileSelect(event, selectedPeer.value, me.value)
 }
 
-async function onDirectRoomCreated(data: any) {
-  const shouldShowModal = await handleDirectRoomCreated(data, info.value, setLoading)
+async function onQRCodeRoomCreated(data: any) {
+  const shouldShowModal = await handleQRCodeRommCreate(data, info.value, setLoading)
   if (shouldShowModal) {
     showQrCodeModal.value = true
   }

@@ -385,11 +385,11 @@ export class WSServer {
           roomId: directRoomId,
           peerInfo: sender.getInfo(),
         }
-        this.send(sender, { type: Action.DirectRoomCreated, data: roomInfo })
+        this.send(sender, { type: Action.QRCodeCreated, data: roomInfo })
         break
 
       /** 用户 B 通过扫码请求加入指定房间 */
-      case Action.JoinDirectRoom:
+      case Action.JoinRoomByQRCode:
         const { roomId, peerId } = msg.data as JoinRoomInfo
         const roomToJoin = this.roomMap.get(roomId)
 
@@ -415,7 +415,7 @@ export class WSServer {
         break
 
       /** 用户请求创建带连接码的房间 */
-      case Action.CreateRoomWithCode:
+      case Action.CreateCodeRoom:
         const roomCode = this.generateRoomCode()
         const codeRoomId = `code_${crypto.randomUUID()}`
 
@@ -436,7 +436,7 @@ export class WSServer {
         break
 
       /** 用户通过房间码加入房间 */
-      case Action.JoinRoomWithCode:
+      case Action.JoinRoomByCode:
         const { roomCode: joinCode } = msg.data as JoinRoomCodeInfo
         const targetRoomId = this.roomCodeMap.get(joinCode)
 

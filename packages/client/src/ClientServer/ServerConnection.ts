@@ -77,7 +77,7 @@ export class ServerConnection {
     }
 
     this.send({
-      type: Action.JoinDirectRoom,
+      type: Action.JoinRoomByQRCode,
       data,
     })
   }
@@ -87,7 +87,7 @@ export class ServerConnection {
    */
   createRoomWithCode() {
     this.send({
-      type: Action.CreateRoomWithCode,
+      type: Action.CreateCodeRoom,
       data: null,
     })
   }
@@ -101,7 +101,7 @@ export class ServerConnection {
     }
 
     this.send({
-      type: Action.JoinRoomWithCode,
+      type: Action.JoinRoomByCode,
       data,
     })
   }
@@ -209,8 +209,8 @@ export class ServerConnection {
       /**
        * 扫码连接
        */
-      case Action.DirectRoomCreated:
-        this.opts.onDirectRoomCreated(data.data)
+      case Action.QRCodeCreated:
+        this.opts.onQRCodeRoomCreated(data.data)
         break
 
       /**
@@ -317,7 +317,7 @@ export type ServerConnectionOpts = {
   onJoinRoom: (user: UserInfo[]) => void
   onLeaveRoom: (user: UserInfo) => void
 
-  onDirectRoomCreated: (data: RoomInfo) => void
+  onQRCodeRoomCreated: (data: RoomInfo) => void
   onRoomCodeCreated?: (data: RoomCodeInfo) => void
   onUserReconnected?: (data: UserReconnectedInfo) => void
   onError?: (data: { message: string }) => void

@@ -1,7 +1,8 @@
-# 🔗 Web Airdrop
+# 🔗 Web Share
 
 <p align="center">
   <a href="./README.EN.md">English</a>
+  <a href="./README.md">中文</a>
 </p>
 
 <p align="center">
@@ -16,6 +17,8 @@
 <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: center;">
   <img src="./docAssets/theme.webp" width="300px" />
   <img src="./docAssets/save.webp" width="300px" />
+  <img src="./docAssets/link.webp" width="300px" />
+  <img src="./docAssets/drag.webp" width="300px" />
 </div>
 
 <br />

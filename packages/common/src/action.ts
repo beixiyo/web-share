@@ -7,12 +7,12 @@ export enum Action {
   LeaveRoom = 'LeaveRoom',
 
   CreateQRCodeRoom = 'CreateQRCodeRoom',
-  JoinDirectRoom = 'JoinDirectRoom',
-  DirectRoomCreated = 'DirectRoomCreated',
+  QRCodeCreated = 'QRCodeCreated',
+  JoinRoomByQRCode = 'JoinRoomByQRCode',
 
-  CreateRoomWithCode = 'CreateRoomWithCode',
+  CreateCodeRoom = 'CreateCodeRoom',
   RoomCodeCreated = 'RoomCodeCreated',
-  JoinRoomWithCode = 'JoinRoomWithCode',
+  JoinRoomByCode = 'JoinRoomByCode',
   RoomCodeExpired = 'RoomCodeExpired',
 
   UserReconnected = 'UserReconnected',
