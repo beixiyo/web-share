@@ -35,7 +35,7 @@ export class WSServer {
     opts: WSServerOpts = {},
   ) {
     const defaultOpts: Required<WSServerOpts> = {
-      clearTime: HEART_BEAT_TIME,
+      clearTime: HEART_BEAT_TIME * 1.5,
     }
     this.opts = Object.assign(opts, defaultOpts)
 

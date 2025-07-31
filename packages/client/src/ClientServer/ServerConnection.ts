@@ -134,7 +134,7 @@ export class ServerConnection {
     const ws = new WS({
       url: ServerConnection.endPoint().href,
       leaveTime: -1,
-      heartbeatInterval: HEART_BEAT_TIME / 2,
+      heartbeatInterval: HEART_BEAT_TIME,
       stopOnHidden: false,
       genHeartbeatMsg: () => ({
         data: null,
