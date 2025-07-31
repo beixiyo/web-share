@@ -376,7 +376,7 @@ export class WSServer {
         break
 
       /** 用户 A 请求创建一个用于直接连接的房间 */
-      case Action.CreateDirectRoom:
+      case Action.CreateQRCodeRoom:
         const directRoomId = `direct_${crypto.randomUUID()}`
         /** 将用户 A 移动到这个新房间 */
         this.addToNewRoom(sender, directRoomId)

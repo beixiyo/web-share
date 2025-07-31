@@ -6,7 +6,7 @@ export enum Action {
   JoinRoom = 'JoinRoom',
   LeaveRoom = 'LeaveRoom',
 
-  CreateDirectRoom = 'CreateDirectRoom',
+  CreateQRCodeRoom = 'CreateQRCodeRoom',
   JoinDirectRoom = 'JoinDirectRoom',
   DirectRoomCreated = 'DirectRoomCreated',
 

@@ -77,7 +77,7 @@ export function useServerConnection() {
   /**
    * 请求创建直接连接房间
    */
-  async function requestCreateDirectRoom(
+  async function requestQRCode(
     info: UserInfo | undefined,
   ) {
     if (!info) {
@@ -88,7 +88,7 @@ export function useServerConnection() {
     /** 每次都重新向后端申请新的二维码，确保房间始终有效 */
     qrCodeValue.value = ''
 
-    server.createDirectRoom()
+    server.createQRCodeRoom()
     return false // 告知外层：正在等待新的二维码
   }
 
@@ -229,7 +229,7 @@ export function useServerConnection() {
 
     /** 方法 */
     initializeServer,
-    requestCreateDirectRoom,
+    requestQRCode,
     requestCreateRoomWithCode,
     handleDirectRoomCreated,
     handleRoomCodeCreated,

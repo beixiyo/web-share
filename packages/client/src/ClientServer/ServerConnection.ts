@@ -54,9 +54,9 @@ export class ServerConnection {
   /**
    * 创建房间
    */
-  createDirectRoom() {
+  createQRCodeRoom() {
     this.send({
-      type: Action.CreateDirectRoom,
+      type: Action.CreateQRCodeRoom,
       data: null,
     })
   }

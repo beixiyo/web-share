@@ -5,7 +5,7 @@
     <!-- 工具栏 -->
     <ToolBar
       :qr-code-value="qrCodeValue"
-      @generate-qr-code="onRequestCreateDirectRoom"
+      @generate-qr-code="onRequestQRCode"
       @show-key-management="showKeyManagementModal = true"
       @clear-cache="showClearCacheModal = true" />
 
@@ -228,7 +228,7 @@ const {
   qrCodeValue,
   roomCode,
   initializeServer,
-  requestCreateDirectRoom,
+  requestQRCode,
   requestCreateRoomWithCode,
   handleDirectRoomCreated,
   handleRoomCodeCreated,
@@ -414,10 +414,21 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 // * 事件处理函数
 // ======================
 
-async function onRequestCreateDirectRoom() {
-  const shouldShowModal = await requestCreateDirectRoom(info.value)
-  if (shouldShowModal) {
-    showQrCodeModal.value = true
+async function onRequestQRCode() {
+  loading.value = true
+
+  try {
+    const shouldShowModal = await requestQRCode(info.value)
+    if (shouldShowModal) {
+      showQrCodeModal.value = true
+    }
+  }
+  catch (error) {
+    console.error('生成二维码失败:', error)
+    Message.error('生成二维码失败，请重试')
+  }
+  finally {
+    loading.value = false
   }
 }
 
