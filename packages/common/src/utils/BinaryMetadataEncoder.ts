@@ -18,7 +18,7 @@
  * console.log(new Uint8Array(result.buffer)); // Uint8Array [1, 2, 3]
  *```
  */
-export class BinaryMetadataEncoder {
+ export class BinaryMetadataEncoder {
   /**
    * 配置选项
    */

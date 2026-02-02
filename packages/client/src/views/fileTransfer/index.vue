@@ -549,6 +549,7 @@ async function onClickPeer(peer: UserInfo) {
   if (!me.value)
     return
 
+  me.value.updateRemoteUserInfo(peer)
   setLoading(true, `正在连接 ${peer.name.displayName}...`)
 
   try {

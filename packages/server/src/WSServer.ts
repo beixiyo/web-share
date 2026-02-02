@@ -1,7 +1,7 @@
 import type { Server } from 'node:http'
-import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo, WSDataHeader } from 'web-share-common'
 import type { RawData } from 'ws'
-import { Action, ErrorCode, HEART_BEAT } from 'web-share-common'
+import { Action, BinaryMetadataEncoder, ErrorCode, HEART_BEAT } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
 import { defaultOpts } from './constants'
@@ -253,7 +253,7 @@ export class WSServer {
 
   private onConnection = (peer: Peer) => {
     const { socket } = peer
-    socket.on('message', data => this.onMessage(peer, data))
+    socket.on('message', (data: RawData, isBinary: boolean) => this.onMessage(peer, data, isBinary))
 
     /** 监听WebSocket关闭事件 */
     socket.on('close', (code, reason) => {
@@ -374,7 +374,13 @@ export class WSServer {
     })
   }
 
-  private onMessage = (sender: Peer, data: RawData) => {
+  private onMessage = (sender: Peer, data: RawData, isBinary: boolean) => {
+    /** 处理二进制数据中转 */
+    if (isBinary) {
+      this.handleBinaryRelay(sender, data)
+      return
+    }
+
     let msg: SendData
     try {
       msg = JSON.parse(data.toString())
@@ -537,6 +543,33 @@ export class WSServer {
   }
 
   /**
+   * 处理 WebSocket 二进制中转数据
+   */
+  private handleBinaryRelay(sender: Peer, data: RawData) {
+    if (!this.opts.wsRelayEnabled)
+      return
+
+    try {
+      /** 解码头部信息以获取目标 ID */
+      const buffer = Buffer.isBuffer(data)
+        ? data
+        : Buffer.from(data as any)
+      const { metadata } = BinaryMetadataEncoder.decode<WSDataHeader>(
+        buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+      )
+
+      const targetPeer = this.getRoomPeer(sender.roomId, metadata.toId)
+      if (targetPeer) {
+        /** 原样转发二进制数据给目标用户 */
+        targetPeer.socket.send(data)
+      }
+    }
+    catch (e) {
+      console.error('WebSocket 二进制中转失败:', e)
+    }
+  }
+
+  /**
    * 心跳检测，定时清理离线连接者
    */
   private keepAliveClear() {
@@ -603,4 +636,10 @@ export type WSServerOpts = {
    * @default 300000
    */
   disconnectDelay?: number
+
+  /**
+   * 是否启用 WebSocket 数据中转。
+   * @default true
+   */
+  wsRelayEnabled?: boolean
 }

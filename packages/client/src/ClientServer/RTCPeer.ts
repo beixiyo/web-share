@@ -1,9 +1,12 @@
-import type { Candidate, FileMeta, ProgressData, ResumeInfo, RTCBaseData, RTCTextData, Sdp, SendData, To } from 'web-share-common'
+import type { Candidate, FileMeta, ProgressData, ResumeInfo, RTCBaseData, RTCTextData, Sdp, SendData, To, UserInfo } from 'web-share-common'
 import type { FileInfo } from '@/types/fileInfo'
 import { isStr } from '@jl-org/tool'
-import { Action, SELECTED_PEER_ID } from 'web-share-common'
+import { Action, SELECTED_PEER_ID, WS_RELAY_ENABLED } from 'web-share-common'
 import { FileDownloadManager, FileSendManager, Message } from '@/utils'
+import { RTCTransport, WSTransport } from '@/utils/handleFile/Transports'
 import { ResumeManager } from '@/utils/handleOfflineFile'
+import { isMobile } from '@/utils/isMobile'
+import { Events } from './Events'
 import { Peer, type PeerOpts } from './Peer'
 import { RTCConnect } from './RTCConnect'
 
@@ -74,12 +77,7 @@ export class RTCPeer extends Peer {
 
     /** 初始化文件发送管理器 */
     this.fileSendManager = new FileSendManager({
-      sendJSON: data => this.sendJSON(data),
-      send: data => this.send(data),
       relay: data => this.server.relay(data),
-      waitUntilChannelIdle: () => this.waitUntilChannelIdle(),
-      isChannelAmountHigh: () => this.channelAmountIsHigh,
-      isChannelClosed: () => this.isChannelClose,
       getToId: () => this.toId || undefined,
       getPeerId: () => this.peerId,
       getOriginalFile: (fileHash: string) => this.originalFiles.get(fileHash),
@@ -90,6 +88,45 @@ export class RTCPeer extends Peer {
         Message.error(errorText)
       },
     })
+
+    /** 监听 WebSocket 中转数据 */
+    Events.on(Action.WS_DATA, ({ metadata, buffer }: { metadata: any, buffer: ArrayBuffer }) => {
+      if (metadata.fromId === this.peerId) {
+        this.fileDownloadManager.receiveDataChunk(new Uint8Array(buffer))
+      }
+    })
+
+    this.setupTransport()
+  }
+
+  /**
+   * 更新远程用户信息并重新评估传输层
+   */
+  updateRemoteUserInfo(userInfo: UserInfo) {
+    this.opts.remoteUserInfo = userInfo
+    this.setupTransport()
+  }
+
+  /**
+   * 设置传输层
+   */
+  private setupTransport() {
+    const isWSEnabled = import.meta.env[WS_RELAY_ENABLED] !== 'false'
+    const isRemoteMobile = this.opts.remoteUserInfo?.name.type === 'mobile'
+    const useWSFallback = isWSEnabled && (isMobile() || isRemoteMobile)
+
+    if (useWSFallback) {
+      console.log(`[Transport] 与 ${this.peerId} 的连接使用 WebSocket 中转模式`)
+      const transport = new WSTransport(this.server, this.peerId)
+      this.fileSendManager.setTransport(transport)
+      this.fileDownloadManager.setTransport(transport)
+    }
+    else {
+      console.log(`[Transport] 与 ${this.peerId} 的连接使用 WebRTC P2P 模式`)
+      const transport = new RTCTransport(this.rtcConnect)
+      this.fileSendManager.setTransport(transport)
+      this.fileDownloadManager.setTransport(transport)
+    }
   }
 
   /**
@@ -151,7 +188,13 @@ export class RTCPeer extends Peer {
       data: text,
       type: Action.Text,
     }
-    this.sendJSON(data)
+    const transport = this.fileSendManager.currentTransport
+    if (transport) {
+      transport.sendJSON(data)
+    }
+    else {
+      this.sendJSON(data)
+    }
   }
 
   /**
@@ -184,7 +227,7 @@ export class RTCPeer extends Peer {
 
   /***************************************************
    *                    handler
-   ***************************************************
+   ***************************************************/
 
   /**
    * 向指定用户发送 offer
@@ -403,6 +446,9 @@ export class RTCPeer extends Peer {
 }
 
 export type RTCPeerOpts = {
+  /** 远程用户信息 */
+  remoteUserInfo?: UserInfo
+
   /**
    * 当对方传递文件元信息时触发
    * @param acceptCallback 回调函数内包含一个 PromiseWithResolvers，当你同意接收文件时，resolve 他就会通知对方

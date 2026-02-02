@@ -19,6 +19,9 @@ export const HEART_BEAT_TIME = 1000 * 4
 /** WS 服务器地址 */
 export const SERVER_URL = 'VITE_SERVER_URL'
 
+/** 是否启用 WebSocket 数据中转 */
+export const WS_RELAY_ENABLED = 'VITE_WS_RELAY_ENABLED'
+
 // ======================
 // * Code
 // ======================

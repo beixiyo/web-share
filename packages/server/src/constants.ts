@@ -13,4 +13,8 @@ export const defaultOpts: Required<WSServerOpts> = {
    * 设置为 300s 宽限期，允许用户选完文件后重连
    */
   disconnectDelay: Number(process.env.DISCONNECT_DELAY) || 300 * 1000,
+  /**
+   * 是否启用 WebSocket 数据中转 fallback
+   */
+  wsRelayEnabled: process.env.WS_RELAY_ENABLED !== 'false',
 }

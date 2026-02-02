@@ -1,11 +1,11 @@
 import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
+import type { ITransport } from './Transport'
 import type { ChunkMetaData, FileInfo } from '@/types'
 import { compressImg, FileChunker, getImg, type MIMEType } from '@jl-org/tool'
-import { Action } from 'web-share-common'
+import { Action, BinaryMetadataEncoder } from 'web-share-common'
 import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Log } from '..'
-import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
 /**
  * 独立的文件发送管理器
@@ -15,10 +15,19 @@ export class FileSendManager {
   private config: FileSendConfig
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
+  private transport?: ITransport
 
   constructor(config: FileSendConfig) {
     this.config = config
     this.resumeManager = new ResumeManager()
+  }
+
+  setTransport(transport: ITransport) {
+    this.transport = transport
+  }
+
+  get currentTransport() {
+    return this.transport
   }
 
   /**
@@ -138,6 +147,10 @@ export class FileSendManager {
    * 发送单个文件
    */
   private async sendSingleFile(file: File, fileIndex: number, startOffset: number): Promise<void> {
+    if (!this.transport) {
+      throw new Error('传输层未初始化')
+    }
+
     const fileInfo: FileInfo = {
       lastModified: file.lastModified,
       name: file.name,
@@ -146,7 +159,7 @@ export class FileSendManager {
     }
 
     // @11. [发送方] 发送新文件信号
-    this.config.sendJSON({ type: Action.NewFile, data: fileInfo })
+    this.transport.sendJSON({ type: Action.NewFile, data: fileInfo })
 
     /** 创建文件分片器，支持断点续传 */
     const chunker = new FileChunker(file, {
@@ -162,8 +175,8 @@ export class FileSendManager {
 
     /** 发送文件分片 */
     while (!chunker.done) {
-      if (this.config.isChannelClosed()) {
-        throw new Error('RTC channel 已关闭, 中断文件传输')
+      if (this.transport.isClosed()) {
+        throw new Error(`${this.transport.type.toUpperCase()} 传输已关闭, 中断文件传输`)
       }
 
       const chunkOffset = chunker.currentOffset
@@ -179,12 +192,12 @@ export class FileSendManager {
       const encodedBuffer = BinaryMetadataEncoder.encode(chunkMetadata, arrayBuffer)
 
       /** 处理通道流控制 */
-      if (this.config.isChannelAmountHigh()) {
-        await this.config.waitUntilChannelIdle()
+      if (this.transport.isAmountHigh()) {
+        await this.transport.waitUntilIdle()
       }
 
       // @13. [发送方] 发送文件数据（现在包含元数据）
-      this.config.send(encodedBuffer)
+      this.transport.send(encodedBuffer)
 
       /** 发送进度更新 */
       const progressData: ProgressData = {
@@ -195,11 +208,11 @@ export class FileSendManager {
       }
 
       this.config.onProgress?.(progressData)
-      this.config.sendJSON({ type: Action.Progress, data: progressData })
+      this.transport.sendJSON({ type: Action.Progress, data: progressData })
     }
 
     // @15. [发送方] 发送文件完成信号
-    this.config.sendJSON({ type: Action.FileDone, data: null })
+    this.transport.sendJSON({ type: Action.FileDone, data: null })
   }
 }
 
@@ -207,18 +220,8 @@ export class FileSendManager {
  * 文件发送管理器配置
  */
 export interface FileSendConfig {
-  /** 发送JSON消息的方法 */
-  sendJSON: (data: any) => void
-  /** 发送二进制数据的方法 */
-  send: (data: ArrayBuffer) => void
   /** 【WebSocket】通过服务器中继消息的方法 */
   relay: (data: any) => void
-  /** 等待通道空闲的方法 */
-  waitUntilChannelIdle: () => Promise<void>
-  /** 检查通道缓冲区是否过高 */
-  isChannelAmountHigh: () => boolean
-  /** 检查通道是否关闭 */
-  isChannelClosed: () => boolean
   /** 获取目标用户ID */
   getToId: () => string | undefined
   /** 获取当前用户ID */

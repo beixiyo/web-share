@@ -49,6 +49,7 @@ export default antfu({
       'no-case-declarations': 'off', // 允许 switch case 语句中出现变量声明
       'accessor-pairs': 'off', // 允许在 getter 和 setter 中使用 accessor pairs
       'no-alert': 'off', // 允许使用 alert()
+      'node/prefer-global/buffer': 'off', // 允许使用 Buffer
 
       /**
        * 这个配置没用，还是删除换行，几十年了也不修复

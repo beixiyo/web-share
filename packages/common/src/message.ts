@@ -1,4 +1,5 @@
 import type { Action } from './action'
+import type UAParser from 'ua-parser-js'
 
 /**
  * Base Type
@@ -56,7 +57,7 @@ export type Name = {
   model: string
   os: string
   browser: string
-  type: string
+  type: NonNullable<UAParser.IDevice['type']>
   deviceName: string
   displayName: string
 }
@@ -66,4 +67,9 @@ export type ProgressData = {
   total: number
   curIndex: number
   filename: string
+}
+
+export type WSDataHeader = {
+  toId: string
+  fromId: string
 }

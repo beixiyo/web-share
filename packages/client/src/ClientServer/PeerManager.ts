@@ -144,6 +144,10 @@ export class PeerManager {
   onOffer = (offer: Sdp & To) => {
     const peer = this.getPeer(offer.toId)
     if (peer) {
+      const remoteUser = this.server.allUsers.find(u => u.peerId === offer.fromId)
+      if (remoteUser) {
+        peer.updateRemoteUserInfo(remoteUser)
+      }
       peer.handleOffer(offer)
     }
   }
@@ -165,6 +169,10 @@ export class PeerManager {
   onFileMetas = (data: To & { data: FileMeta[] }) => {
     const peer = this.getPeer(data.toId)
     if (peer) {
+      const remoteUser = this.server.allUsers.find(u => u.peerId === data.fromId)
+      if (remoteUser) {
+        peer.updateRemoteUserInfo(remoteUser)
+      }
       peer.handleFileMetas(data.data)
     }
   }

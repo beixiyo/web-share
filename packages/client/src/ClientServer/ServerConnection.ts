@@ -1,6 +1,6 @@
-import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo, WSDataHeader } from 'web-share-common'
 import { WS } from '@jl-org/tool'
-import { Action, DISPLAY_NAME, ErrorCode, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import { Action, BinaryMetadataEncoder, DISPLAY_NAME, ErrorCode, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
 
 /**
@@ -37,6 +37,22 @@ export class ServerConnection {
       return
     }
     this.server?.send(JSON.stringify(data))
+  }
+
+  /**
+   * 发送二进制数据（带中转头部）
+   */
+  sendBinary(toId: string, payload: ArrayBuffer) {
+    if (!this.isConnected)
+      return
+
+    const header: WSDataHeader = {
+      toId,
+      fromId: this.userInfo.peerId,
+    }
+
+    const encoded = BinaryMetadataEncoder.encode(header, payload)
+    this.server?.send(encoded)
   }
 
   /**
@@ -122,7 +138,7 @@ export class ServerConnection {
       return
 
     const onConnect = (socket: WebSocket) => {
-      // socket.binaryType = 'arraybuffer'
+      socket.binaryType = 'arraybuffer'
       socket.onopen = this.onOpen
       socket.onmessage = this.onMessage
       socket.onclose = this.onClose
@@ -162,6 +178,13 @@ export class ServerConnection {
   }
 
   private onMessage = (ev: MessageEvent) => {
+    /** 处理二进制消息（WebSocket 中转） */
+    if (ev.data instanceof ArrayBuffer) {
+      const { metadata, buffer } = BinaryMetadataEncoder.decode<WSDataHeader>(ev.data)
+      Events.emit(Action.WS_DATA, { metadata, buffer })
+      return
+    }
+
     const data = JSON.parse(ev.data) as SendData<any>
 
     switch (data.type) {
@@ -298,6 +321,7 @@ export class ServerConnection {
       port,
       protocol,
     } = ServerConnection.getUrl('3001')
+
     protocol = protocol === 'https:'
       ? 'wss'
       : 'ws'

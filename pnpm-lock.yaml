@@ -141,6 +141,9 @@ importers:
       tsc-alias:
         specifier: ^1.8.16
         version: 1.8.16
+      ua-parser-js:
+        specifier: ^2.0.3
+        version: 2.0.3
 
   packages/server:
     dependencies:

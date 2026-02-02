@@ -35,6 +35,8 @@ export enum Action {
 
   RTCError = 'RTCError',
   RTCErrorBroadcast = 'RTCErrorBroadcast',
-
   ResumeInfo = 'ResumeInfo',
+
+  /** WebSocket 中转数据 */
+  WS_DATA = 'WS_DATA',
 }

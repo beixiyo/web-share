@@ -1,11 +1,11 @@
 import type { FileMeta, ResumeInfo } from 'web-share-common'
+import type { ITransport } from './Transport'
 import type { ChunkMetaData, FileInfo } from '@/types'
 import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
-import { Action } from 'web-share-common'
+import { Action, BinaryMetadataEncoder } from 'web-share-common'
 import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Log } from '..'
-import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
 /**
  * 独立的文件下载管理器
@@ -22,10 +22,15 @@ export class FileDownloadManager {
   private resumeManager: ResumeManager
   private currentFileHash?: string
   private currentFileIndex: number = -1
+  private transport?: ITransport
 
   constructor(config: FileDownloadConfig) {
     this.config = config
     this.resumeManager = new ResumeManager()
+  }
+
+  setTransport(transport: ITransport) {
+    this.transport = transport
   }
 
   /**
@@ -90,10 +95,18 @@ export class FileDownloadManager {
     }
 
     // @9. [接收方] 发送准备下载响应
-    this.config.sendJSON({
-      type: Action.ResumeInfo,
-      data: response,
-    })
+    if (this.transport) {
+      this.transport.sendJSON({
+        type: Action.ResumeInfo,
+        data: response,
+      })
+    }
+    else {
+      this.config.sendJSON({
+        type: Action.ResumeInfo,
+        data: response,
+      })
+    }
 
     console.warn(`准备接收文件: ${fileMeta.name}, 缓存: ${resumeInfo.hasCache}, 偏移: ${resumeInfo.startOffset}`)
   }

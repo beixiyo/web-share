@@ -8,6 +8,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "web-share-common": [
+        "../common/src"
       ]
     },
     "resolveJsonModule": true,
