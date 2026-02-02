@@ -592,8 +592,12 @@ export class RTCConnect {
     const state = this.pc?.connectionState
     this.config.onConnectionStateChange(state || 'closed')
 
-    if (state === 'failed' || state === 'disconnected') {
-      this.config.onError(`连接状态变为: ${state}`)
+    /**
+     * 只在 failed 状态下尝试重连
+     * disconnected 状态通常在网络波动或切后台时触发，恢复后可能会自动连上
+     */
+    if (state === 'failed') {
+      this.config.onError(`连接状态变为: ${state}，正在尝试重连...`)
 
       if (this.config.autoReconnect) {
         this.reconnect()

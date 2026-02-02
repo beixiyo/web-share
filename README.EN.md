@@ -25,7 +25,9 @@
 
 Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!
 
-**Note**: On mobile devices, selecting a file may close the connection and cause the page to refresh. Therefore, try to select files quickly on mobile and avoid choosing too many at once. The computer, as the sender, can provide the fastest transmission speed.
+**Note (Mobile)**: When opening the system photo picker / file picker on mobile, the browser may suspend the page (pause JS execution/timers), which can stop heartbeats or temporarily drop the WebSocket connection and trigger refresh-like behaviors. You can tune the server tolerances via env vars (unit: milliseconds):
+- `CLEAR_TIME`: offline/heartbeat timeout cleanup threshold, default `300000` (300s)
+- `DISCONNECT_DELAY`: delayed disconnect handling window, default `300000` (300s)
 
 ## ✨ Core Feature Highlights
 
@@ -135,8 +137,9 @@ cd web-share
 
 #### Docker Deployment
 
-1. modify `docker-compose.yaml` file's `VITE_SERVER_URL` environment variable to your WebSocket server address
-2. start docker containers
+1. modify `docker-compose.yml` file's `VITE_SERVER_URL` environment variable to your WebSocket server address
+2. (optional) for better mobile compatibility during file picking, tune `CLEAR_TIME` and `DISCONNECT_DELAY` in `docker-compose.yml` (unit: ms, default `300000`)
+3. start docker containers
   ```bash
   docker compose down && docker compose up -d
   ```

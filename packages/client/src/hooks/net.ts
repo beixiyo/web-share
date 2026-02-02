@@ -30,8 +30,8 @@ export function useReq<T>(
     finally {
       loading.value = false
       onFinally?.()
-      return data
     }
+    return data
   }
 
   return [_req, loading] as const

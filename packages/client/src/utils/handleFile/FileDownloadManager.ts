@@ -1,4 +1,4 @@
-import type { FileMeta, ProgressData, ResumeInfo } from 'web-share-common'
+import type { FileMeta, ResumeInfo } from 'web-share-common'
 import type { ChunkMetaData, FileInfo } from '@/types'
 import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
 import { Action } from 'web-share-common'

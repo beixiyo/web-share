@@ -1,9 +1,10 @@
 import type { Server } from 'node:http'
 import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeInfo, RoomInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import type { RawData } from 'ws'
-import { Action, ErrorCode, HEART_BEAT, HEART_BEAT_TIME } from 'web-share-common'
+import { Action, ErrorCode, HEART_BEAT } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
+import { defaultOpts } from './constants'
 import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 
 export class WSServer {
@@ -30,13 +31,16 @@ export class WSServer {
 
   private rtcErrorBroadcastManager: RTCErrorBroadcastManager
 
+  /**
+   * 记录待执行的断开连接任务
+   * peerId -> Timeout
+   */
+  private pendingDisconnects = new Map<string, any>()
+
   constructor(
     server: Server,
     opts: WSServerOpts = {},
   ) {
-    const defaultOpts: Required<WSServerOpts> = {
-      clearTime: HEART_BEAT_TIME * 1.5,
-    }
     this.opts = Object.assign(opts, defaultOpts)
 
     this.ws = new WebSocketServer({ server })
@@ -118,6 +122,13 @@ export class WSServer {
    * 将用户添加到对应房间
    */
   private addPeerToRoom(peer: Peer) {
+    /** 如果存在待执行的断开任务，取消它 */
+    if (this.pendingDisconnects.has(peer.id)) {
+      clearTimeout(this.pendingDisconnects.get(peer.id))
+      this.pendingDisconnects.delete(peer.id)
+      console.log(`用户 ${peer.name.displayName} 在断开超时前重新连接，取消断开任务`)
+    }
+
     /** 检测重连 */
     const oldPeerId = this.detectAndHandleReconnection(peer)
 
@@ -149,14 +160,17 @@ export class WSServer {
   private removePeerFromRoom(peer: Peer) {
     const room = this.roomMap.get(peer.roomId)
     if (room && room.has(peer.id)) {
-      room.delete(peer.id)
-      console.log(`用户 ${peer.name.displayName} 已从房间 ${peer.roomId} 中移除`)
+      /** 确保移除的是同一个实例 */
+      if (room.get(peer.id) === peer) {
+        room.delete(peer.id)
+        console.log(`用户 ${peer.name.displayName} 已从房间 ${peer.roomId} 中移除`)
 
-      if (room.size === 0) {
-        this.roomMap.delete(peer.roomId)
-        console.log(`房间 ${peer.roomId} 已清空并删除`)
-        /** 清理对应的房间码映射 */
-        this.cleanupRoomCode(peer.roomId)
+        if (room.size === 0) {
+          this.roomMap.delete(peer.roomId)
+          console.log(`房间 ${peer.roomId} 已清空并删除`)
+          /** 清理对应的房间码映射 */
+          this.cleanupRoomCode(peer.roomId)
+        }
       }
     }
 
@@ -255,17 +269,42 @@ export class WSServer {
   }
 
   /**
-   * 处理用户断开连接
+   * 处理用户断开连接（增加延迟处理，兼容移动端切后台）
    */
-  private handlePeerDisconnect(peer: Peer) {
-    console.log(`处理用户断开连接: ${peer.name.displayName}`)
-
-    /** 检查用户是否仍在房间中，避免重复处理 */
-    const room = this.roomMap.get(peer.roomId)
-    if (!room || !room.has(peer.id)) {
-      console.log(`用户 ${peer.name.displayName} 已经不在房间中，跳过断开连接处理`)
+  private handlePeerDisconnect(peer: Peer, immediate = false) {
+    if (immediate) {
+      this.executeDisconnect(peer)
       return
     }
+
+    /** 如果已经有待处理的断开，先清理掉旧的 */
+    if (this.pendingDisconnects.has(peer.id)) {
+      clearTimeout(this.pendingDisconnects.get(peer.id))
+    }
+
+    console.log(`延迟处理用户断开连接: ${peer.name.displayName} (${this.opts.disconnectDelay}ms)`)
+
+    const timeout = setTimeout(() => {
+      this.executeDisconnect(peer)
+    }, this.opts.disconnectDelay)
+
+    this.pendingDisconnects.set(peer.id, timeout)
+  }
+
+  /**
+   * 真正执行用户断开逻辑
+   */
+  private executeDisconnect(peer: Peer) {
+    this.pendingDisconnects.delete(peer.id)
+
+    /** 检查用户是否仍在房间中，且实例匹配 */
+    const room = this.roomMap.get(peer.roomId)
+    if (!room || room.get(peer.id) !== peer) {
+      console.log(`用户 ${peer.name.displayName} 已经不在房间中或已重新连接，跳过执行断开`)
+      return
+    }
+
+    console.log(`执行用户断开连接: ${peer.name.displayName}`)
 
     /** 从房间中移除用户 */
     this.removePeerFromRoom(peer)
@@ -372,7 +411,7 @@ export class WSServer {
 
       case Action.LeaveRoom:
         console.log(`${sender.name.displayName} 离开房间`)
-        this.handlePeerDisconnect(sender)
+        this.handlePeerDisconnect(sender, true)
         break
 
       /** 用户 A 请求创建一个用于直接连接的房间 */
@@ -542,15 +581,7 @@ export class WSServer {
 
       /** 移除离线用户并通知房间内其他用户 */
       peersToRemove.forEach((peer) => {
-        /** 检查peer是否仍在房间中，避免重复处理 */
-        const room = this.roomMap.get(peer.roomId)
-        if (room && room.has(peer.id)) {
-          this.removePeerFromRoom(peer)
-          this.broadcastToRoom(peer.roomId, {
-            type: Action.LeaveRoom,
-            data: peer.getInfo(),
-          })
-        }
+        this.handlePeerDisconnect(peer, true)
       })
     }, this.opts.clearTime)
   }
@@ -558,8 +589,18 @@ export class WSServer {
 
 export type WSServerOpts = {
   /**
-   * 清理离线连接者的时间间隔
-   * @default 1000 * 8
+   * 清理离线连接者的时间间隔（毫秒）。
+   * 移动端在选择文件时可能会挂起 JS 执行，导致无法发送心跳。
+   * 设置一个较长的值可以防止在此期间被服务器误判为离线。
+   * @default 300000
    */
   clearTime?: number
+
+  /**
+   * 用户断开连接后的延迟处理时间（毫秒）。
+   * 当 WebSocket 连接断开时，服务器会等待这段时间，如果用户在时间内重连，则不广播离开消息。
+   * 这对于处理移动端切后台或选择文件导致的短暂连接中断非常有用。
+   * @default 300000
+   */
+  disconnectDelay?: number
 }

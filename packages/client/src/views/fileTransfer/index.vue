@@ -1,20 +1,23 @@
 <template>
   <div
     v-loading="{ loading, text: loadingMessage }"
-    class="relative h-screen flex flex-col items-center justify-center overflow-hidden">
+    class="relative h-screen flex flex-col items-center justify-center overflow-hidden"
+  >
     <!-- 工具栏 -->
     <ToolBar
       :qr-code-value="qrCodeValue"
       @generate-qr-code="onRequestQRCode"
       @show-key-management="showKeyManagementModal = true"
-      @clear-cache="showClearCacheModal = true" />
+      @clear-cache="showClearCacheModal = true"
+    />
 
     <!-- Chrome 浏览器提示 -->
     <div
-      class="absolute top-20 center-x p-3 rounded-lg bg-white/80 shadow-md backdrop-blur-sm dark:bg-gray-800/80 dark:shadow-gray-700/50 w-fit">
+      class="absolute top-20 w-fit rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm center-x dark:bg-gray-800/80 dark:shadow-gray-700/50"
+    >
       <div class="flex items-center gap-2">
         <Info class="text-amber-3 dark:text-amber-5" />
-        <p class="text-sm text-gray-700 dark:text-gray-300 text-nowrap">
+        <p class="text-nowrap text-sm text-gray-700 dark:text-gray-300">
           建议使用 Chrome 以确保功能正常
         </p>
       </div>
@@ -23,24 +26,30 @@
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div
       v-if="info"
-      class="absolute bottom-8 left-1/2 flex flex-col transform items-center -translate-x-1/2 space-y-2">
+      class="absolute bottom-8 left-1/2 flex flex-col transform items-center -translate-x-1/2 space-y-2"
+    >
       <!-- 主要用户信息 -->
       <div
-        class="flex items-center rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm sm:max-w-[calc(100vw-2rem)] space-x-2 dark:bg-gray-800/80 sm:p-2 sm:text-sm dark:shadow-gray-700/50 sm:space-x-1">
+        class="flex items-center rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm sm:max-w-[calc(100vw-2rem)] space-x-2 dark:bg-gray-800/80 sm:p-2 sm:text-sm dark:shadow-gray-700/50 sm:space-x-1"
+      >
         <component
           :is="getDeviceIcon(info.name.type || info.name.os)"
-          class="h-6 w-6 flex-shrink-0 text-emerald-600 sm:h-5 sm:w-5 dark:text-emerald-400" />
+          class="h-6 w-6 flex-shrink-0 text-emerald-600 sm:h-5 sm:w-5 dark:text-emerald-400"
+        />
         <span
-          class="truncate text-gray-700 font-semibold sm:text-xs dark:text-gray-200">
+          class="truncate text-gray-700 font-semibold sm:text-xs dark:text-gray-200"
+        >
           你当前是: <span
-            class="text-emerald-600 dark:text-emerald-400">{{ info.name.displayName }}</span>
+            class="text-emerald-600 dark:text-emerald-400"
+          >{{ info.name.displayName }}</span>
         </span>
       </div>
 
       <!-- 粘贴提示 -->
       <div
         v-if="onlineUsers.length > 0"
-        class="rounded-md bg-white/60 px-2 py-1 text-xs text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400">
+        class="rounded-md bg-white/60 px-2 py-1 text-xs text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400"
+      >
         💡 按 Ctrl+V 粘贴文件或文本快速发送
       </div>
     </div>
@@ -49,32 +58,37 @@
     <User
       v-model="onlineUsers" :info="info"
       @click-peer="onClickPeer"
-      @contextmenu-peer="onContextMenuPeer" />
+      @contextmenu-peer="onContextMenuPeer"
+    />
 
     <!-- 二维码弹窗 -->
     <QrCodeModal
       v-model="showQrCodeModal"
       :qr-code-value="qrCodeValue"
       :show-qr-code-modal="showQrCodeModal"
-      @copy="onCopyLink" />
+      @copy="onCopyLink"
+    />
 
     <!-- 连接码管理弹窗 -->
     <LinkCodeModal
       v-model="showKeyManagementModal"
       :room-code="roomCode"
       @generate-code="onRequestCreateRoomWithCode"
-      @join-with-code="onJoinWithCode" />
+      @join-with-code="onJoinWithCode"
+    />
 
     <!-- 隐藏的文件输入 -->
     <input
       ref="fileInput" type="file" class="hidden"
       multiple
-      @change="onHandleFileSelect">
+      @change="onHandleFileSelect"
+    >
 
     <!-- 文件传输进度弹窗 -->
     <ProgressModal
       :model-value="progress.total > 0"
-      :progress="progress" :file-sizes="currentFileSizes" />
+      :progress="progress" :file-sizes="currentFileSizes"
+    />
 
     <!-- 发送文本对话框 -->
     <SendTextModal
@@ -82,7 +96,8 @@
       v-model="showTextInput"
       :to-name="selectedPeer?.name?.displayName || '--'"
       @close="showTextInput = false"
-      @send="sendText" />
+      @send="sendText"
+    />
 
     <!-- 接收文件提示 -->
     <AcceptModal
@@ -90,14 +105,16 @@
       :file-metas="currentFileMetas"
       :preview-src="previewSrc"
       :from-user="fromUser"
-      @accept="onAcceptFile" @deny="onDenyFile" />
+      @accept="onAcceptFile" @deny="onDenyFile"
+    />
 
     <!-- 接收文本弹窗 -->
     <AcceptTextModal
       v-model="showAcceptText"
       :text="acceptText"
       @close="showAcceptText = false"
-      @copy="onCopyText" />
+      @copy="onCopyText"
+    />
 
     <!-- 用户选择器弹窗 -->
     <UserSelectorModal
@@ -106,12 +123,14 @@
       :content-type="clipboardContentType"
       :content-count="clipboardFiles?.length || 0"
       @confirm="onUserSelectorConfirm"
-      @cancel="onUserSelectorCancel" />
+      @cancel="onUserSelectorCancel"
+    />
 
     <!-- 清理缓存弹窗 -->
     <ClearCacheModal
       v-model="showClearCacheModal"
-      @clear="handleClearCache" />
+      @clear="handleClearCache"
+    />
 
     <!-- 缓存检测模态框 -->
     <CacheDetectionModal
@@ -120,17 +139,20 @@
       :formatted-cache-info="formattedCacheInfo"
       @keep-cache="handleKeepCache"
       @clear-all="handleClearAllResumeCache"
-      @cleanup-expired="handleCleanupExpiredResumeCache" />
+      @cleanup-expired="handleCleanupExpiredResumeCache"
+    />
 
     <!-- 拖拽覆盖层组件 -->
     <DragDropOverlay
       :is-dragging="isDragging"
       :is-drag-file="isDragFile"
-      :is-drop-zone-active="isDropZoneActive" />
+      :is-drop-zone-active="isDropZoneActive"
+    />
 
     <canvas
       ref="canvas"
-      class="absolute left-0 top-0 h-full w-full from-[#e8e8e8] to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800" />
+      class="absolute left-0 top-0 h-full w-full from-[#e8e8e8] to-blue-100 bg-gradient-to-br -z-1 dark:from-gray-900 dark:to-gray-800"
+    />
   </div>
 </template>
 
@@ -138,6 +160,7 @@
 import type { UserInfo } from 'web-share-common'
 import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
+import { Info } from 'lucide-vue-next'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useResumeCache } from '@/hooks/useResumeCache'
@@ -163,7 +186,6 @@ import SendTextModal from './SendTextModal.vue'
 import ToolBar from './ToolBar.vue'
 import User from './User.vue'
 import UserSelectorModal from './UserSelectorModal.vue'
-import { Info } from 'lucide-vue-next'
 
 /** 使用各种hooks */
 const userManagement = useUserManagement()

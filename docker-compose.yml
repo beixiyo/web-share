@@ -11,6 +11,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - CLEAR_TIME=300000
+      - DISCONNECT_DELAY=300000
     networks:
       - net
     restart: unless-stopped

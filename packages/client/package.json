@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "eslint . --fix"
+    "lint": "eslint ./src --fix --quiet"
   },
   "dependencies": {
     "@jl-org/cvs": "^1.0.53",

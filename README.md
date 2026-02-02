@@ -25,7 +25,9 @@
 
 在浏览器实现 **局域网** 文件传输，无服务器收集信息，让浏览器再次伟大！！
 
-**注意**：移动端在选择文件时会关闭连接，导致页面刷新。所以移动端选择文件尽量快点，不要选择太多。电脑作为发送端可提供最快的传输速度。
+**注意（移动端）**：移动端打开系统相册/文件选择器时，浏览器可能会将页面挂起（暂停 JS 执行/定时器），导致心跳短暂停止或 WebSocket 短暂断连，从而引发页面刷新等现象。可以在服务端通过环境变量调整容忍时间（单位：毫秒）：
+- `CLEAR_TIME`：离线/心跳超时清理阈值，默认 `300000`（300s）
+- `DISCONNECT_DELAY`：断连延迟处理时间，默认 `300000`（300s）
 
 ## ✨ 核心功能亮点
 
@@ -135,8 +137,9 @@ cd web-share
 
 #### Docker 部署
 
-1. 修改 `docker-compose.yaml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址
-2. 启动容器
+1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址
+2. （可选）如需兼容移动端“选择文件导致后台挂起/短断连”，可在 `docker-compose.yml` 里调整 `CLEAR_TIME`、`DISCONNECT_DELAY`（单位：毫秒，默认 `300000`）
+3. 启动容器
   ```bash
   docker compose down && docker compose up -d
   ```

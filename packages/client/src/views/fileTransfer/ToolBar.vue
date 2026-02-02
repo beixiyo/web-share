@@ -88,7 +88,7 @@ const [theme, setTheme] = useTheme()
 const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
 
 /** 打开GitHub仓库 */
-const openGithubRepo = () => {
+function openGithubRepo() {
   window.open('https://github.com/beixiyo/web-share', '_blank')
 }
 </script>

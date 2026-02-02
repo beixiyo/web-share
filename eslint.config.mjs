@@ -86,6 +86,9 @@ export default antfu({
   ignores: [
     'dist',
     'packages/**/public/*',
+    // Skip placeholder/entry views that intentionally have empty templates
+    'src/views/index.vue',
+    'packages/client/src/views/index.vue',
     'node_modules',
     '**/*.json',
     '**/*.jsonc',
