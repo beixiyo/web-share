@@ -13,6 +13,7 @@ import { RTCConnect } from './RTCConnect'
 export class RTCPeer extends Peer {
   private opts: PeerOpts & RTCPeerOpts
   onChannelReady?: Function
+  private isRecoveringConnection = false
 
   /** RTC 连接管理器 */
   private rtcConnect: RTCConnect
@@ -28,38 +29,7 @@ export class RTCPeer extends Peer {
     super(opts)
     this.opts = opts
 
-    /** 初始化 RTC 连接管理器 */
-    this.rtcConnect = new RTCConnect({
-      peerId: this.peerId,
-      onChannelOpen: (channel) => {
-        console.log('RTC: channel 已打开，对端ID:', this.peerId)
-        this.onChannelReady?.()
-      },
-      onChannelClose: () => {
-        console.log('RTC: channel 已关闭', this.peerId)
-      },
-      onChannelError: (error) => {
-        console.warn('RTC Channel: 对方关闭了连接', error)
-        this.opts.onOtherChannelClose?.(error)
-      },
-      onMessage: this.onMessage,
-      onIceCandidate: (candidateData) => {
-        this.server.relay(candidateData)
-        console.log(`向 ${candidateData.toId} 发送 ICE candidate`, candidateData.candidate)
-      },
-      onConnectionStateChange: (state) => {
-        console.log('RTC: 连接状态:', state)
-      },
-      onError: (error, needReload = false) => {
-        const errorText = `RTC错误 [RTC_CONNECT_ERROR]: ${error}`
-        console.error(errorText)
-        Message.error(errorText)
-
-        if (needReload) {
-          this.broadcastRTCError(error, 'RTC_CONNECT_ERROR')
-        }
-      },
-    })
+    this.rtcConnect = this.createRTCConnect()
 
     /** 初始化文件下载管理器 */
     this.fileDownloadManager = new FileDownloadManager({
@@ -140,6 +110,50 @@ export class RTCPeer extends Peer {
     this.fileSendManager.cleanup()
 
     console.log(`RTCPeer ${this.peerId} 已关闭.`)
+  }
+
+  async recoverConnection(options: RTCRecoverOptions = {}): Promise<boolean> {
+    const targetPeerId = options.targetPeerId || this.toId || undefined
+
+    if (this.isRecoveringConnection) {
+      console.warn('RTC 连接恢复中，忽略重复恢复请求')
+      return false
+    }
+
+    this.isRecoveringConnection = true
+    this.resetTransferState()
+    this.rtcConnect.close()
+    this.rtcConnect = this.createRTCConnect()
+
+    this.opts.onOtherChannelClose?.(new Event('rtc-recover'))
+
+    if (!targetPeerId) {
+      Message.warning('连接已重置，请重新选择接收方后重试')
+      this.isRecoveringConnection = false
+      return false
+    }
+
+    try {
+      const { promise, resolve } = Promise.withResolvers<void>()
+      await this.sendOffer(targetPeerId, resolve)
+      await Promise.race([
+        promise,
+        this.createRecoveryTimeout(),
+      ])
+
+      if (!options.silentSuccess) {
+        Message.info('连接已恢复，请继续操作')
+      }
+      return true
+    }
+    catch (error) {
+      console.error('RTC 恢复失败:', error)
+      Message.warning('连接恢复失败，请重试当前操作')
+      return false
+    }
+    finally {
+      this.isRecoveringConnection = false
+    }
   }
 
   /***************************************************
@@ -318,6 +332,11 @@ export class RTCPeer extends Peer {
    * 广播 RTC 错误到房间内所有成员
    */
   private broadcastRTCError(errorMessage: string, errorType: string) {
+    if (this.isRecoveringConnection) {
+      console.warn(`RTC恢复中再次出现错误 [${errorType}]: ${errorMessage}`)
+      return
+    }
+
     Message.error(`RTC错误 [${errorType}]: ${errorMessage}`)
 
     /** 通过服务端广播错误消息 */
@@ -331,11 +350,66 @@ export class RTCPeer extends Peer {
       },
     })
 
-    /** 延迟刷新页面，给广播一些时间 */
-    setTimeout(() => {
-      window.location.reload()
-      console.log('RTC错误导致页面刷新')
-    }, 30)
+    this.recoverConnection({
+      reason: errorType,
+      silentSuccess: true,
+    })
+  }
+
+  private createRTCConnect() {
+    return new RTCConnect({
+      peerId: this.peerId,
+      autoReconnect: false,
+      onChannelOpen: () => {
+        console.log('RTC: channel 已打开，对端ID:', this.peerId)
+        this.onChannelReady?.()
+      },
+      onChannelClose: () => {
+        console.log('RTC: channel 已关闭', this.peerId)
+
+        if (this.isRecoveringConnection) {
+          return
+        }
+
+        this.recoverConnection({
+          reason: 'RTC_CHANNEL_CLOSED',
+          silentSuccess: true,
+        })
+      },
+      onChannelError: (error) => {
+        console.warn('RTC Channel: 对方关闭了连接', error)
+        if (!this.isRecoveringConnection) {
+          this.opts.onOtherChannelClose?.(error)
+        }
+      },
+      onMessage: this.onMessage,
+      onIceCandidate: (candidateData) => {
+        this.server.relay(candidateData)
+        console.log(`向 ${candidateData.toId} 发送 ICE candidate`, candidateData.candidate)
+      },
+      onConnectionStateChange: (state) => {
+        console.log('RTC: 连接状态:', state)
+      },
+      onError: (error) => {
+        const errorText = `RTC错误 [RTC_CONNECT_ERROR]: ${error}`
+        console.error(errorText)
+        Message.error(errorText)
+      },
+    })
+  }
+
+  private createRecoveryTimeout(duration = 100000) {
+    return new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('RTC_RECOVER_TIMEOUT'))
+      }, duration)
+    })
+  }
+
+  private resetTransferState() {
+    this.onDenyFile = undefined
+    this.fileDownloadManager.cleanup()
+    this.fileSendManager.cleanup()
   }
 
   private sendJSON<T>(data: RTCBaseData<T>) {
@@ -417,4 +491,10 @@ export type RTCPeerOpts = {
   onProgress?: (data: ProgressData) => void
 
   onOtherChannelClose?: (error: Event) => void
+}
+
+type RTCRecoverOptions = {
+  targetPeerId?: string
+  reason?: string
+  silentSuccess?: boolean
 }

@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
 import { ref } from 'vue'
-import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type UserInfo } from 'web-share-common'
+import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 import { handleExpired } from './tools'
@@ -14,6 +14,8 @@ export function useServerConnection() {
   const qrCodeValue = ref('')
   const roomCode = ref('')
   let qrData: string
+  let closeAllModalsRef = () => {}
+  let recoverExpiredSessionPromise: Promise<void> | null = null
 
   /**
    * 保存房间码到 sessionStorage
@@ -46,9 +48,12 @@ export function useServerConnection() {
     onQRCodeRoomCreated: (data: RoomInfo) => void
     onRoomCodeCreated: (data: RoomCodeInfo) => void
     onUserReconnected: (data: any) => void
+    onRTCErrorBroadcast: (data: RTCErrorInfo) => void
     setLoading: (state: boolean) => void
     closeAllModals: () => void
   }) {
+    closeAllModalsRef = callbacks.closeAllModals
+
     server = new ServerConnection({
       onNotifyUserInfo: callbacks.onNotifyUserInfo,
       onJoinRoom: callbacks.onJoinRoom,
@@ -56,6 +61,7 @@ export function useServerConnection() {
       onQRCodeRoomCreated: callbacks.onQRCodeRoomCreated,
       onRoomCodeCreated: callbacks.onRoomCodeCreated,
       onUserReconnected: callbacks.onUserReconnected,
+      onRTCErrorBroadcast: callbacks.onRTCErrorBroadcast,
 
       onError: (errorData) => {
         console.error('Server Error:', errorData.message)
@@ -81,7 +87,7 @@ export function useServerConnection() {
     info: UserInfo | undefined,
   ) {
     if (!info) {
-      handleExpired()
+      await recoverExpiredSession()
       return
     }
 
@@ -100,7 +106,7 @@ export function useServerConnection() {
     setLoading: (state: boolean) => void,
   ) {
     if (!info) {
-      handleExpired()
+      await recoverExpiredSession(setLoading)
       return
     }
 
@@ -222,6 +228,33 @@ export function useServerConnection() {
     }
   }
 
+  async function recoverExpiredSession(setLoading?: (state: boolean) => void) {
+    if (recoverExpiredSessionPromise) {
+      return recoverExpiredSessionPromise
+    }
+
+    closeAllModalsRef()
+    setLoading?.(true)
+
+    recoverExpiredSessionPromise = handleExpired(async () => {
+      const userInfo = await server.requestUserInfo()
+      roomCode.value = ''
+      qrCodeValue.value = ''
+      console.log('过期会话恢复成功:', userInfo)
+    })
+      .catch((error) => {
+        console.error('恢复过期会话失败:', error)
+        Message.error('重新连接失败，请稍后重试')
+        throw error
+      })
+      .finally(() => {
+        setLoading?.(false)
+        recoverExpiredSessionPromise = null
+      })
+
+    return recoverExpiredSessionPromise
+  }
+
   return {
     /** 状态 */
     qrCodeValue,
@@ -237,5 +270,6 @@ export function useServerConnection() {
     copyLink,
     handleQuery,
     handleRoomCodeExpired,
+    recoverExpiredSession,
   }
 }

@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import type { UserInfo } from 'web-share-common'
+import type { RTCErrorInfo, UserInfo } from 'web-share-common'
 import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
 import { Info } from 'lucide-vue-next'
@@ -304,6 +304,7 @@ const { server, peerManager } = initializeServer({
   onQRCodeRoomCreated,
   onRoomCodeCreated,
   onUserReconnected,
+  onRTCErrorBroadcast,
   setLoading,
   closeAllModals,
 })
@@ -652,6 +653,19 @@ function onUserReconnected(data: any) {
   peerManager.handleUserReconnection(data)
 }
 
+async function onRTCErrorBroadcast(data: RTCErrorInfo) {
+  if (!me.value) {
+    return
+  }
+
+  forceCloseLoading()
+  await me.value.recoverConnection({
+    targetPeerId: data.fromPeerId,
+    reason: data.errorType,
+    silentSuccess: true,
+  })
+}
+
 /**
  * 获取自己的 id 等信息
  */
@@ -684,6 +698,7 @@ function onNotifyUserInfo(data: UserInfo) {
         showTextInput.value = false
         showAcceptFile.value = false
         showAcceptText.value = false
+        forceCloseLoading()
       },
 
       onProgress(data: any) {

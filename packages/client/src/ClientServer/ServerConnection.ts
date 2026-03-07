@@ -1,4 +1,4 @@
-import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, RTCErrorInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import { WS } from '@jl-org/tool'
 import { Action, DISPLAY_NAME, ErrorCode, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
@@ -14,6 +14,10 @@ export class ServerConnection {
   declare pingTimer: number
   server: WS | null = null
   allUsers: UserInfo[] = []
+  private pendingUserInfoPromise: Promise<UserInfo> | null = null
+  private pendingUserInfoResolve?: (userInfo: UserInfo) => void
+  private pendingUserInfoReject?: (error: Error) => void
+  private pendingUserInfoTimer?: ReturnType<typeof setTimeout>
 
   /**
    * WebSocket 连接后，将之前的未发送的数据放入队列中
@@ -117,6 +121,31 @@ export class ServerConnection {
     return JSON.parse(sessionStorage.getItem(USER_INFO) || '{}') as UserInfo
   }
 
+  requestUserInfo(timeout = 10000): Promise<UserInfo> {
+    if (this.pendingUserInfoPromise) {
+      return this.pendingUserInfoPromise
+    }
+
+    this.pendingUserInfoPromise = new Promise<UserInfo>((resolve, reject) => {
+      this.pendingUserInfoResolve = resolve
+      this.pendingUserInfoReject = reject
+      this.pendingUserInfoTimer = setTimeout(() => {
+        this.finishPendingUserInfoRequest(new Error('获取用户信息超时'))
+      }, timeout)
+
+      this.connect()
+      this.send({
+        type: Action.JoinRoom,
+        data: this.userInfo,
+      })
+    })
+      .finally(() => {
+        this.pendingUserInfoPromise = null
+      })
+
+    return this.pendingUserInfoPromise
+  }
+
   connect() {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline)
       return
@@ -170,6 +199,7 @@ export class ServerConnection {
        */
       case Action.NotifyUserInfo:
         this.saveUserInfoToSession(data.data)
+        this.finishPendingUserInfoRequest(undefined, data.data)
         this.opts.onNotifyUserInfo(data.data)
         break
 
@@ -250,10 +280,10 @@ export class ServerConnection {
        */
       case Action.RTCErrorBroadcast:
         console.warn('收到RTC错误广播:', data.data)
+        this.opts.onRTCErrorBroadcast?.(data.data as RTCErrorInfo)
         this.opts.onError?.({
           message: `RTC连接出现错误: ${data.data?.errorMessage || '未知错误'}`,
         })
-        window.location.reload()
         break
 
       default:
@@ -275,6 +305,23 @@ export class ServerConnection {
 
   private onError = (error: any) => {
     console.error(error)
+  }
+
+  private finishPendingUserInfoRequest(error?: Error, userInfo?: UserInfo) {
+    if (this.pendingUserInfoTimer) {
+      clearTimeout(this.pendingUserInfoTimer)
+      this.pendingUserInfoTimer = undefined
+    }
+
+    if (error) {
+      this.pendingUserInfoReject?.(error)
+    }
+    else if (userInfo) {
+      this.pendingUserInfoResolve?.(userInfo)
+    }
+
+    this.pendingUserInfoResolve = undefined
+    this.pendingUserInfoReject = undefined
   }
 
   static getUrl(port?: string) {
@@ -320,6 +367,7 @@ export type ServerConnectionOpts = {
   onQRCodeRoomCreated: (data: RoomInfo) => void
   onRoomCodeCreated?: (data: RoomCodeInfo) => void
   onUserReconnected?: (data: UserReconnectedInfo) => void
+  onRTCErrorBroadcast?: (data: RTCErrorInfo) => void
   onError?: (data: { message: string }) => void
   onRoomCodeExpired?: (data: RoomCodeExpiredInfo) => void
 }

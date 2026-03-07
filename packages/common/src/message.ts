@@ -67,3 +67,10 @@ export type ProgressData = {
   curIndex: number
   filename: string
 }
+
+export type RTCErrorInfo = {
+  errorMessage: string
+  errorType: string
+  fromPeerId: string
+  timestamp: number
+}

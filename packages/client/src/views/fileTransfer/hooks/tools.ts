@@ -27,11 +27,25 @@ export function getInitProgress(): ProgressData {
   }
 }
 
-export function handleExpired() {
+let expiredRecoverPromise: Promise<void> | null = null
+
+export async function handleExpired(recover?: () => Promise<void> | void) {
+  if (expiredRecoverPromise) {
+    return expiredRecoverPromise
+  }
+
   Message.warning('用户已过期，请稍后再试')
   sessionStorage.clear()
 
-  setTimeout(() => {
-    location.reload()
-  }, 200)
+  let nextUrl = new URL(location.href)
+  nextUrl.search = ''
+  nextUrl.hash = ''
+  history.replaceState(null, '', nextUrl.toString())
+
+  expiredRecoverPromise = Promise.resolve(recover?.())
+    .finally(() => {
+      expiredRecoverPromise = null
+    })
+
+  return expiredRecoverPromise
 }
