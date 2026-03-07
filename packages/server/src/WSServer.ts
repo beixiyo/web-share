@@ -10,14 +10,14 @@ import { DisconnectScheduler } from './DisconnectScheduler'
 import { InviteManager } from './InviteManager'
 import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 import { RoomManager } from './RoomManager'
-import type { WSServerOpts } from './types'
+import type { ResolvedWSServerOpts, WSServerOpts } from './types'
 
 /**
  * WebSocket 信令服务：组合房间、邀请、设备重连、断连调度与消息分发，职责仅为装配与路由。
  */
 export class WSServer {
   ws: WebSocketServer
-  opts: Required<WSServerOpts>
+  opts: ResolvedWSServerOpts
 
   private roomManager: RoomManager
   private inviteManager: InviteManager
@@ -36,6 +36,7 @@ export class WSServer {
       {
         inviteTTL: this.opts.inviteTTL,
         roomEmptyGraceMs: this.opts.roomEmptyGraceMs,
+        defaultRoomCode: this.opts.defaultRoomCode,
       },
       (roomId) => this.roomManager.hasActiveRoom(roomId),
     )

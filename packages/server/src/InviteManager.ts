@@ -1,8 +1,13 @@
 import type { JoinInviteInfo, RoomInviteInfo } from 'web-share-common'
 
+/** 默认房间的固定 roomId，仅在使用 defaultRoomCode 时存在 */
+export const DEFAULT_ROOM_ID = 'default'
+
 export type InviteManagerOpts = {
   inviteTTL: number
   roomEmptyGraceMs: number
+  /** 默认房间码；设置后该码始终可加入房间 default，且不校验房间是否有人 */
+  defaultRoomCode?: string
 }
 
 export type ResolveInviteByCodeResult =
@@ -66,6 +71,9 @@ export class InviteManager {
   }
 
   getInviteForRoom(roomId: string): RoomInviteInfo | null {
+    if (roomId === DEFAULT_ROOM_ID && this.opts.defaultRoomCode)
+      return this.getDefaultRoomInvite()
+
     const inviteId = this.roomInviteMap.get(roomId)
     if (!inviteId)
       return null
@@ -73,6 +81,9 @@ export class InviteManager {
   }
 
   getActiveInviteForRoom(roomId: string): RoomInviteInfo | null {
+    if (roomId === DEFAULT_ROOM_ID && this.opts.defaultRoomCode)
+      return this.getDefaultRoomInvite()
+
     const invite = this.getInviteForRoom(roomId)
     if (!invite)
       return null
@@ -122,6 +133,9 @@ export class InviteManager {
   }
 
   resolveInviteByCode(roomCode: string): ResolveInviteByCodeResult {
+    if (this.opts.defaultRoomCode && roomCode.trim() === this.opts.defaultRoomCode)
+      return { invite: this.getDefaultRoomInvite() }
+
     const inviteId = this.roomCodeMap.get(roomCode)
     if (!inviteId)
       return { reason: 'not_found' }
@@ -195,7 +209,21 @@ export class InviteManager {
     let code: string
     do {
       code = Math.floor(100000 + Math.random() * 900000).toString()
-    } while (this.roomCodeMap.has(code))
+    } while (this.roomCodeMap.has(code) || code === this.opts.defaultRoomCode)
+
     return code
+  }
+
+  /** 默认房间的虚拟邀请，不写入 inviteMap，永不过期且不校验房间是否有人 */
+  private getDefaultRoomInvite(): RoomInviteInfo {
+    const code = this.opts.defaultRoomCode!
+    return {
+      inviteId: `default-${code}`,
+      roomId: DEFAULT_ROOM_ID,
+      roomCode: code,
+      joinToken: `default-${code}`,
+      expiresAt: -1,
+      status: 'active',
+    }
   }
 }

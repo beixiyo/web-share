@@ -1,6 +1,6 @@
-import type { WSServerOpts } from './types'
+import type { ResolvedWSServerOpts } from './types'
 
-export const defaultOpts: Required<WSServerOpts> = {
+export const defaultOpts: ResolvedWSServerOpts = {
   /**
    * 心跳超时阈值与离线巡检间隔
    * 只用于判断 peer 是否失联，不代表 invite 的有效期。
@@ -26,4 +26,9 @@ export const defaultOpts: Required<WSServerOpts> = {
    * @default -1
    */
   inviteTTL: Number(process.env.ROOM_INVITE_TTL_MS) || -1,
+  /**
+   * 默认房间码，仅当未配置任何房间码时生效；设置后输入该码即可加入同一固定房间。
+   * 环境变量：DEFAULT_ROOM_CODE
+   */
+  defaultRoomCode: (process.env.DEFAULT_ROOM_CODE ?? '').trim() || '442385',
 }

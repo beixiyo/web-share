@@ -185,6 +185,7 @@ pnpm run build:client  # 构建客户端
 | `DISCONNECT_DELAY` | 断连宽限期。WS 关闭后延迟此时间再 removePeer 并广播 LeaveRoom；同一设备在此窗口内重连视为重连。 | 300000 (5min) |
 | `ROOM_EMPTY_GRACE_MS` | 房间清空后邀请保留时间。空房超过此时长才删除 invite。 | 300000 (5min) |
 | `ROOM_INVITE_TTL_MS` | 房间邀请有效期。-1 表示不限制。 | -1 |
+| `DEFAULT_ROOM_CODE` | 默认房间码。设置后，任何人通过「通过房间码加入」输入该码即可进入同一固定房间，无需先有人建房或生成邀请；建议 6 位数字。不设置则无默认房间。 | 无 |
 
 ### 基本使用流程
 

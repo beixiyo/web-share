@@ -33,4 +33,17 @@ export type WSServerOpts = {
    * @default -1
    */
   inviteTTL?: number
+
+  /**
+   * 默认房间码（仅当未配置任何房间邀请时生效）。
+   * 设置后，任何人通过「通过房间码加入」输入该码即可进入同一固定房间，无需先有人建房或生成邀请。
+   * 环境变量：DEFAULT_ROOM_CODE。建议 6 位数字，与普通房间码一致。
+   * @default 不设置则无默认房间
+   */
+  defaultRoomCode?: string
+}
+
+/** 合并默认值后的配置（defaultRoomCode 仍可选） */
+export type ResolvedWSServerOpts = Required<Omit<WSServerOpts, 'defaultRoomCode'>> & {
+  defaultRoomCode?: string
 }

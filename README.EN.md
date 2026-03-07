@@ -185,6 +185,7 @@ The signaling server (`packages/server`) accepts the following environment varia
 | `DISCONNECT_DELAY` | Grace period after WS close. Delay removePeer and LeaveRoom broadcast by this amount; reconnection within window is treated as same device. | 300000 (5min) |
 | `ROOM_EMPTY_GRACE_MS` | Invite retention after room becomes empty. Invite is deleted only after room stays empty for this duration. | 300000 (5min) |
 | `ROOM_INVITE_TTL_MS` | Room invite TTL. -1 means no limit. | -1 |
+| `DEFAULT_ROOM_CODE` | Default room code. When set, anyone can join the same fixed room by entering this code via “Join by room code”, without creating a room or generating an invite first; 6 digits recommended. Omit for no default room. | none |
 
 ### Basic Usage
 
