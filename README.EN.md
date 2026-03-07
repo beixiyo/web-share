@@ -183,21 +183,19 @@ The signaling server (`packages/server`) accepts the following environment varia
 | `DISCONNECT_DELAY` | Grace period after WS close. Delay removePeer and LeaveRoom broadcast by this amount; reconnection within window is treated as same device. | 300000 (5min) |
 | `ROOM_EMPTY_GRACE_MS` | Invite retention after room becomes empty. Invite is deleted only after room stays empty for this duration. | 300000 (5min) |
 | `ROOM_INVITE_TTL_MS` | Room invite TTL. -1 means no limit. | -1 |
-| `DEFAULT_ROOM_CODE` | Default room code. When set, anyone can join the same fixed room by entering this code via “Join by room code”, without creating a room or generating an invite first; 6 digits recommended. Omit for no default room. | none |
+| `DEFAULT_ROOM_CODE` | Default room code. When set, anyone can join the same fixed room by entering this code via “Join by room code”, without creating a room or generating an invite first; 6 digits recommended. If unset, a built-in default is used. | 442385 |
 
 ### Basic Usage
 
 #### 🏠 Create Connection
 
-**Method 1: Room Code**
-1. Click "Generate Room Code"
-2. Share 6-digit code
-3. Others enter code to join
+**Join by room code (others)**
+1. Click **Link Code Management** in the toolbar
+2. Switch to the **Enter code** tab and type the 6-digit code
+3. Click **Join room** to enter the same room
 
-**Method 2: Direct Link**
-1. Click "Create Direct Room"
-2. Share QR code/link
-3. Scan/click to join
+**Join by QR or link**
+- Host clicks **QR Code** on the invite card for others to scan, or **Link** to copy and share; opening the link in a browser joins the same room
 
 #### 📁 File Transfer
 
