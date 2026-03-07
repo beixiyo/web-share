@@ -25,9 +25,7 @@
 
 Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!
 
-**Note (Mobile)**: When opening the system photo picker / file picker on mobile, the browser may suspend the page (pause JS execution/timers), which can stop heartbeats or temporarily drop the WebSocket connection and trigger refresh-like behaviors. You can tune the server tolerances via env vars (unit: milliseconds):
-- `CLEAR_TIME`: offline/heartbeat timeout cleanup threshold, default `300000` (300s)
-- `DISCONNECT_DELAY`: delayed disconnect handling window, default `300000` (300s)
+**Note (Mobile)**: When opening the system photo picker / file picker on mobile, the browser may suspend the page (pause JS execution/timers), which can stop heartbeats or temporarily drop the WebSocket connection and trigger refresh-like behaviors
 
 ## ✨ Core Feature Highlights
 
