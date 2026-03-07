@@ -1,52 +1,106 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
-import { ref } from 'vue'
-import { ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomCodeInfo, type RoomInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
+import { computed, ref, watch } from 'vue'
+import { INVITE_INFO_KEY, type InviteInvalidatedInfo, ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomInviteInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
-import { handleExpired } from './tools'
+import { resetExpiredSessionState } from './tools'
 
 /**
- * 服务器连接管理Hook
+ * 服务器连接管理 Hook
  */
 export function useServerConnection() {
-  /** 二维码和房间码相关状态 */
+  const inviteInfo = ref<RoomInviteInfo | null>(readInviteFromSession())
   const qrCodeValue = ref('')
-  const roomCode = ref('')
-  let qrData: string
+  const roomCode = computed(() => inviteInfo.value?.roomCode ?? '')
+  const joinLink = computed(() => {
+    if (!inviteInfo.value)
+      return ''
+
+    const { inviteId, joinToken } = inviteInfo.value
+    return `${ServerConnection.getUrl().href}/fileTransfer/?inviteId=${encodeURIComponent(inviteId)}&token=${encodeURIComponent(joinToken)}`
+  })
+
   let closeAllModalsRef = () => {}
-  let recoverExpiredSessionPromise: Promise<void> | null = null
-
-  /**
-   * 保存房间码到 sessionStorage
-   */
-  function saveRoomCodeToSession(code: string) {
-    try {
-      if (code) {
-        sessionStorage.setItem(ROOM_CODE_KEY, code)
-      }
-      else {
-        sessionStorage.removeItem(ROOM_CODE_KEY)
-      }
-    }
-    catch (error) {
-      console.warn('无法保存房间码到 sessionStorage:', error)
-    }
-  }
-
-  /** 服务器连接实例 */
+  let recoverSessionPromise: Promise<void> | null = null
   let server: ServerConnection
   let peerManager: PeerManager
 
-  /**
-   * 初始化服务器连接
-   */
+  watch(joinLink, async (link) => {
+    if (!link) {
+      qrCodeValue.value = ''
+      return
+    }
+
+    try {
+      qrCodeValue.value = await QRCode.toDataURL(link, {
+        errorCorrectionLevel: 'H',
+        width: 300,
+      })
+    }
+    catch (error) {
+      console.error('生成二维码失败:', error)
+      qrCodeValue.value = ''
+    }
+  }, { immediate: true })
+
+  function readInviteFromSession() {
+    try {
+      const invite = sessionStorage.getItem(INVITE_INFO_KEY)
+      if (!invite)
+        return null
+      return JSON.parse(invite) as RoomInviteInfo
+    }
+    catch (error) {
+      console.warn('读取邀请缓存失败:', error)
+      return null
+    }
+  }
+
+  function persistInvite(invite: RoomInviteInfo | null) {
+    try {
+      if (!invite) {
+        sessionStorage.removeItem(INVITE_INFO_KEY)
+        sessionStorage.removeItem(ROOM_CODE_KEY)
+        return
+      }
+
+      sessionStorage.setItem(INVITE_INFO_KEY, JSON.stringify(invite))
+      sessionStorage.setItem(ROOM_CODE_KEY, invite.roomCode)
+    }
+    catch (error) {
+      console.warn('保存邀请缓存失败:', error)
+    }
+  }
+
+  function setInvite(invite: RoomInviteInfo | null) {
+    inviteInfo.value = invite
+    persistInvite(invite)
+  }
+
+  function clearInviteQueryFromUrl() {
+    const nextUrl = new URL(location.href)
+    nextUrl.searchParams.delete('inviteId')
+    nextUrl.searchParams.delete('token')
+    nextUrl.searchParams.delete('roomId')
+    nextUrl.searchParams.delete('peerId')
+    history.replaceState(null, '', nextUrl.toString())
+  }
+
+  function clearInviteState() {
+    setInvite(null)
+  }
+
+  function syncCurrentInvite() {
+    server.getCurrentInvite()
+  }
+
   function initializeServer(callbacks: {
     onNotifyUserInfo: (data: UserInfo) => void
     onJoinRoom: (data: UserInfo[]) => void
     onLeaveRoom: (data: UserInfo) => void
-    onQRCodeRoomCreated: (data: RoomInfo) => void
-    onRoomCodeCreated: (data: RoomCodeInfo) => void
+    onInviteCreated: (data: RoomInviteInfo) => void
+    onInviteInvalidated: (data: InviteInvalidatedInfo) => void
     onUserReconnected: (data: any) => void
     onRTCErrorBroadcast: (data: RTCErrorInfo) => void
     setLoading: (state: boolean) => void
@@ -58,18 +112,16 @@ export function useServerConnection() {
       onNotifyUserInfo: callbacks.onNotifyUserInfo,
       onJoinRoom: callbacks.onJoinRoom,
       onLeaveRoom: callbacks.onLeaveRoom,
-      onQRCodeRoomCreated: callbacks.onQRCodeRoomCreated,
-      onRoomCodeCreated: callbacks.onRoomCodeCreated,
+      onInviteCreated: callbacks.onInviteCreated,
+      onInviteInvalidated: callbacks.onInviteInvalidated,
       onUserReconnected: callbacks.onUserReconnected,
       onRTCErrorBroadcast: callbacks.onRTCErrorBroadcast,
-
       onError: (errorData) => {
         console.error('Server Error:', errorData.message)
         Message.error(`发生错误: ${errorData.message}`)
         callbacks.setLoading(false)
         callbacks.closeAllModals()
       },
-
       onRoomCodeExpired: (expiredInfo) => {
         handleRoomCodeExpired(expiredInfo, callbacks.setLoading)
       },
@@ -80,97 +132,99 @@ export function useServerConnection() {
     return { server, peerManager }
   }
 
-  /**
-   * 请求创建直接连接房间
-   */
-  async function requestQRCode(
-    info: UserInfo | undefined,
-  ) {
+  async function requestQRCode(info: UserInfo | undefined) {
     if (!info) {
-      await recoverExpiredSession()
+      await recoverSession()
       return
     }
 
-    /** 每次都重新向后端申请新的二维码，确保房间始终有效 */
-    qrCodeValue.value = ''
-
-    server.createQRCodeRoom()
-    return false // 告知外层：正在等待新的二维码
+    server.getOrCreateInvite()
+    return false
   }
 
-  /**
-   * 请求创建带连接码的房间
-   */
   async function requestCreateRoomWithCode(
     info: UserInfo | undefined,
     setLoading: (state: boolean) => void,
   ) {
     if (!info) {
-      await recoverExpiredSession(setLoading)
+      await recoverSession(setLoading)
       return
     }
 
     setLoading(true)
-    server.createRoomWithCode()
+    server.getOrCreateInvite()
   }
 
-  /**
-   * 处理服务器创建二维码
-   */
-  async function handleQRCodeRommCreate(
-    data: RoomInfo,
+  async function getOrCreateInvite(
+    info: UserInfo | undefined,
+    setLoading?: (state: boolean) => void,
+  ) {
+    if (!info) {
+      await recoverSession(setLoading)
+      return
+    }
+
+    setLoading?.(true)
+    server.getOrCreateInvite()
+  }
+
+  async function refreshInvite(
     info: UserInfo | undefined,
     setLoading: (state: boolean) => void,
   ) {
-    if (data.roomId) {
-      if (info) {
-        info.roomId = data.roomId
-        server.saveUserInfoToSession(info)
-      }
-      const { peerId } = data.peerInfo
-
-      qrData = `${ServerConnection.getUrl().href}/fileTransfer/?roomId=${encodeURIComponent(data.roomId)}&peerId=${encodeURIComponent(peerId)}`
-      console.log('创建房间成功:', qrData)
-      try {
-        qrCodeValue.value = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'H', width: 300 })
-        return true // 表示应该显示二维码模态框
-      }
-      catch (err) {
-        console.error('生成二维码失败:', err)
-        Message.error('生成二维码失败，请稍后再试')
-      }
+    if (!info) {
+      await recoverSession(setLoading)
+      return
     }
 
-    setLoading(false)
-    return false
+    setLoading(true)
+    server.refreshInvite()
   }
 
-  /**
-   * 处理服务器创建房间码的响应
-   */
-  async function handleRoomCodeCreated(
-    data: RoomCodeInfo,
+  async function handleInviteCreated(
+    data: RoomInviteInfo,
     info: UserInfo | undefined,
     setLoading: (state: boolean) => void,
   ) {
-    if (data.roomCode) {
-      if (info) {
-        info.roomId = data.roomId
-        server.saveUserInfoToSession(info)
-      }
-
-      /** 总是更新为最新的房间码 */
-      roomCode.value = data.roomCode
-      saveRoomCodeToSession(data.roomCode)
-      console.log('创建房间码成功:', data.roomCode)
+    if (info && info.roomId !== data.roomId) {
+      info.roomId = data.roomId
+      server.saveUserInfoToSession(info)
     }
 
+    setInvite(data)
+    console.log('统一邀请已同步:', joinLink.value)
     setLoading(false)
   }
 
-  /**
-   * 处理输入连接码加入房间
-   */
+  function handleInviteInvalidated(
+    invalidInfo: InviteInvalidatedInfo,
+    setLoading?: (state: boolean) => void,
+  ) {
+    const currentInvite = inviteInfo.value
+    const hasInviteQuery
+      = location.search.includes('inviteId=')
+        || location.search.includes('token=')
+        || location.search.includes('roomId=')
+        || location.search.includes('peerId=')
+    const shouldClearInvite
+      = !!currentInvite
+        && (!invalidInfo.inviteId || invalidInfo.inviteId === currentInvite.inviteId || invalidInfo.roomCode === currentInvite.roomCode)
+
+    if (shouldClearInvite) {
+      clearInviteState()
+    }
+
+    if (hasInviteQuery) {
+      clearInviteQueryFromUrl()
+    }
+
+    if (invalidInfo.reason !== 'no_active_invite' || shouldClearInvite || hasInviteQuery) {
+      Message.warning(invalidInfo.message)
+    }
+
+    setLoading?.(false)
+  }
+
   function handleJoinWithCode(code: string, setLoading: (state: boolean) => void) {
     if (!code || code.length !== 6) {
       Message.error('请输入6位数字连接码')
@@ -181,95 +235,87 @@ export function useServerConnection() {
     server.joinRoomWithCode(code)
   }
 
-  /**
-   * 复制链接
-   */
   function copyLink() {
-    if (!qrData)
-      return
-    return qrData
+    return joinLink.value
   }
 
-  /**
-   * 处理URL查询参数
-   */
   function handleQuery(route: RouteLocationNormalized) {
-    const { roomId, peerId } = route.query as { roomId: string, peerId: string }
-    if (!roomId || !peerId) {
+    const inviteId = typeof route.query.inviteId === 'string'
+      ? route.query.inviteId
+      : ''
+    const joinToken = typeof route.query.token === 'string'
+      ? route.query.token
+      : ''
+    if (inviteId && joinToken) {
+      server.joinRoomByInvite(inviteId, joinToken)
       return
     }
 
-    server.joinDirectRoom(roomId, peerId)
+    const roomId = typeof route.query.roomId === 'string'
+      ? route.query.roomId
+      : ''
+    const peerId = typeof route.query.peerId === 'string'
+      ? route.query.peerId
+      : ''
+    if (roomId && peerId) {
+      server.joinDirectRoom(roomId, peerId)
+    }
   }
 
-  /**
-   * 处理房间码失效
-   */
   function handleRoomCodeExpired(
     expiredInfo: RoomCodeExpiredInfo,
     setLoading: (state: boolean) => void,
   ) {
-    const currentRoomCode = roomCode.value
-
-    /** 检查失效的房间码是否与当前房间码匹配 */
-    if (currentRoomCode && currentRoomCode === expiredInfo.roomCode) {
-      console.log(`当前房间码 ${expiredInfo.roomCode} 已失效，正在清理并重新生成`)
-
-      /** 清理失效的房间码 */
-      roomCode.value = ''
-      saveRoomCodeToSession('')
-
-      /** 显示提示消息 */
-      Message.warning(`房间码 ${expiredInfo.roomCode} 已过期，正在重新生成...`)
-
-      /** 自动重新生成新的房间码 */
-      setLoading(true)
-      server.createRoomWithCode()
+    if (roomCode.value && roomCode.value === expiredInfo.roomCode) {
+      clearInviteState()
+      Message.warning(expiredInfo.message)
+      setLoading(false)
     }
   }
 
-  async function recoverExpiredSession(setLoading?: (state: boolean) => void) {
-    if (recoverExpiredSessionPromise) {
-      return recoverExpiredSessionPromise
+  async function recoverSession(setLoading?: (state: boolean) => void) {
+    if (recoverSessionPromise) {
+      return recoverSessionPromise
     }
 
     closeAllModalsRef()
     setLoading?.(true)
 
-    recoverExpiredSessionPromise = handleExpired(async () => {
-      const userInfo = await server.requestUserInfo()
-      roomCode.value = ''
-      qrCodeValue.value = ''
-      console.log('过期会话恢复成功:', userInfo)
+    recoverSessionPromise = resetExpiredSessionState(async () => {
+      await server.requestUserInfo()
+      clearInviteState()
     })
       .catch((error) => {
-        console.error('恢复过期会话失败:', error)
+        console.error('会话恢复失败:', error)
         Message.error('重新连接失败，请稍后重试')
         throw error
       })
       .finally(() => {
         setLoading?.(false)
-        recoverExpiredSessionPromise = null
+        recoverSessionPromise = null
       })
 
-    return recoverExpiredSessionPromise
+    return recoverSessionPromise
   }
 
   return {
-    /** 状态 */
     qrCodeValue,
     roomCode,
-
-    /** 方法 */
+    inviteInfo,
+    joinLink,
     initializeServer,
     requestQRCode,
     requestCreateRoomWithCode,
-    handleQRCodeRommCreate,
-    handleRoomCodeCreated,
+    getOrCreateInvite,
+    refreshInvite,
+    syncCurrentInvite,
+    clearInviteState,
+    handleInviteCreated,
+    handleInviteInvalidated,
     handleJoinWithCode,
     copyLink,
     handleQuery,
     handleRoomCodeExpired,
-    recoverExpiredSession,
+    recoverSession,
   }
 }

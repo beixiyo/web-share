@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
+  "types": "dist/index.d.ts",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "dev:build": "tsc -p tsconfig.json && tsc-alias",
+    "dev:build": "tsc -p tsconfig.json",
     "dev": "nodemon -w src -e ts -x pnpm dev:build",
-    "build": "tsc -p tsconfig.build.json && tsc-alias"
+    "build": "tsc -p tsconfig.build.json"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "tsc-alias": "^1.8.16"
-  }
+  "license": "ISC"
 }

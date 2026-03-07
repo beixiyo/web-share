@@ -4,6 +4,7 @@
 export const PEER_ID = '__web-share__peerId'
 export const ROOM_ID = '__web-share__rommId'
 export const ROOM_CODE_KEY = '__web-share__room-code'
+export const INVITE_INFO_KEY = '__web-share__invite-info'
 
 export const DISPLAY_NAME = '__web-share__displayName'
 export const USER_INFO = '__web-share__userInfo'

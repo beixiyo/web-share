@@ -44,6 +44,8 @@ export class RTCConnect {
   private channel: RTCDataChannel | null = null
   private isCaller = false
   private remotePeerId?: string
+  /** ICE 候选在 setRemoteDescription 之前到达时先入队，设置后再统一应用 */
+  private pendingIceCandidates: RTCIceCandidate[] = []
 
   constructor(config: RTCConnectConfig) {
     /** 设置默认配置 */
@@ -347,6 +349,7 @@ export class RTCConnect {
 
     try {
       await this.pc.setRemoteDescription(new RTCSessionDescription(offer.sdp))
+      await this.drainPendingIceCandidates()
       const answer = await this.pc.createAnswer()
       await this.pc.setLocalDescription(answer)
       return this.pc.localDescription
@@ -377,6 +380,7 @@ export class RTCConnect {
 
     try {
       await this.pc.setRemoteDescription(new RTCSessionDescription(answer.sdp))
+      await this.drainPendingIceCandidates()
       return true
     }
     catch (error) {
@@ -387,6 +391,7 @@ export class RTCConnect {
 
   /**
    * 处理 ICE Candidate
+   * 若尚未 setRemoteDescription，先入队，避免 InvalidStateError: The remote description was null
    *
    * @param candidate ICE candidate 数据
    * @returns Promise<boolean> 是否处理成功
@@ -397,14 +402,35 @@ export class RTCConnect {
       return false
     }
 
+    const ice = new RTCIceCandidate(candidate.candidate)
+    if (!this.pc.remoteDescription) {
+      this.pendingIceCandidates.push(ice)
+      return true
+    }
+
     try {
-      await this.pc.addIceCandidate(new RTCIceCandidate(candidate.candidate))
+      await this.pc.addIceCandidate(ice)
       return true
     }
     catch (error) {
       this.config.onError(`处理 ICE candidate 失败: ${error}`)
       return false
     }
+  }
+
+  /** 应用已入队的 ICE 候选（在 setRemoteDescription 之后调用） */
+  private async drainPendingIceCandidates(): Promise<void> {
+    if (!this.pc || this.pendingIceCandidates.length === 0)
+      return
+    for (const ice of this.pendingIceCandidates) {
+      try {
+        await this.pc.addIceCandidate(ice)
+      }
+      catch (error) {
+        this.config.onError(`应用缓存的 ICE candidate 失败: ${error}`)
+      }
+    }
+    this.pendingIceCandidates = []
   }
 
   /**
@@ -471,6 +497,7 @@ export class RTCConnect {
     /** 重置状态 */
     this.isCaller = false
     this.remotePeerId = undefined
+    this.pendingIceCandidates = []
   }
 
   /***************************************************

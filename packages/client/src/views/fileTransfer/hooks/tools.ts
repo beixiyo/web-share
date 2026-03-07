@@ -29,7 +29,7 @@ export function getInitProgress(): ProgressData {
 
 let expiredRecoverPromise: Promise<void> | null = null
 
-export async function handleExpired(recover?: () => Promise<void> | void) {
+export async function resetExpiredSessionState(recover?: () => Promise<void> | void) {
   if (expiredRecoverPromise) {
     return expiredRecoverPromise
   }
@@ -37,7 +37,7 @@ export async function handleExpired(recover?: () => Promise<void> | void) {
   Message.warning('用户已过期，请稍后再试')
   sessionStorage.clear()
 
-  let nextUrl = new URL(location.href)
+  const nextUrl = new URL(location.href)
   nextUrl.search = ''
   nextUrl.hash = ''
   history.replaceState(null, '', nextUrl.toString())
@@ -49,3 +49,5 @@ export async function handleExpired(recover?: () => Promise<void> | void) {
 
   return expiredRecoverPromise
 }
+
+export const handleExpired = resetExpiredSessionState

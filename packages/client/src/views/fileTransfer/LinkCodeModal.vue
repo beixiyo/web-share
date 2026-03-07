@@ -2,7 +2,7 @@
   <Modal
     v-model="show"
     class="LinkCodeModal-container"
-    title="连接码管理"
+    title="当前邀请"
     height="auto"
   >
     <div class="p-4 sm:p-3">
@@ -17,7 +17,7 @@
           class="flex-1"
           @click="activeTab = 'generate'"
         >
-          生成连接码
+          当前连接码
         </Button>
 
         <Button
@@ -31,7 +31,7 @@
         </Button>
       </div>
 
-      <!-- 生成连接码内容 -->
+      <!-- 当前连接码内容 -->
       <div v-if="activeTab === 'generate'" class="space-y-4">
         <div class="text-center">
           <div
@@ -41,10 +41,10 @@
             {{ roomCode }}
           </div>
           <p v-else class="mb-4 text-gray-500 dark:text-gray-400">
-            点击下方按钮生成连接码
+            点击下方按钮获取当前邀请
           </p>
           <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            {{ roomCode ? '请将此6位数字码告诉对方，让对方输入此码加入房间' : '生成一个6位数字连接码供他人加入' }}
+            {{ roomCode ? '请将此 6 位数字码告诉对方，让对方输入此码加入当前房间' : '获取当前房间的邀请码信息，供他人通过连接码加入' }}
           </p>
         </div>
 
@@ -55,7 +55,7 @@
             size="md"
             @click.stop="emit('generateCode')"
           >
-            生成连接码
+            获取当前邀请
           </Button>
 
           <Button

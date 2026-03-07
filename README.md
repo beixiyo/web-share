@@ -108,6 +108,7 @@
 ## 📋 目录
 
 - [📚 使用说明](#-使用说明)
+  - [服务端环境变量](#服务端环境变量)
 - [🎯 项目概述](#-项目概述)
 - [🏗️ 架构设计](#️-架构设计)
 - [🔧 核心技术解析](#-核心技术解析)
@@ -138,7 +139,7 @@ cd web-share
 #### Docker 部署
 
 1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址
-2. （可选）如需兼容移动端“选择文件导致后台挂起/短断连”，可在 `docker-compose.yml` 里调整 `CLEAR_TIME`、`DISCONNECT_DELAY`（单位：毫秒，默认 `300000`）
+2. （可选）如需调整超时或邀请策略，可在 `docker-compose.yml` 中配置服务端环境变量，详见[服务端环境变量](#服务端环境变量)
 3. 启动容器
   ```bash
   docker compose down && docker compose up -d
@@ -173,6 +174,17 @@ pnpm run build:common  # 先构建公共包
 pnpm run build:server  # 构建服务器
 pnpm run build:client  # 构建客户端
 ```
+
+### 服务端环境变量
+
+信令服务（`packages/server`）支持通过环境变量调整超时与邀请策略，单位均为**毫秒**。可用于兼容移动端切后台、选择文件时的挂起或短断连。
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `CLEAR_TIME` | 心跳超时与离线巡检间隔。仅用于判断 peer 是否失联；房主失联且房间清空时会触发 invite 清理。 | 300000 (5min) |
+| `DISCONNECT_DELAY` | 断连宽限期。WS 关闭后延迟此时间再 removePeer 并广播 LeaveRoom；同一设备在此窗口内重连视为重连。 | 300000 (5min) |
+| `ROOM_EMPTY_GRACE_MS` | 房间清空后邀请保留时间。空房超过此时长才删除 invite。 | 300000 (5min) |
+| `ROOM_INVITE_TTL_MS` | 房间邀请有效期。-1 表示不限制。 | -1 |
 
 ### 基本使用流程
 

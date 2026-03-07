@@ -5,7 +5,12 @@
   "description": "Enable **LAN** file transfer directly in browsers, no server collects information, making browsers great again!!",
   "author": "CJL <2662442385@qq.com>",
   "license": "MIT",
-  "keywords": [],
+  "keywords": [
+    "file transfer",
+    "webRTC",
+    "LAN",
+    "share files"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/beixiyo/web-share"
@@ -40,7 +45,7 @@
     "eslint": "^9.21.0",
     "nodemon": "^3.1.9",
     "npm-run-all2": "^7.0.1",
-    "typescript": "~5.7.2",
+    "typescript": "^5.9.3",
     "vite": "6.0.4"
   }
 }

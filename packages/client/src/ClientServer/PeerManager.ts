@@ -1,6 +1,6 @@
 import type { Candidate, FileMeta, Sdp, To, UserReconnectedInfo } from 'web-share-common'
 import type { ServerConnection } from './ServerConnection'
-import { Action, USER_INFO } from 'web-share-common'
+import { Action } from 'web-share-common'
 import { modal } from '@/utils'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
@@ -28,62 +28,6 @@ export class PeerManager {
 
     // @3. [接收方] 收到文件元数据，展示前端 UI
     Events.on(Action.FileMetas, this.onFileMetas)
-
-    /** 监听页面可见性变化，而不是页面隐藏 */
-    this.setupVisibilityHandling()
-  }
-
-  /**
-   * 设置页面可见性处理
-   */
-  private setupVisibilityHandling() {
-    let isPageHidden = false
-
-    /** 监听页面可见性变化 */
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        isPageHidden = true
-        console.log('页面切换到后台，标记为隐藏状态')
-      }
-      else if (document.visibilityState === 'visible' && isPageHidden) {
-        isPageHidden = false
-        console.log('页面从后台恢复，重新同步用户状态')
-        /** 页面恢复时重新同步用户状态 */
-        this.syncUserStatusOnResume()
-      }
-    })
-
-    /**
-     * 只在真正关闭页面时发送离开消息
-     * 移动端切后台也会触发
-     */
-    // window.addEventListener('beforeunload', () => {
-    //   const userInfo = sessionStorage.getItem(USER_INFO)
-    //   console.log('页面即将关闭，发送离开消息', userInfo)
-    //   if (!userInfo)
-    //     return
-
-    //   this.server.send({
-    //     type: Action.LeaveRoom,
-    //     data: JSON.parse(userInfo),
-    //   })
-    // })
-  }
-
-  /**
-   * 页面恢复时同步用户状态
-   */
-  private syncUserStatusOnResume() {
-    /** 重新请求房间用户列表 */
-    const userInfo = sessionStorage.getItem(USER_INFO)
-    if (!userInfo)
-      return
-
-    const parsedUserInfo = JSON.parse(userInfo)
-    this.server.send({
-      type: Action.JoinRoom,
-      data: parsedUserInfo,
-    })
   }
 
   /**

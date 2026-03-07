@@ -13,17 +13,6 @@
       @click="handleThemeToggle"
     />
 
-    <!-- 生成二维码按钮 -->
-    <Button
-      variant="default"
-      design-style="neumorphic"
-      size="md"
-      :icon-only="true"
-      :left-icon="QrCode"
-      :title="qrCodeValue ? '显示二维码' : '生成二维码'"
-      @click="emit('generateQrCode')"
-    />
-
     <!-- 连接码管理按钮（合并生成和输入功能） -->
     <Button
       variant="default"
@@ -62,24 +51,14 @@
 </template>
 
 <script setup lang="ts">
-import { Github, KeyRound, Moon, QrCode, Sun, Trash2 } from 'lucide-vue-next'
+import { Github, KeyRound, Moon, Sun, Trash2 } from 'lucide-vue-next'
 import Button from '@/components/Button/index.vue'
 import { useTheme } from '@/hooks/useTheme'
 import { toggleThemeWithTransition } from '@/utils/theme'
 
 defineOptions({ name: 'ToolBar' })
 
-const props = withDefaults(
-  defineProps<{
-    qrCodeValue?: string
-  }>(),
-  {
-    qrCodeValue: '',
-  },
-)
-
 const emit = defineEmits<{
-  (e: 'generateQrCode'): void
   (e: 'showKeyManagement'): void
   (e: 'clearCache'): void
 }>()

@@ -6,16 +6,19 @@ export enum Action {
   JoinRoom = 'JoinRoom',
   LeaveRoom = 'LeaveRoom',
 
-  CreateQRCodeRoom = 'CreateQRCodeRoom',
-  QRCodeCreated = 'QRCodeCreated',
   JoinRoomByQRCode = 'JoinRoomByQRCode',
+  JoinRoomByInvite = 'JoinRoomByInvite',
 
-  CreateCodeRoom = 'CreateCodeRoom',
-  RoomCodeCreated = 'RoomCodeCreated',
   JoinRoomByCode = 'JoinRoomByCode',
   RoomCodeExpired = 'RoomCodeExpired',
 
   UserReconnected = 'UserReconnected',
+
+  GetOrCreateInvite = 'GetOrCreateInvite',
+  GetCurrentInvite = 'GetCurrentInvite',
+  InviteCreated = 'InviteCreated',
+  InviteInvalidated = 'InviteInvalidated',
+  RefreshInvite = 'RefreshInvite',
 
   Relay = 'Relay',
   Offer = 'Offer',

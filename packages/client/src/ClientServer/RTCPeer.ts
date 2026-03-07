@@ -97,6 +97,17 @@ export class RTCPeer extends Peer {
     return this.rtcConnect.isChannelOpen
   }
 
+  /** 当前信令状态，用于判断是否可接受新 offer */
+  get signalingState() {
+    return this.rtcConnect.signalingState
+  }
+
+  /** 关闭并重建 RTC 连接 */
+  private rebuildRtcConnect() {
+    this.rtcConnect.close()
+    this.rtcConnect = this.createRTCConnect()
+  }
+
   channelIsReady(channel: RTCDataChannel | null): channel is RTCDataChannel {
     return channel?.readyState === 'open'
   }
@@ -122,9 +133,7 @@ export class RTCPeer extends Peer {
 
     this.isRecoveringConnection = true
     this.resetTransferState()
-    this.rtcConnect.close()
-    this.rtcConnect = this.createRTCConnect()
-
+    this.rebuildRtcConnect()
     this.opts.onOtherChannelClose?.(new Event('rtc-recover'))
 
     if (!targetPeerId) {

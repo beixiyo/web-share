@@ -108,6 +108,7 @@ Enable **LAN** file transfer directly in browsers, no server collects informatio
 ## 📋 Table of Contents
 
 - [📚 Usage Guide](#-usage-guide)
+  - [Server environment variables](#server-environment-variables)
 - [🎯 Project Overview](#-project-overview)
 - [🏗️ Architecture](#️-architecture)
 - [🔧 Technical Deep Dive](#-technical-deep-dive)
@@ -138,7 +139,7 @@ cd web-share
 #### Docker Deployment
 
 1. modify `docker-compose.yml` file's `VITE_SERVER_URL` environment variable to your WebSocket server address
-2. (optional) for better mobile compatibility during file picking, tune `CLEAR_TIME` and `DISCONNECT_DELAY` in `docker-compose.yml` (unit: ms, default `300000`)
+2. (optional) to tune timeouts or invite policy, set server env vars in `docker-compose.yml`; see [Server environment variables](#server-environment-variables)
 3. start docker containers
   ```bash
   docker compose down && docker compose up -d
@@ -173,6 +174,17 @@ pnpm run build:common  # Build common package first
 pnpm run build:server  # Server build
 pnpm run build:client  # Client build
 ```
+
+### Server environment variables
+
+The signaling server (`packages/server`) accepts the following environment variables (all values in **milliseconds**) to tune timeouts and invite policy, e.g. for mobile backgrounding or file picker suspension.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CLEAR_TIME` | Heartbeat timeout and offline check interval. Used only to detect peer disconnect; clearing room after host disconnect triggers invite cleanup. | 300000 (5min) |
+| `DISCONNECT_DELAY` | Grace period after WS close. Delay removePeer and LeaveRoom broadcast by this amount; reconnection within window is treated as same device. | 300000 (5min) |
+| `ROOM_EMPTY_GRACE_MS` | Invite retention after room becomes empty. Invite is deleted only after room stays empty for this duration. | 300000 (5min) |
+| `ROOM_INVITE_TTL_MS` | Room invite TTL. -1 means no limit. | -1 |
 
 ### Basic Usage
 

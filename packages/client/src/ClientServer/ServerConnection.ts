@@ -1,6 +1,6 @@
-import type { JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomCodeInfo, RoomInfo, RTCErrorInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { InviteInvalidatedInfo, JoinInviteInfo, JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomInviteInfo, RTCErrorInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import { WS } from '@jl-org/tool'
-import { Action, DISPLAY_NAME, ErrorCode, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
 
 /**
@@ -56,16 +56,6 @@ export class ServerConnection {
   }
 
   /**
-   * 创建房间
-   */
-  createQRCodeRoom() {
-    this.send({
-      type: Action.CreateQRCodeRoom,
-      data: null,
-    })
-  }
-
-  /**
    * 加入房间
    */
   joinDirectRoom(roomId: string, peerId?: string) {
@@ -87,12 +77,17 @@ export class ServerConnection {
   }
 
   /**
-   * 创建带连接码的房间
+   * 通过统一邀请加入房间
    */
-  createRoomWithCode() {
+  joinRoomByInvite(inviteId: string, joinToken: string) {
+    const data: JoinInviteInfo = {
+      inviteId,
+      joinToken,
+    }
+
     this.send({
-      type: Action.CreateCodeRoom,
-      data: null,
+      type: Action.JoinRoomByInvite,
+      data,
     })
   }
 
@@ -107,6 +102,36 @@ export class ServerConnection {
     this.send({
       type: Action.JoinRoomByCode,
       data,
+    })
+  }
+
+  /**
+   * 统一邀请协议：获取或创建邀请
+   */
+  getOrCreateInvite() {
+    this.send({
+      type: Action.GetOrCreateInvite,
+      data: null,
+    })
+  }
+
+  /**
+   * 获取当前房间邀请
+   */
+  getCurrentInvite() {
+    this.send({
+      type: Action.GetCurrentInvite,
+      data: null,
+    })
+  }
+
+  /**
+   * 统一邀请协议：刷新邀请
+   */
+  refreshInvite() {
+    this.send({
+      type: Action.RefreshInvite,
+      data: null,
     })
   }
 
@@ -237,17 +262,13 @@ export class ServerConnection {
         break
 
       /**
-       * 扫码连接
+       * 统一邀请协议
        */
-      case Action.QRCodeCreated:
-        this.opts.onQRCodeRoomCreated(data.data)
+      case Action.InviteCreated:
+        this.opts.onInviteCreated?.(data.data)
         break
-
-      /**
-       * 房间码连接
-       */
-      case Action.RoomCodeCreated:
-        this.opts.onRoomCodeCreated?.(data.data)
+      case Action.InviteInvalidated:
+        this.opts.onInviteInvalidated?.(data.data)
         break
 
       /**
@@ -258,13 +279,6 @@ export class ServerConnection {
         break
 
       case Action.Error:
-        const errorCode = data?.data?.code
-        if (errorCode === ErrorCode.QRCodeExpired) {
-          const url = new URL(location.href)
-          /** 拼接新的地址（不带查询参数和哈希），并刷新 */
-          location.href = `${url.protocol}//${url.host}${url.pathname}`
-        }
-
         this.opts.onError?.(data.data)
         break
 
@@ -364,8 +378,8 @@ export type ServerConnectionOpts = {
   onJoinRoom: (user: UserInfo[]) => void
   onLeaveRoom: (user: UserInfo) => void
 
-  onQRCodeRoomCreated: (data: RoomInfo) => void
-  onRoomCodeCreated?: (data: RoomCodeInfo) => void
+  onInviteCreated?: (data: RoomInviteInfo) => void
+  onInviteInvalidated?: (data: InviteInvalidatedInfo) => void
   onUserReconnected?: (data: UserReconnectedInfo) => void
   onRTCErrorBroadcast?: (data: RTCErrorInfo) => void
   onError?: (data: { message: string }) => void

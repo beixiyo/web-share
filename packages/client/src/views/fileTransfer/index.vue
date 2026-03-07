@@ -5,8 +5,6 @@
   >
     <!-- 工具栏 -->
     <ToolBar
-      :qr-code-value="qrCodeValue"
-      @generate-qr-code="onRequestQRCode"
       @show-key-management="showKeyManagementModal = true"
       @clear-cache="showClearCacheModal = true"
     />
@@ -23,6 +21,16 @@
       </div>
     </div>
 
+    <!-- 统一邀请卡片 -->
+    <InviteCard
+      v-if="inviteInfo"
+      :room-code="roomCode"
+      @copy-code="onCopyCode"
+      @copy-link="onCopyLink"
+      @refresh-invite="onRefreshInvite"
+      @show-qr-code="showQrCodeModal = true"
+    />
+
     <!-- 用户信息展示 - 移动到中心底部 -->
     <div
       v-if="info"
@@ -30,7 +38,7 @@
     >
       <!-- 主要用户信息 -->
       <div
-        class="flex items-center rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm sm:max-w-[calc(100vw-2rem)] space-x-2 dark:bg-gray-800/80 sm:p-2 sm:text-sm dark:shadow-gray-700/50 sm:space-x-1"
+        class="flex items-center rounded-lg bg-white/80 p-3 shadow-md backdrop-blur-sm sm:max-w-[calc(100vw-1rem)] space-x-2 dark:bg-gray-800/80 sm:p-2 sm:text-sm dark:shadow-gray-700/50 sm:space-x-1"
       >
         <component
           :is="getDeviceIcon(info.name.type || info.name.os)"
@@ -48,9 +56,9 @@
       <!-- 粘贴提示 -->
       <div
         v-if="onlineUsers.length > 0"
-        class="rounded-md bg-white/60 px-2 py-1 text-xs text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400"
+        class="rounded-md bg-white/80 py-1 text-sm text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400"
       >
-        💡 按 Ctrl+V 粘贴文件或文本快速发送
+        💡 Ctrl+V 粘贴文件或文本
       </div>
     </div>
 
@@ -163,6 +171,7 @@ import { copyToClipboard } from '@jl-org/tool'
 import { Info } from 'lucide-vue-next'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import Button from '@/components/Button/index.vue'
 import { useResumeCache } from '@/hooks/useResumeCache'
 import { formatByte, Message } from '@/utils'
 import { ResumeManager } from '@/utils/handleOfflineFile'
@@ -179,6 +188,7 @@ import { useModalStates } from './hooks/useModalStates'
 import { usePageVisibility } from './hooks/usePageVisibility'
 import { useServerConnection } from './hooks/useServerConnection'
 import { useUserManagement } from './hooks/useUserManagement'
+import InviteCard from './InviteCard.vue'
 import LinkCodeModal from './LinkCodeModal.vue'
 import ProgressModal from './ProgressModal.vue'
 import QrCodeModal from './QrCodeModal.vue'
@@ -249,11 +259,14 @@ const {
 const {
   qrCodeValue,
   roomCode,
+  inviteInfo,
   initializeServer,
-  requestQRCode,
+  getOrCreateInvite,
   requestCreateRoomWithCode,
-  handleQRCodeRommCreate,
-  handleRoomCodeCreated,
+  refreshInvite,
+  syncCurrentInvite,
+  handleInviteCreated,
+  handleInviteInvalidated,
   handleJoinWithCode,
   copyLink,
   handleQuery,
@@ -301,8 +314,8 @@ const { server, peerManager } = initializeServer({
   onNotifyUserInfo,
   onJoinRoom,
   onLeaveRoom,
-  onQRCodeRoomCreated,
-  onRoomCodeCreated,
+  onInviteCreated,
+  onInviteInvalidated,
   onUserReconnected,
   onRTCErrorBroadcast,
   setLoading,
@@ -381,6 +394,17 @@ const {
   isDropZoneActive,
 } = dragDrop
 
+/** 已有房间但无邀请信息时，自动请求邀请并展示邀请卡片，无需用户点击生成 */
+watch(
+  [info, inviteInfo],
+  ([infoVal, inviteVal]) => {
+    if (infoVal && !inviteVal) {
+      getOrCreateInvite(infoVal, setLoading)
+    }
+  },
+  { immediate: true },
+)
+
 /** 条件性启用拖拽功能 */
 watch(onlineUsers, (users) => {
   if (users.length > 0) {
@@ -437,24 +461,6 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 // * 事件处理函数
 // ======================
 
-async function onRequestQRCode() {
-  loading.value = true
-
-  try {
-    const shouldShowModal = await requestQRCode(info.value)
-    if (shouldShowModal) {
-      showQrCodeModal.value = true
-    }
-  }
-  catch (error) {
-    console.error('生成二维码失败:', error)
-    Message.error('生成二维码失败，请重试')
-  }
-  finally {
-    loading.value = false
-  }
-}
-
 async function onRequestCreateRoomWithCode() {
   await requestCreateRoomWithCode(info.value, setLoading)
 }
@@ -469,15 +475,12 @@ async function onHandleFileSelect(event: Event) {
   handleFileSelect(event, selectedPeer.value, me.value)
 }
 
-async function onQRCodeRoomCreated(data: any) {
-  const shouldShowModal = await handleQRCodeRommCreate(data, info.value, setLoading)
-  if (shouldShowModal) {
-    showQrCodeModal.value = true
-  }
+async function onInviteCreated(data: any) {
+  await handleInviteCreated(data, info.value, setLoading)
 }
 
-async function onRoomCodeCreated(data: any) {
-  await handleRoomCodeCreated(data, info.value, setLoading)
+function onInviteInvalidated(data: any) {
+  handleInviteInvalidated(data, setLoading)
 }
 
 function onJoinWithCode(code: string) {
@@ -490,6 +493,17 @@ function onCopyLink() {
     copyToClipboard(link)
     Message.success('复制成功')
   }
+}
+
+function onCopyCode() {
+  if (roomCode.value) {
+    copyToClipboard(roomCode.value)
+    Message.success('连接码已复制')
+  }
+}
+
+async function onRefreshInvite() {
+  await refreshInvite(info.value, setLoading)
 }
 
 /**
@@ -639,9 +653,16 @@ function onJoinRoom(data: UserInfo[]) {
   }
 }
 
+/** 对方关页/重连后可能用新 peerId 再发 offer，若「我」的 RTC 非 stable 则重建以便接新 offer */
+function resetMePeerIfNeededForNewOffer() {
+  if (me.value && info.value && me.value.peerId === info.value.peerId && me.value.signalingState !== 'stable')
+    me.value.rebuildRtcConnect()
+}
+
 function onLeaveRoom(data: UserInfo) {
   handleLeaveRoom(data)
   peerManager.rmPeer(data.peerId)
+  resetMePeerIfNeededForNewOffer()
 }
 
 /**
@@ -649,8 +670,8 @@ function onLeaveRoom(data: UserInfo) {
  */
 function onUserReconnected(data: any) {
   handleUserReconnected(data)
-  /** 使用PeerManager处理重连 */
   peerManager.handleUserReconnection(data)
+  resetMePeerIfNeededForNewOffer()
 }
 
 async function onRTCErrorBroadcast(data: RTCErrorInfo) {
@@ -671,6 +692,7 @@ async function onRTCErrorBroadcast(data: RTCErrorInfo) {
  */
 function onNotifyUserInfo(data: UserInfo) {
   setUserInfo(data)
+  syncCurrentInvite()
   if (!peerManager.getPeer(data.peerId)) {
     const peer = peerManager.createPeer(data.peerId, {
       // @5. [接收方] 收到文件元数据，获取元数据提示用户接收消息
@@ -711,33 +733,6 @@ function onNotifyUserInfo(data: UserInfo) {
     const peer = peerManager.getPeer(data.peerId)
     if (peer)
       setMe(peer)
-  }
-
-  /** 如果是通过扫码加入的房间，并且当前用户不是房主，则主动向房主发起连接 */
-  if (qrCodeValue.value) {
-    try {
-      const qrData = JSON.parse(qrCodeValue.value)
-      let peerIdToJoinFromQr: string | undefined
-      if (typeof qrData === 'object' && qrData.peerIdToJoin) {
-        peerIdToJoinFromQr = qrData.peerIdToJoin
-      }
-
-      if (peerIdToJoinFromQr && peerIdToJoinFromQr !== info.value?.peerId && selectedPeer.value?.peerId === peerIdToJoinFromQr) {
-        console.log('扫码加入成功，自动连接房主...')
-        if (me.value && selectedPeer.value) {
-          const { promise, resolve } = Promise.withResolvers()
-          me.value.sendOffer(selectedPeer.value.peerId, resolve)
-          promise.then(() => console.log('Offer sent to room owner after scan join'))
-        }
-      }
-    }
-    catch (e) {
-      /** 如果 qrCodeValue 是 DataURL，解析会失败，这里可以忽略 */
-    }
-  }
-
-  if (!showQrCodeModal.value) {
-    qrCodeValue.value = ''
   }
   setLoading(false)
 }

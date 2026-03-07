@@ -6,9 +6,10 @@
 
     "lib": ["DOM", "ESNext", "DOM.Iterable"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "web-share-common": ["../../common/src"]
     }
   },
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "../common/src/config"],
+  "include": ["env.d.ts", "src", "../common/src"],
   "exclude": ["src/**/__tests__/*"]
 }

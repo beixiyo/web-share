@@ -24,6 +24,14 @@ export type JoinRoomInfo = {
   peerId: string
 }
 
+/**
+ * 通过统一邀请加入房间
+ */
+export type JoinInviteInfo = {
+  inviteId: string
+  joinToken: string
+}
+
 export type RoomCodeInfo = {
   roomCode: string
   roomId: string
@@ -36,6 +44,41 @@ export type JoinRoomCodeInfo = {
 
 export type RoomCodeExpiredInfo = {
   roomCode: string
+  message: string
+}
+
+/**
+ * 当前房间的邀请码信息
+ *
+ * `status` 在服务端返回时通常为 `active`。
+ */
+export type RoomInviteInfo = {
+  inviteId: string
+  roomId: string
+  roomCode: string
+  joinToken: string
+  expiresAt: number
+  status: InviteStatus
+}
+
+/**
+ * 邀请失效原因
+ */
+export type InviteInvalidatedReason =
+  | 'expired'
+  | 'not_found'
+  | 'room_unavailable'
+  | 'restarted'
+  | 'revoked'
+  | 'no_active_invite'
+
+/**
+ * 邀请失效通知
+ */
+export type InviteInvalidatedInfo = {
+  inviteId?: string
+  roomCode?: string
+  reason: InviteInvalidatedReason
   message: string
 }
 
@@ -74,3 +117,10 @@ export type RTCErrorInfo = {
   fromPeerId: string
   timestamp: number
 }
+
+/**
+ * 邀请状态
+ *
+ * @default 'active'
+ */
+export type InviteStatus = 'active' | 'expired' | 'invalid'

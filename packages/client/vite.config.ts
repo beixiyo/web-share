@@ -28,6 +28,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'web-share-common': fileURLToPath(new URL('../common/src', import.meta.url)),
     },
   },
   css: {
