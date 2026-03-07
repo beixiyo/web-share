@@ -17,7 +17,7 @@
     "dev:server": "pnpm -F web-share-server dev",
     "dev:client": "pnpm -F web-share-client dev",
     "dev:common": "pnpm -F web-share-common dev",
-    "dev": "pnpm --parallel --stream -r dev",
+    "dev": "pnpm build:common && run-p dev:common dev:server dev:client",
     "preview-client": "pnpm -F web-share-client preview",
     "---build---": "---build---",
     "build:common": "pnpm -F web-share-common build",
