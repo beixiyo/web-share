@@ -5,8 +5,9 @@
     <div class="flex flex-col gap-3 px-1 sm:items-center sm:px-2">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
         <div class="min-w-0 flex flex-col">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">当前连接码</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('inviteCard.currentCode') }}</span>
           <div class="flex items-center justify-between gap-2 sm:justify-start">
+
             <span class="min-w-0 truncate font-mono text-[28px] font-bold leading-none text-emerald-600 dark:text-emerald-400 sm:text-3xl">
               {{ roomCode }}
             </span>
@@ -32,7 +33,7 @@
             class="min-w-0 flex-1 sm:flex-none"
             @click="emit('showQrCode')"
           >
-            二维码
+            {{ t('inviteCard.qrCode') }}
           </Button>
           <Button
             variant="default"
@@ -42,17 +43,18 @@
             class="min-w-0 flex-1 sm:flex-none"
             @click="emit('copyLink')"
           >
-            链接
+            {{ t('inviteCard.link') }}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             :icon-only="true"
             :left-icon="RotateCcw"
-            title="刷新邀请"
+            :title="t('inviteCard.refresh')"
             class="shrink-0 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
             @click="emit('refreshInvite')"
           />
+
         </div>
       </div>
     </div>
@@ -61,9 +63,13 @@
 
 <script setup lang="ts">
 import { Copy, ExternalLink, QrCode, RotateCcw } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 
 defineOptions({ name: 'InviteCard' })
+
+const { t } = useI18n()
+
 
 defineProps<{
   /** 当前房间连接码 */

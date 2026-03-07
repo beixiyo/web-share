@@ -71,6 +71,9 @@ importers:
       vue:
         specifier: 3.5.13
         version: 3.5.13(typescript@5.9.3)
+      vue-i18n:
+        specifier: ^11.2.8
+        version: 11.2.8(vue@3.5.13(typescript@5.9.3))
       vue-router:
         specifier: 4.4.5
         version: 4.4.5(vue@3.5.13(typescript@5.9.3))
@@ -1032,6 +1035,18 @@ packages:
 
   '@iconify/utils@2.3.0':
     resolution: {integrity: sha512-GmQ78prtwYW6EtzXRU1rY+KwOKfz32PD7iJh6Iyqw68GiKuoZ2A6pRtzWONz5VQJbp50mEjXh/7NkumtrAgRKA==}
+
+  '@intlify/core-base@11.2.8':
+    resolution: {integrity: sha512-nBq6Y1tVkjIUsLsdOjDSJj4AsjvD0UG3zsg9Fyc+OivwlA/oMHSKooUy9tpKj0HqZ+NWFifweHavdljlBLTwdA==}
+    engines: {node: '>= 16'}
+
+  '@intlify/message-compiler@11.2.8':
+    resolution: {integrity: sha512-A5n33doOjmHsBtCN421386cG1tWp5rpOjOYPNsnpjIJbQ4POF0QY2ezhZR9kr0boKwaHjbOifvyQvHj2UTrDFQ==}
+    engines: {node: '>= 16'}
+
+  '@intlify/shared@11.2.8':
+    resolution: {integrity: sha512-l6e4NZyUgv8VyXXH4DbuucFOBmxLF56C/mqh2tvApbzl2Hrhi1aTDcuv5TKdxzfHYmpO3UB0Cz04fgDT9vszfw==}
+    engines: {node: '>= 16'}
 
   '@jl-org/cvs@1.0.53':
     resolution: {integrity: sha512-QSF6LuX4MC7HLsyzBi6NlmN/In94mVlhKCxWbeJJ2BwjSzenK3dMnHWtPX1/JnNK8JnXNVFHyiW0AVMsP86YCQ==}
@@ -3831,6 +3846,12 @@ packages:
     peerDependencies:
       vue: ^3.4.37
 
+  vue-i18n@11.2.8:
+    resolution: {integrity: sha512-vJ123v/PXCZntd6Qj5Jumy7UBmIuE92VrtdX+AXr+1WzdBHojiBxnAxdfctUFL+/JIN+VQH4BhsfTtiGsvVObg==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      vue: ^3.0.0
+
   vue-router@4.4.5:
     resolution: {integrity: sha512-4fKZygS8cH1yCyuabAXGUAsyi1b2/o/OKgu/RUb+znIYOxPRxdkytJEx+0wGcpBE1pX6vUgh5jwWOKRGvuA/7Q==}
     peerDependencies:
@@ -4713,6 +4734,18 @@ snapshots:
       mlly: 1.7.4
     transitivePeerDependencies:
       - supports-color
+
+  '@intlify/core-base@11.2.8':
+    dependencies:
+      '@intlify/message-compiler': 11.2.8
+      '@intlify/shared': 11.2.8
+
+  '@intlify/message-compiler@11.2.8':
+    dependencies:
+      '@intlify/shared': 11.2.8
+      source-map-js: 1.2.1
+
+  '@intlify/shared@11.2.8': {}
 
   '@jl-org/cvs@1.0.53':
     dependencies:
@@ -7942,6 +7975,13 @@ snapshots:
 
   vue-flow-layout@0.1.1(vue@3.5.13(typescript@5.9.3)):
     dependencies:
+      vue: 3.5.13(typescript@5.9.3)
+
+  vue-i18n@11.2.8(vue@3.5.13(typescript@5.9.3)):
+    dependencies:
+      '@intlify/core-base': 11.2.8
+      '@intlify/shared': 11.2.8
+      '@vue/devtools-api': 6.6.4
       vue: 3.5.13(typescript@5.9.3)
 
   vue-router@4.4.5(vue@3.5.13(typescript@5.9.3)):

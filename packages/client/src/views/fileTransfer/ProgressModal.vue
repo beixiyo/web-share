@@ -2,11 +2,12 @@
   <Modal
     v-model="show"
     class="ProgressModal-container"
-    title="文件传输中"
+    :title="t('progressModal.title')"
     :mask-closable="false"
     height="auto"
     width="clamp(320px, 90vw, 500px)"
   >
+
     <div class="size-full flex flex-col gap-3 rounded-2xl p-3 sm:gap-4 sm:p-4">
       <!-- 头部信息 -->
       <div class="flex items-center space-x-3 sm:space-x-4">
@@ -31,19 +32,14 @@
           <h3
             class="text-base text-gray-900 font-semibold sm:text-lg dark:text-gray-100"
           >
-            文件传输
+            {{ t('progressModal.title') }}
           </h3>
           <div
             class="truncate text-xs text-gray-500 sm:text-sm dark:text-gray-400"
           >
-            正在传输第
-            <span
-              class="text-emerald-600 font-medium dark:text-emerald-400"
-            >{{ progress.curIndex + 1 }}</span>
-            个文件，共
-            <span class="font-medium">{{ progress.total }}</span>
-            个
+            {{ t('progressModal.transferring', { index: progress.curIndex + 1, total: progress.total }) }}
           </div>
+
         </div>
       </div>
 
@@ -86,11 +82,12 @@
           <div class="mb-1 flex items-center justify-between">
             <span
               class="text-xs text-gray-700 font-medium sm:text-sm dark:text-gray-300"
-            >当前文件进度</span>
+            >{{ t('progressModal.currentProgress') }}</span>
             <span
               class="text-xs text-emerald-600 font-medium sm:text-sm dark:text-emerald-400"
             >{{ numFixed(progress.progress * 100) }}%</span>
           </div>
+
           <div
             class="h-1.5 w-full rounded-full bg-gray-200 sm:h-2 dark:bg-gray-600"
           >
@@ -106,11 +103,12 @@
           <div class="mb-1 flex items-center justify-between">
             <span
               class="text-xs text-gray-700 font-medium sm:text-sm dark:text-gray-300"
-            >总体进度</span>
+            >{{ t('progressModal.overallProgress') }}</span>
             <span
               class="text-xs text-green-600 font-medium sm:text-sm dark:text-green-400"
             >{{ numFixed(overallProgress * 100) }}%</span>
           </div>
+
           <div
             class="h-1.5 w-full rounded-full bg-gray-200 sm:h-2 dark:bg-gray-600"
           >
@@ -133,10 +131,14 @@
 import type { ProgressData } from 'web-share-common'
 import { numFixed } from '@jl-org/tool'
 import { Archive, File, FileText, Image, Music, Video } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'
 
 defineOptions({ name: 'ProgressModal' })
+const { t } = useI18n()
+
 const props = withDefaults(
   defineProps<{
     progress: ProgressData

@@ -1,0 +1,82 @@
+{
+  "common": {
+    "confirm": "确定",
+    "cancel": "取消",
+    "copy": "复制",
+    "success": "成功",
+    "error": "错误",
+    "loading": "加载中..."
+  },
+  "toolbar": {
+    "themeLight": "切换到浅色模式",
+    "themeDark": "切换到深色模式",
+    "language": "切换语言",
+    "linkCode": "连接码管理",
+    "clearCache": "清理缓存",
+    "github": "GitHub"
+  },
+  "fileTransfer": {
+    "chromeWarning": "建议使用 Chrome 以确保功能正常",
+    "currentUser": "你当前是: ",
+    "pasteTip": "💡 Ctrl+V 粘贴文件或文本",
+    "connecting": "正在连接 {name}...",
+    "sendText": "正在向 {name} 发送文本..."
+  },
+  "inviteCard": {
+    "currentCode": "当前连接码",
+    "qrCode": "二维码",
+    "link": "链接",
+    "refresh": "刷新邀请"
+  },
+  "acceptModal": {
+    "title": "接收文件",
+    "from": "来自 {name}",
+    "total": "文件总计",
+    "fileCount": "{count} 个文件",
+    "noFile": "暂无文件",
+    "preview": "文件预览",
+    "deny": "拒绝",
+    "acceptAll": "接收全部",
+    "unknownUser": "未知用户"
+  },
+  "fileType": {
+    "image": "图片",
+    "video": "视频",
+    "audio": "音频",
+    "archive": "压缩包",
+    "text": "文本",
+    "pdf": "PDF",
+    "word": "Word",
+    "excel": "Excel",
+    "file": "文件"
+  },
+  "progressModal": {
+    "title": "文件传输中",
+    "transferring": "正在传输第 {index} 个文件，共 {total} 个",
+    "currentProgress": "当前文件进度",
+    "overallProgress": "总体进度"
+  },
+  "sendTextModal": {
+    "title": "发送文本给 {name}",
+    "placeholder": "输入要发送的文本...",
+    "send": "发送"
+  },
+  "acceptTextModal": {
+    "title": "接收文本",
+    "close": "关闭"
+  },
+  "message": {
+    "sendTextError": "发送文本时发生错误",
+    "copySuccess": "复制成功",
+    "codeCopied": "连接码已复制",
+    "connectFailed": "连接失败，请重试",
+    "textCopied": "已复制文本",
+    "sendFailed": "发送失败，请重试",
+    "clearCacheSuccess": "清理完成！清理了 {count} 个文件，释放了 {size} 空间",
+    "clearCacheFailed": "清理缓存失败，请重试",
+    "keepCacheSuccess": "已保留断点续传缓存",
+    "clearResumeCacheSuccess": "清理完成！清理了 {count} 个文件，释放了 {size} 空间",
+    "clearResumeCacheFailed": "清理失败，请重试",
+    "clearExpiredResumeCacheSuccess": "清理完成！清理了 {count} 个过期文件，释放了 {size} 空间"
+  }
+}

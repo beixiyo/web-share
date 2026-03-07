@@ -2,9 +2,10 @@
   <Modal
     v-model="show"
     class="AcceptTextModal-container"
-    title="接收文本"
+    :title="t('acceptTextModal.title')"
     height="auto"
   >
+
     <div class="p-4 sm:p-3">
       <div
         class="h-40 w-full overflow-y-auto border rounded-lg bg-gray-50 p-3 sm:h-32 dark:border-gray-600 dark:bg-gray-700/50 sm:text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400"
@@ -22,7 +23,7 @@
           size="md"
           @click="emit('close')"
         >
-          关闭
+          {{ t('acceptTextModal.close') }}
         </Button>
         <Button
           variant="primary"
@@ -30,18 +31,23 @@
           size="md"
           @click="emit('copy')"
         >
-          复制
+          {{ t('common.copy') }}
         </Button>
       </div>
     </template>
+
   </Modal>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'AcceptTextModal' })
+
+const { t } = useI18n()
+
 
 const props = withDefaults(
   defineProps<{

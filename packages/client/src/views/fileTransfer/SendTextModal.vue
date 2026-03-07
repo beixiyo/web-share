@@ -2,14 +2,14 @@
   <Modal
     v-model="show"
     class="TextModal-container"
-    :title="`发送文本给 ${toName}`"
+    :title="t('sendTextModal.title', { name: toName })"
     height="auto"
   >
     <div class="p-4 sm:p-3">
       <textarea
         v-model.trim="textModel"
         class="h-32 w-full border rounded-lg bg-gray-50 p-3 sm:h-24 dark:border-gray-600 dark:bg-gray-700/50 sm:p-2 sm:text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 dark:placeholder-gray-400"
-        placeholder="输入要发送的文本..."
+        :placeholder="t('sendTextModal.placeholder')"
       />
     </div>
 
@@ -22,7 +22,7 @@
           class="flex-1"
           @click="emit('close')"
         >
-          取消
+          {{ t('common.cancel') }}
         </Button>
         <Button
           variant="primary"
@@ -30,18 +30,23 @@
           class="flex-1"
           @click="emit('send')"
         >
-          发送
+          {{ t('sendTextModal.send') }}
         </Button>
       </div>
     </template>
+
   </Modal>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'SendTextModal' })
+
+const { t } = useI18n()
+
 
 const props = withDefaults(
   defineProps<{

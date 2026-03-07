@@ -9,8 +9,19 @@
       size="md"
       :icon-only="true"
       :left-icon="theme === 'dark' ? Sun : Moon"
-      :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'"
+      :title="theme === 'dark' ? t('toolbar.themeLight') : t('toolbar.themeDark')"
       @click="handleThemeToggle"
+    />
+
+    <!-- 语言切换按钮 -->
+    <Button
+      variant="default"
+      design-style="neumorphic"
+      size="md"
+      :icon-only="true"
+      :left-icon="Languages"
+      :title="t('toolbar.language')"
+      @click="toggleLanguage"
     />
 
     <!-- 连接码管理按钮（合并生成和输入功能） -->
@@ -20,7 +31,7 @@
       size="md"
       :icon-only="true"
       :left-icon="KeyRound"
-      title="连接码管理"
+      :title="t('toolbar.linkCode')"
       @click="emit('showKeyManagement')"
     />
 
@@ -31,7 +42,7 @@
       size="md"
       :icon-only="true"
       :left-icon="Trash2"
-      title="清理缓存"
+      :title="t('toolbar.clearCache')"
       @click="emit('clearCache')"
     />
 
@@ -42,7 +53,7 @@
       size="md"
       :icon-only="true"
       :left-icon="Github"
-      title="GitHub"
+      :title="t('toolbar.github')"
       @click="openGithubRepo"
     />
 
@@ -51,13 +62,15 @@
 </template>
 
 <script setup lang="ts">
-import { Github, KeyRound, Moon, Sun, Trash2 } from 'lucide-vue-next'
+import { Github, KeyRound, Languages, Moon, Sun, Trash2 } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import { useTheme } from '@/hooks/useTheme'
 import { toggleThemeWithTransition } from '@/utils/theme'
 
 defineOptions({ name: 'ToolBar' })
 
+const { t, locale } = useI18n()
 const emit = defineEmits<{
   (e: 'showKeyManagement'): void
   (e: 'clearCache'): void
@@ -65,6 +78,12 @@ const emit = defineEmits<{
 /** 主题相关逻辑 */
 const [theme, setTheme] = useTheme()
 const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
+
+/** 语言切换 */
+function toggleLanguage() {
+  locale.value = locale.value === 'zh' ? 'en' : 'zh'
+  localStorage.setItem('language', locale.value)
+}
 
 /** 打开GitHub仓库 */
 function openGithubRepo() {

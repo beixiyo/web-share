@@ -2,11 +2,12 @@
   <Modal
     v-model="show"
     class="AcceptModal-container"
-    title="接收文件"
+    :title="t('acceptModal.title')"
     height="80vh"
     width="clamp(345px, 800px, 60vw)"
     variant="info"
   >
+
     <div
       class="size-full flex flex-col rounded-2xl"
     >
@@ -24,15 +25,14 @@
             <h3
               class="truncate text-lg text-gray-900 font-semibold sm:text-base dark:text-gray-100"
             >
-              接收文件
+              {{ t('acceptModal.title') }}
             </h3>
             <div
               class="truncate text-sm text-gray-500 sm:text-xs dark:text-gray-400"
             >
-              来自 <span
-                class="text-emerald-600 font-medium dark:text-emerald-400"
-              >{{ fromUser }}</span>
+              {{ t('acceptModal.from', { name: fromUser || t('acceptModal.unknownUser') }) }}
             </div>
+
           </div>
         </div>
 
@@ -43,13 +43,14 @@
           <div class="flex items-center justify-between text-sm sm:text-xs">
             <span
               class="text-gray-600 font-medium dark:text-gray-400"
-            >文件总计</span>
+            >{{ t('acceptModal.total') }}</span>
             <div class="flex items-center space-x-3 sm:space-x-2">
               <span
                 class="text-emerald-600 font-semibold dark:text-emerald-400"
               >
-                {{ fileMetas.length }} 个文件
+                {{ t('acceptModal.fileCount', { count: fileMetas.length }) }}
               </span>
+
               <span class="text-gray-400">•</span>
               <span class="text-blue-600 font-semibold dark:text-blue-400">
                 {{ formatByte(totalSize) }}
@@ -124,9 +125,10 @@
           >
             <File class="mb-3 h-12 w-12 opacity-50" />
             <p class="text-sm">
-              暂无文件
+              {{ t('acceptModal.noFile') }}
             </p>
           </div>
+
         </div>
 
         <!-- 预览图区域 -->
@@ -137,8 +139,9 @@
           <div
             class="mb-3 text-sm text-gray-700 font-medium sm:mb-2 sm:text-xs dark:text-gray-300"
           >
-            文件预览
+            {{ t('acceptModal.preview') }}
           </div>
+
           <div
             class="relative rounded-lg bg-gray-50 dark:bg-gray-700/50"
           >
@@ -164,7 +167,7 @@
           size="md"
           @click="emit('deny')"
         >
-          <span class="font-medium">拒绝</span>
+          <span class="font-medium">{{ t('acceptModal.deny') }}</span>
         </Button>
 
         <Button
@@ -173,8 +176,9 @@
           size="md"
           @click="emit('accept')"
         >
-          <span class="font-medium">接收全部</span>
+          <span class="font-medium">{{ t('acceptModal.acceptAll') }}</span>
         </Button>
+
       </div>
     </template>
   </Modal>
@@ -183,11 +187,14 @@
 <script setup lang="ts">
 import type { FileMeta } from 'web-share-common'
 import { Archive, Blend, File, FileText, Image, Music, Video } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'
 
 defineOptions({ name: 'AcceptModal' })
+const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     fileMetas: FileMeta[]
@@ -197,9 +204,10 @@ const props = withDefaults(
   {
     fileMetas: () => [],
     previewSrc: '',
-    fromUser: '未知用户',
+    fromUser: '',
   },
 )
+
 const emit = defineEmits<{
   (e: 'accept'): void
   (e: 'deny'): void
@@ -249,23 +257,24 @@ function getFileIconClass(type: string) {
 /** 获取文件类型标签 */
 function getFileTypeLabel(type: string) {
   if (type.startsWith('image/'))
-    return '图片'
+    return t('fileType.image')
   if (type.startsWith('video/'))
-    return '视频'
+    return t('fileType.video')
   if (type.startsWith('audio/'))
-    return '音频'
+    return t('fileType.audio')
   if (type.includes('zip') || type.includes('rar') || type.includes('7z'))
-    return '压缩包'
+    return t('fileType.archive')
   if (type.includes('text') || type.includes('json') || type.includes('xml'))
-    return '文本'
+    return t('fileType.text')
   if (type.includes('pdf'))
-    return 'PDF'
+    return t('fileType.pdf')
   if (type.includes('word') || type.includes('doc'))
-    return 'Word'
+    return t('fileType.word')
   if (type.includes('excel') || type.includes('sheet'))
-    return 'Excel'
-  return '文件'
+    return t('fileType.excel')
+  return t('fileType.file')
 }
+
 </script>
 
 <style lang="scss" scoped></style>

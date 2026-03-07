@@ -1,0 +1,82 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading..."
+  },
+  "toolbar": {
+    "themeLight": "Switch to Light Mode",
+    "themeDark": "Switch to Dark Mode",
+    "language": "Switch Language",
+    "linkCode": "Link Code Management",
+    "clearCache": "Clear Cache",
+    "github": "GitHub"
+  },
+  "fileTransfer": {
+    "chromeWarning": "Recommend using Chrome to ensure functionality",
+    "currentUser": "You are currently: ",
+    "pasteTip": "💡 Ctrl+V to paste files or text",
+    "connecting": "Connecting to {name}...",
+    "sendText": "Sending text to {name}..."
+  },
+  "inviteCard": {
+    "currentCode": "Current Code",
+    "qrCode": "QR Code",
+    "link": "Link",
+    "refresh": "Refresh Invite"
+  },
+  "acceptModal": {
+    "title": "Receive Files",
+    "from": "From {name}",
+    "total": "Total Files",
+    "fileCount": "{count} files",
+    "noFile": "No files",
+    "preview": "File Preview",
+    "deny": "Deny",
+    "acceptAll": "Accept All",
+    "unknownUser": "Unknown User"
+  },
+  "fileType": {
+    "image": "Image",
+    "video": "Video",
+    "audio": "Audio",
+    "archive": "Archive",
+    "text": "Text",
+    "pdf": "PDF",
+    "word": "Word",
+    "excel": "Excel",
+    "file": "File"
+  },
+  "progressModal": {
+    "title": "Transferring Files",
+    "transferring": "Transferring file {index} of {total}",
+    "currentProgress": "Current File Progress",
+    "overallProgress": "Overall Progress"
+  },
+  "sendTextModal": {
+    "title": "Send text to {name}",
+    "placeholder": "Type text to send...",
+    "send": "Send"
+  },
+  "acceptTextModal": {
+    "title": "Receive Text",
+    "close": "Close"
+  },
+  "message": {
+    "sendTextError": "Error occurred while sending text",
+    "copySuccess": "Copy success",
+    "codeCopied": "Connection code copied",
+    "connectFailed": "Connection failed, please try again",
+    "textCopied": "Text copied",
+    "sendFailed": "Send failed, please try again",
+    "clearCacheSuccess": "Cleanup complete! Cleaned {count} files, freed {size} space",
+    "clearCacheFailed": "Failed to clear cache, please try again",
+    "keepCacheSuccess": "Resume cache retained",
+    "clearResumeCacheSuccess": "Cleanup complete! Cleaned {count} files, freed {size} space",
+    "clearResumeCacheFailed": "Cleanup failed, please try again",
+    "clearExpiredResumeCacheSuccess": "Cleanup complete! Cleaned {count} expired files, freed {size} space"
+  }
+}

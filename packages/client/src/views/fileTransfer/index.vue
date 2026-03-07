@@ -16,7 +16,7 @@
       <div class="flex items-center gap-2">
         <Info class="text-amber-3 dark:text-amber-5" />
         <p class="text-nowrap text-sm text-gray-700 dark:text-gray-300">
-          建议使用 Chrome 以确保功能正常
+          {{ t('fileTransfer.chromeWarning') }}
         </p>
       </div>
     </div>
@@ -47,7 +47,7 @@
         <span
           class="truncate text-gray-700 font-semibold sm:text-xs dark:text-gray-200"
         >
-          你当前是: <span
+          {{ t('fileTransfer.currentUser') }} <span
             class="text-emerald-600 dark:text-emerald-400"
           >{{ info.name.displayName }}</span>
         </span>
@@ -58,7 +58,7 @@
         v-if="onlineUsers.length > 0"
         class="rounded-md bg-white/80 py-1 text-sm text-gray-500 shadow-sm backdrop-blur-sm dark:bg-gray-800/60 sm:px-1.5 sm:py-0.5 sm:text-[10px] dark:text-gray-400"
       >
-        💡 Ctrl+V 粘贴文件或文本
+        {{ t('fileTransfer.pasteTip') }}
       </div>
     </div>
 
@@ -170,6 +170,7 @@ import { WaterRipple } from '@jl-org/cvs'
 import { copyToClipboard } from '@jl-org/tool'
 import { Info } from 'lucide-vue-next'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Button from '@/components/Button/index.vue'
 import { useResumeCache } from '@/hooks/useResumeCache'
@@ -198,6 +199,7 @@ import User from './User.vue'
 import UserSelectorModal from './UserSelectorModal.vue'
 
 /** 使用各种hooks */
+const { t } = useI18n()
 const userManagement = useUserManagement()
 const modalStates = useModalStates()
 const fileTransfer = useFileTransfer()
@@ -435,7 +437,7 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
 
   /** 设置选中的用户 */
   setSelectedPeer(targetPeer)
-  setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文本...`)
+  setLoading(true, t('fileTransfer.sendText', { name: targetPeer.name.displayName }))
 
   try {
     /** 建立连接 */
@@ -448,7 +450,7 @@ async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
   }
   catch (error) {
     console.error('发送文本时出错:', error)
-    Message.error('发送文本时发生错误')
+    Message.error(t('message.sendTextError'))
     forceCloseLoading()
     throw error
   }
@@ -491,14 +493,14 @@ function onCopyLink() {
   const link = copyLink()
   if (link) {
     copyToClipboard(link)
-    Message.success('复制成功')
+    Message.success(t('message.copySuccess'))
   }
 }
 
 function onCopyCode() {
   if (roomCode.value) {
     copyToClipboard(roomCode.value)
-    Message.success('连接码已复制')
+    Message.success(t('message.codeCopied'))
   }
 }
 
@@ -513,7 +515,7 @@ async function onContextMenuPeer(peer: UserInfo) {
   if (!me.value)
     return
   setSelectedPeer(peer)
-  setLoading(true, `正在连接 ${peer.name.displayName}...`)
+  setLoading(true, t('fileTransfer.connecting', { name: peer.name.displayName }))
 
   try {
     const { promise, resolve } = Promise.withResolvers()
@@ -525,7 +527,7 @@ async function onContextMenuPeer(peer: UserInfo) {
   }
   catch (error) {
     console.error('连接用户失败:', error)
-    Message.error('连接失败，请重试')
+    Message.error(t('message.connectFailed'))
     forceCloseLoading()
   }
   finally {
@@ -564,7 +566,7 @@ async function onClickPeer(peer: UserInfo) {
   if (!me.value)
     return
 
-  setLoading(true, `正在连接 ${peer.name.displayName}...`)
+  setLoading(true, t('fileTransfer.connecting', { name: peer.name.displayName }))
 
   try {
     await connectRTCChannel(peer)
@@ -572,7 +574,7 @@ async function onClickPeer(peer: UserInfo) {
   }
   catch (error) {
     console.error('连接用户失败:', error)
-    Message.error('连接失败，请重试')
+    Message.error(t('message.connectFailed'))
     forceCloseLoading()
   }
   finally {
@@ -594,7 +596,7 @@ function onDenyFile() {
 
 function onCopyText() {
   copyToClipboard(acceptText.value)
-  Message.success('已复制文本')
+  Message.success(t('message.textCopied'))
   closeTextReceiveModal()
 }
 
@@ -624,7 +626,7 @@ async function onUserSelectorConfirm(selectedUsers: UserInfo[]) {
   }
   catch (error) {
     console.error('多用户发送失败:', error)
-    Message.error('发送失败，请重试')
+    Message.error(t('message.sendFailed'))
   }
   finally {
     /** 清理状态 */
@@ -755,14 +757,14 @@ async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
     }
 
     /** 显示清理结果 */
-    const message = `清理完成！清理了 ${result.cleanedCount} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`
+    const message = t('message.clearCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) })
     Message.success(message)
 
     console.warn('缓存清理完成:', result)
   }
   catch (error) {
     console.error('清理缓存失败:', error)
-    Message.error('清理缓存失败，请重试')
+    Message.error(t('message.clearCacheFailed'))
     throw error
   }
   finally {
@@ -774,7 +776,7 @@ async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
  * 保留断点续传缓存
  */
 function handleKeepCache() {
-  Message.success('已保留断点续传缓存')
+  Message.success(t('message.keepCacheSuccess'))
 }
 
 /**
@@ -783,11 +785,11 @@ function handleKeepCache() {
 async function handleClearAllResumeCache() {
   try {
     const result = await clearAllCache()
-    Message.success(`清理完成！清理了 ${result.cleanedCount} 个文件，释放了 ${formatByte(result.freedBytes)} 空间`)
+    Message.success(t('message.clearResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }))
   }
   catch (error) {
     console.error('清理断点续传缓存失败:', error)
-    Message.error('清理失败，请重试')
+    Message.error(t('message.clearResumeCacheFailed'))
     throw error
   }
 }
@@ -798,11 +800,11 @@ async function handleClearAllResumeCache() {
 async function handleCleanupExpiredResumeCache() {
   try {
     const result = await cleanupExpiredCache(7) // 清理7天前的缓存
-    Message.success(`清理完成！清理了 ${result.cleanedCount} 个过期文件，释放了 ${formatByte(result.freedBytes)} 空间`)
+    Message.success(t('message.clearExpiredResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }))
   }
   catch (error) {
     console.error('清理过期缓存失败:', error)
-    Message.error('清理失败，请重试')
+    Message.error(t('message.clearResumeCacheFailed'))
     throw error
   }
 }
