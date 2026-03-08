@@ -1,3 +1,7 @@
+# 使用 HTTPS 时：先建目录并放入证书，例如：
+#   mkdir -p certs && cp /path/to/fullchain.pem certs/cert.pem && cp /path/to/privkey.pem certs/key.pem
+# 然后取消下方 volumes 与 SSL_* 环境变量的注释，并可将端口改为 "443:3001"
+
 services:
   web-share:
     container_name: web-share
@@ -11,8 +15,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+
       - CLEAR_TIME=300000
       - DISCONNECT_DELAY=300000
+      - ROOM_EMPTY_GRACE_MS=300000
+      - DEFAULT_ROOM_CODE=442385
+
+      # HTTPS 证书路径（挂载证书后取消注释并改为实际路径）
+      # - SSL_KEY_PATH=/etc/ssl/app/key.pem
+      # - SSL_CERT_PATH=/etc/ssl/app/cert.pem
+    # volumes:
+    #   - ./certs:/etc/ssl/app:ro
     networks:
       - net
     restart: unless-stopped

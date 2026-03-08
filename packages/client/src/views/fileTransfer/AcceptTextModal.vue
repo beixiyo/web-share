@@ -46,9 +46,6 @@ import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'AcceptTextModal' })
 
-const { t } = useI18n()
-
-
 const props = withDefaults(
   defineProps<{
     text: string
@@ -61,6 +58,8 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'copy'): void
 }>()
+
+const { t } = useI18n()
 
 const show = defineModel<boolean>()
 </script>

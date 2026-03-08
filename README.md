@@ -136,9 +136,10 @@ cd web-share
 
 #### Docker 部署
 
-1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址
-2. （可选）如需调整超时或邀请策略，可在 `docker-compose.yml` 中配置服务端环境变量，详见[服务端环境变量](#服务端环境变量)
-3. 启动容器
+1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址（HTTPS 时使用 `wss://你的域名:端口`）。
+2. （可选）如需 **HTTPS**：将证书放入 `certs/`（如 `key.pem`、`cert.pem`），在 `docker-compose.yml` 中取消 `volumes` 与 `SSL_KEY_PATH`、`SSL_CERT_PATH` 的注释，端口可按需改为 `"443:3001"`。证书也可通过环境变量 `SSL_KEY`、`SSL_CERT` 直接传入 PEM 内容。
+3. （可选）如需调整超时或邀请策略，可在 `docker-compose.yml` 中配置服务端环境变量，详见[服务端环境变量](#服务端环境变量)。
+4. 启动容器：
   ```bash
   docker compose down && docker compose up -d
   ```
@@ -179,6 +180,11 @@ pnpm run build:client  # 构建客户端
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
+| `PORT` | 服务监听端口。 | 3001 |
+| `SSL_KEY_PATH` | HTTPS 私钥文件路径。与 `SSL_CERT_PATH` 同时设置时启用 HTTPS/WSS。 | - |
+| `SSL_CERT_PATH` | HTTPS 证书文件路径。与 `SSL_KEY_PATH` 同时设置时启用 HTTPS/WSS。 | - |
+| `SSL_KEY` | HTTPS 私钥 PEM 内容（与 `SSL_CERT` 同时设置时可替代文件路径）。 | - |
+| `SSL_CERT` | HTTPS 证书 PEM 内容（与 `SSL_KEY` 同时设置时可替代文件路径）。 | - |
 | `CLEAR_TIME` | 心跳超时与离线巡检间隔。仅用于判断 peer 是否失联；房主失联且房间清空时会触发 invite 清理。 | 300000 (5min) |
 | `DISCONNECT_DELAY` | 断连宽限期。WS 关闭后延迟此时间再 removePeer 并广播 LeaveRoom；同一设备在此窗口内重连视为重连。 | 300000 (5min) |
 | `ROOM_EMPTY_GRACE_MS` | 房间清空后邀请保留时间。空房超过此时长才删除 invite。 | 300000 (5min) |

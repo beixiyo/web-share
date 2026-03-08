@@ -4,3 +4,9 @@ interface ImportMetaEnv {
   // Auto generate by env-parse
   readonly VITE_SERVER_URL: string
 }
+
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<{}, {}, any>
+  export default component
+}

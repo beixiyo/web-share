@@ -70,11 +70,13 @@ import { toggleThemeWithTransition } from '@/utils/theme'
 
 defineOptions({ name: 'ToolBar' })
 
-const { t, locale } = useI18n()
 const emit = defineEmits<{
   (e: 'showKeyManagement'): void
   (e: 'clearCache'): void
 }>()
+
+const { t, locale } = useI18n()
+
 /** 主题相关逻辑 */
 const [theme, setTheme] = useTheme()
 const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)

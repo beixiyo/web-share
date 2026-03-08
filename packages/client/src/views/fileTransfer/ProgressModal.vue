@@ -137,8 +137,6 @@ import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'
 
 defineOptions({ name: 'ProgressModal' })
-const { t } = useI18n()
-
 const props = withDefaults(
   defineProps<{
     progress: ProgressData
@@ -148,6 +146,9 @@ const props = withDefaults(
     fileSizes: () => [],
   },
 )
+
+const { t } = useI18n()
+
 const show = defineModel<boolean>()
 /** 计算总体进度 */
 const overallProgress = computed(() => {

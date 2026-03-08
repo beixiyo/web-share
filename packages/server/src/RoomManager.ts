@@ -1,5 +1,5 @@
 import type { SendData, UserInfo, UserReconnectedInfo } from 'web-share-common'
-import { Peer } from '@/Peer'
+import type { Peer } from '@/Peer'
 
 /**
  * 房间管理：维护 roomId -> Map<peerId, Peer>，提供加入/移除/广播/查询。

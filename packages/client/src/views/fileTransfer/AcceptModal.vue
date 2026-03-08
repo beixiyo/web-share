@@ -194,7 +194,6 @@ import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'
 
 defineOptions({ name: 'AcceptModal' })
-const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     fileMetas: FileMeta[]
@@ -207,11 +206,11 @@ const props = withDefaults(
     fromUser: '',
   },
 )
-
 const emit = defineEmits<{
   (e: 'accept'): void
   (e: 'deny'): void
 }>()
+const { t } = useI18n()
 const show = defineModel<boolean>()
 /** 计算总文件大小 */
 const totalSize = computed(() => {
@@ -274,7 +273,6 @@ function getFileTypeLabel(type: string) {
     return t('fileType.excel')
   return t('fileType.file')
 }
-
 </script>
 
 <style lang="scss" scoped></style>

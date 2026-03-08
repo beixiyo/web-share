@@ -10,13 +10,13 @@ export type InviteManagerOpts = {
   defaultRoomCode?: string
 }
 
-export type ResolveInviteByCodeResult =
-  | { invite: RoomInviteInfo }
-  | { reason: 'not_found' | 'expired' | 'room_unavailable' }
+export type ResolveInviteByCodeResult
+  = | { invite: RoomInviteInfo }
+    | { reason: 'not_found' | 'expired' | 'room_unavailable' }
 
-export type ResolveInviteByJoinPayloadResult =
-  | { invite: RoomInviteInfo }
-  | { reason: 'not_found' | 'expired' | 'room_unavailable' }
+export type ResolveInviteByJoinPayloadResult
+  = | { invite: RoomInviteInfo }
+    | { reason: 'not_found' | 'expired' | 'room_unavailable' }
 
 /**
  * 邀请管理：创建/解析/失效邀请，空房后延迟清理。

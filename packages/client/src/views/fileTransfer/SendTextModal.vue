@@ -45,9 +45,6 @@ import Modal from '@/components/Modal/index.vue'
 
 defineOptions({ name: 'SendTextModal' })
 
-const { t } = useI18n()
-
-
 const props = withDefaults(
   defineProps<{
     toName: string
@@ -55,10 +52,14 @@ const props = withDefaults(
   {
   },
 )
+
 const emit = defineEmits<{
   (e: 'send'): void
   (e: 'close'): void
 }>()
+
+const { t } = useI18n()
+
 const show = defineModel<boolean>({ default: false, required: true })
 const textModel = defineModel<string>('text', { default: '' })
 </script>

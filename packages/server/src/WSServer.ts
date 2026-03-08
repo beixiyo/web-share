@@ -1,6 +1,7 @@
 import type { Server } from 'node:http'
 import type { InviteInvalidatedInfo, JoinInviteInfo, JoinRoomCodeInfo, JoinRoomInfo, RoomInviteInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import type { RawData } from 'ws'
+import type { ResolvedWSServerOpts, WSServerOpts } from './types'
 import { Action, HEART_BEAT } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
 import { Peer } from '@/Peer'
@@ -8,9 +9,8 @@ import { defaultOpts } from './constants'
 import { DeviceReconnectManager } from './DeviceReconnectManager'
 import { DisconnectScheduler } from './DisconnectScheduler'
 import { InviteManager } from './InviteManager'
-import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 import { RoomManager } from './RoomManager'
-import type { ResolvedWSServerOpts, WSServerOpts } from './types'
+import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 
 /**
  * WebSocket 信令服务：组合房间、邀请、设备重连、断连调度与消息分发，职责仅为装配与路由。
@@ -38,14 +38,14 @@ export class WSServer {
         roomEmptyGraceMs: this.opts.roomEmptyGraceMs,
         defaultRoomCode: this.opts.defaultRoomCode,
       },
-      (roomId) => this.roomManager.hasActiveRoom(roomId),
+      roomId => this.roomManager.hasActiveRoom(roomId),
     )
-    this.roomManager.setOnRoomEmpty((roomId) => this.inviteManager.scheduleEmptyRoomCleanup(roomId))
+    this.roomManager.setOnRoomEmpty(roomId => this.inviteManager.scheduleEmptyRoomCleanup(roomId))
 
     this.deviceManager = new DeviceReconnectManager(this.opts.disconnectDelay)
     this.disconnectScheduler = new DisconnectScheduler(
       this.opts.disconnectDelay,
-      (peer) => this.executeDisconnect(peer),
+      peer => this.executeDisconnect(peer),
     )
     this.rtcErrorBroadcastManager = new RTCErrorBroadcastManager()
 

@@ -68,9 +68,6 @@ import Button from '@/components/Button/index.vue'
 
 defineOptions({ name: 'InviteCard' })
 
-const { t } = useI18n()
-
-
 defineProps<{
   /** 当前房间连接码 */
   roomCode: string
@@ -82,4 +79,6 @@ const emit = defineEmits<{
   (e: 'refreshInvite'): void
   (e: 'showQrCode'): void
 }>()
+
+const { t } = useI18n()
 </script>
