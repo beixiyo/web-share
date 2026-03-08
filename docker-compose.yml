@@ -9,9 +9,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_SERVER_URL=wss://YourHost:YourPort
+        - VITE_SERVER_URL="wss://YourHost:YourPort"
     ports:
-      - "7001:3001"
+      - "443:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -21,15 +21,15 @@ services:
       - ROOM_EMPTY_GRACE_MS=300000
       - DEFAULT_ROOM_CODE=442385
 
-      # HTTPS 证书路径（挂载证书后取消注释并改为实际路径）
-      # - SSL_KEY_PATH=/etc/ssl/app/key.pem
-      # - SSL_CERT_PATH=/etc/ssl/app/cert.pem
-    # volumes:
-    #   - ./certs:/etc/ssl/app:ro
+      # HTTPS 证书路径（与下方 volume 挂载目标一致：挂载到 /app/certs）
+      - SSL_KEY_PATH=/app/certs/beixiyo.dpdns.key
+      - SSL_CERT_PATH=/app/certs/beixiyo.dpdns.pem
+    volumes:
+      # 宿主机证书目录 → 容器内 /app/certs（与 SSL_*_PATH 的 ./certs 对应）
+      - /home/certs:/app/certs
     networks:
       - net
     restart: unless-stopped
 
 networks:
   net:
-    external: true # 告诉 Docker Compose 使用已存在的 `net` 网络
