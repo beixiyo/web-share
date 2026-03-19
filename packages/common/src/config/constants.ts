@@ -26,3 +26,6 @@ export const SERVER_URL = 'VITE_SERVER_URL'
 export enum ErrorCode {
   QRCodeExpired,
 }
+
+/** 房间连接码长度 */
+export const ROOM_CODE_LENGTH = 6

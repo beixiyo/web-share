@@ -41,7 +41,7 @@ export class FileSendManager {
         type: file.type,
         totalChunkSize: Math.ceil(file.size / CHUNK_SIZE),
         fromId: this.config.getPeerId(),
-        fileHash: this.resumeManager.generateFileHash(file.name, file.size),
+        fileHash: this.resumeManager.generateFileHash(file.name, file.size, file.lastModified),
       })
 
       let hasImg = false
@@ -172,7 +172,7 @@ export class FileSendManager {
 
       /** 使用BinaryMetadataEncoder编码数据块 */
       const chunkMetadata: ChunkMetaData = {
-        fileHash: this.resumeManager.generateFileHash(file.name, file.size),
+        fileHash: this.resumeManager.generateFileHash(file.name, file.size, file.lastModified),
         offset: chunkOffset,
       }
 

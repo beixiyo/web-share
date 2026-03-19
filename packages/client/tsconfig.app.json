@@ -10,6 +10,6 @@
       "web-share-common": ["../../common/src"]
     }
   },
-  "include": ["env.d.ts", "src", "../common/src"],
-  "exclude": ["src/**/__tests__/*"]
+  "include": ["./env.d.ts", "./src", "../common/src"],
+  "exclude": ["./src/**/__tests__/*"]
 }

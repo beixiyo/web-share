@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
 import { computed, ref, watch } from 'vue'
-import { INVITE_INFO_KEY, type InviteInvalidatedInfo, ROOM_CODE_KEY, type RoomCodeExpiredInfo, type RoomInviteInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
+import { INVITE_INFO_KEY, type InviteInvalidatedInfo, ROOM_CODE_KEY, ROOM_CODE_LENGTH, type RoomCodeExpiredInfo, type RoomInviteInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 import { resetExpiredSessionState } from './tools'
@@ -226,8 +226,8 @@ export function useServerConnection() {
   }
 
   function handleJoinWithCode(code: string, setLoading: (state: boolean) => void) {
-    if (!code || code.length !== 6) {
-      Message.error('请输入6位数字连接码')
+    if (!code || code.length !== ROOM_CODE_LENGTH) {
+      Message.error(`请输入${ROOM_CODE_LENGTH}位数字连接码`)
       return
     }
 
@@ -275,7 +275,8 @@ export function useServerConnection() {
 
   async function recoverSession(setLoading?: (state: boolean) => void) {
     if (recoverSessionPromise) {
-      return recoverSessionPromise
+      /** 复用已有 Promise，但为当前调用者附加独立的 setLoading 清理 */
+      return recoverSessionPromise.finally(() => setLoading?.(false))
     }
 
     closeAllModalsRef()

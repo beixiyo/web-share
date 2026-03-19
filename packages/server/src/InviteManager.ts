@@ -103,7 +103,9 @@ export class InviteManager {
   createInvite(roomId: string): RoomInviteInfo {
     const roomCode = this.generateRoomCode()
     const ttl = this.opts.inviteTTL
-    const expiresAt = ttl > 0 ? Date.now() + ttl : ttl
+    const expiresAt = ttl > 0
+      ? Date.now() + ttl
+      : ttl
     const invite: RoomInviteInfo = {
       inviteId: crypto.randomUUID(),
       roomId,
@@ -212,6 +214,15 @@ export class InviteManager {
     } while (this.roomCodeMap.has(code) || code === this.opts.defaultRoomCode)
 
     return code
+  }
+
+  /** 定期清理过期邀请 */
+  cleanupExpiredInvites() {
+    for (const [inviteId, invite] of this.inviteMap) {
+      if (this.isInviteExpired(invite)) {
+        this.cleanupInviteById(inviteId)
+      }
+    }
   }
 
   /** 默认房间的虚拟邀请，不写入 inviteMap，永不过期且不校验房间是否有人 */

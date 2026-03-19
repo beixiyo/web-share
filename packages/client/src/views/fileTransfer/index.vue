@@ -716,7 +716,7 @@ function onNotifyUserInfo(data: UserInfo) {
         showTextReceiveModal(text)
       },
 
-      onOtherChannelClose() {
+      onChannelClose() {
         resetProgress()
         showTextInput.value = false
         showAcceptFile.value = false

@@ -55,7 +55,6 @@ export class RTCConnect {
       channelOptions: { ordered: true },
       bufferedAmountLowThreshold: undefined,
       autoReconnect: true,
-      connectionTimeout: 30000,
       onChannelOpen: () => {},
       onChannelClose: () => {},
       onChannelError: () => {},
@@ -84,7 +83,7 @@ export class RTCConnect {
    * 数据通道是否关闭
    */
   get isChannelClose(): boolean {
-    return this.channel?.readyState === 'closed'
+    return !this.channel || this.channel.readyState === 'closed'
   }
 
   /**
@@ -156,7 +155,10 @@ export class RTCConnect {
         return
       }
 
+      const onClose = () => resolve()
+      this.channel.addEventListener('close', onClose, { once: true })
       this.channel.onbufferedamountlow = () => {
+        this.channel?.removeEventListener('close', onClose)
         resolve()
       }
     })
@@ -530,8 +532,9 @@ export class RTCConnect {
   private openChannel(): void {
     if (!this.pc) {
       this.initialize()
-      return
     }
+    if (!this.pc)
+      return
 
     const channel = this.pc.createDataChannel(
       this.config.channelLabel,
@@ -666,9 +669,6 @@ export interface RTCConnectConfig {
 
   /** 是否启用自动重连 */
   autoReconnect?: boolean
-
-  /** 连接超时时间（毫秒） */
-  connectionTimeout?: number
 
   /***************************************************
    *                  事件回调

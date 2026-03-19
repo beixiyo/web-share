@@ -15,7 +15,7 @@ export class FileDownloadManager {
   private config: FileDownloadConfig
 
   private downloader?: StreamDownloader
-  private downloadRafId?: number
+  private isBufferProcessing = false
   private downloadBuffer: Uint8Array[] = []
 
   private fileMetaCache: FileMeta[] = []
@@ -190,7 +190,7 @@ export class FileDownloadManager {
       return
     }
 
-    const fileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size)
+    const fileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size, fileInfo.lastModified)
     if (fileHash !== this.currentFileHash) {
       this.config.onError?.('收到的新文件与预期的不符')
       return
@@ -201,7 +201,7 @@ export class FileDownloadManager {
 
     if (!resumeInfo.hasCache) {
       /** 创建新的断点续传缓存 */
-      await this.resumeManager.createResumeCache(fileInfo.name, fileInfo.size)
+      await this.resumeManager.createResumeCache(fileInfo.name, fileInfo.size, fileInfo.lastModified)
     }
   }
 
@@ -228,7 +228,9 @@ export class FileDownloadManager {
     }
     catch (error) {
       console.error('文件下载完成处理失败:', error)
-      /** 即使下载失败，也要尝试清理缓存以避免数据残留 */
+      this.config.onError?.(`文件下载失败: ${error}`)
+
+      /** 清理当前文件缓存 */
       if (this.currentFileHash) {
         try {
           await this.cleanupResumeCache(this.currentFileHash)
@@ -238,7 +240,9 @@ export class FileDownloadManager {
           console.error('清理缓存失败:', cleanupError)
         }
       }
-      throw error
+
+      /** 跳过失败的文件，继续处理队列中的下一个 */
+      await this.prepareNextFile()
     }
   }
 
@@ -343,17 +347,25 @@ export class FileDownloadManager {
    * 启动下载缓冲区处理循环
    */
   private appendDownloadBuffer(): void {
+    this.isBufferProcessing = true
+
     const consume = () => {
-      const id = requestAnimationFrame(async () => {
+      if (!this.isBufferProcessing)
+        return
+
+      requestAnimationFrame(async () => {
+        if (!this.isBufferProcessing)
+          return
+
         try {
           await this.appendBuffer()
-          this.downloadRafId = id
-          if (!this.config.isChannelClosed()) {
-            requestAnimationFrame(consume)
-          }
         }
         catch (error) {
           this.config.onError?.(`处理下载缓冲区失败: ${error}`)
+        }
+
+        if (this.isBufferProcessing && !this.config.isChannelClosed()) {
+          consume()
         }
       })
     }
@@ -362,11 +374,10 @@ export class FileDownloadManager {
   }
 
   /**
-   * 停止所有动画帧请求
+   * 停止缓冲区处理循环
    */
   private stopAllRaf(): void {
-    this.downloadRafId && cancelAnimationFrame(this.downloadRafId)
-    this.downloadRafId = undefined
+    this.isBufferProcessing = false
   }
 }
 

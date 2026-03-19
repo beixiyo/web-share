@@ -22,8 +22,8 @@ export function useToggle(val: boolean) {
 export function debounceRef<T>(value: T, durationMS = 200) {
   return customRef<T>((track, trigger) => {
     const _set = (v: T) => {
-      trigger()
       value = v
+      trigger()
     }
 
     return {
@@ -43,8 +43,8 @@ export function debounceRef<T>(value: T, durationMS = 200) {
 export function throttleRef<T>(value: T, durationMS = 200) {
   return customRef<T>((track, trigger) => {
     const _set = (v: T) => {
-      trigger()
       value = v
+      trigger()
     }
 
     return {

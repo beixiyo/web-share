@@ -49,14 +49,18 @@ export class WSServer {
     )
     this.rtcErrorBroadcastManager = new RTCErrorBroadcastManager()
 
-    this.ws = new WebSocketServer({ server })
+    this.ws = new WebSocketServer({ server, maxPayload: 10 * 1024 * 1024 })
     this.ws.on('connection', (socket, request) => {
       const peer = new Peer(socket, request)
       this.onConnection(peer)
     })
 
     this.startKeepAliveClear()
-    setInterval(() => this.rtcErrorBroadcastManager.cleanup(), 20 * 1000)
+    setInterval(() => {
+      this.rtcErrorBroadcastManager.cleanup()
+      this.deviceManager.cleanupExpired()
+      this.inviteManager.cleanupExpiredInvites()
+    }, 20 * 1000)
   }
 
   private onConnection(peer: Peer) {
@@ -112,7 +116,14 @@ export class WSServer {
   }
 
   private send<T>(peer: Peer, data: SendData<T>) {
-    peer.socket.send(JSON.stringify(data))
+    if (peer.socket.readyState !== WebSocket.OPEN)
+      return
+    try {
+      peer.socket.send(JSON.stringify(data))
+    }
+    catch (error) {
+      console.warn(`发送消息失败 (${peer.name.displayName}):`, error)
+    }
   }
 
   private sendTo<T>(fromPeer: Peer, toId: string, data: SendData<T>) {
@@ -170,7 +181,7 @@ export class WSServer {
 
       case Action.JoinRoom: {
         const joinData = msg.data as UserInfo
-        if (joinData.roomId) {
+        if (joinData.roomId && joinData.roomId !== sender.roomId) {
           console.log(`${sender.name.displayName} 加入房间`)
           this.removePeerFromCurrentRoomAndJoin(sender, joinData.roomId)
         }
@@ -256,9 +267,13 @@ export class WSServer {
         break
       }
 
-      case Action.Relay:
-        this.sendTo(sender, (msg.data as { toId: string }).toId, msg.data)
+      case Action.Relay: {
+        /** 强制设置 fromId 为发送者真实 ID，防止伪造 */
+        const relayData = msg.data as { toId: string, fromId?: string }
+        relayData.fromId = sender.id
+        this.sendTo(sender, relayData.toId, msg.data)
         break
+      }
 
       case Action.RTCError: {
         const errorData = msg.data as { errorType?: string }

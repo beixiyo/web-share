@@ -56,10 +56,10 @@ export class BinaryMetadataEncoder {
       throw new Error(`Metadata too large (${metaLength} > ${maxMetaLength}). Consider increasing metaLengthType.`)
     }
 
-    // 3. 获取二进制数据（处理ArrayBufferView）
+    // 3. 获取二进制数据（处理ArrayBufferView，正确处理 byteOffset）
     const dataBuffer = buffer instanceof ArrayBuffer
       ? buffer
-      : buffer.buffer
+      : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
 
     // 4. 创建总Buffer
 

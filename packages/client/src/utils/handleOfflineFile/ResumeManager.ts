@@ -1,7 +1,6 @@
 import type { ChunkInfo } from '@/types'
 import localforage from 'localforage'
 import { CHUNK_SIZE, ResumeConfig } from '@/config'
-import { cleanupWorkerManager, getWorkerManager } from '@/worker/WorkerManager'
 import { Log } from '..'
 
 /**
@@ -22,10 +21,12 @@ export class ResumeManager {
 
   /**
    * 生成文件唯一标识
-   * 基于文件名和文件大小生成哈希
+   * 基于文件名、文件大小和最后修改时间生成哈希
    */
-  generateFileHash(fileName: string, fileSize: number): string {
-    return `${fileName}_${fileSize}`
+  generateFileHash(fileName: string, fileSize: number, lastModified?: number): string {
+    return lastModified
+      ? `${fileName}_${fileSize}_${lastModified}`
+      : `${fileName}_${fileSize}`
   }
 
   /**
@@ -94,8 +95,9 @@ export class ResumeManager {
   async createResumeCache(
     fileName: string,
     fileSize: number,
+    lastModified?: number,
   ): Promise<string> {
-    const fileHash = this.generateFileHash(fileName, fileSize)
+    const fileHash = this.generateFileHash(fileName, fileSize, lastModified)
     const now = Date.now()
 
     const cacheItem: ResumeCacheItem = {
@@ -128,61 +130,64 @@ export class ResumeManager {
   }
 
   /**
-   * 添加数据块到缓存（Web Worker 优化版本）
-   * @param fileHash 文件哈希
-   * @param chunk 数据块内容
-   * @param offset 文件偏移量，用于确保数据的正确性
+   * 添加数据块到缓存
+   * 直接写 IndexedDB，metadata 每 N 个块批量更新一次以减少 I/O
    */
   async appendChunkToCache(fileHash: string, chunk: Uint8Array, offset: number): Promise<void> {
     try {
-      /** 更新缓存项的最大偏移量和总块数 */
-      const cacheKey = ResumeManager.getCacheKey(fileHash)
-      const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
-
-      if (cacheItem) {
-        /** 更新缓存项信息 */
-        const chunkSize = chunk.byteLength
-        const newOffset = offset + chunkSize
-        const downloadedBytes = Math.max(cacheItem.downloadedBytes, newOffset)
-
-        /** 更新缓存项 */
-        const updatedCacheItem: ResumeCacheItem = {
-          ...cacheItem,
-          totalChunks: cacheItem.totalChunks + 1,
-          downloadedBytes,
-          updatedAt: Date.now(),
-        }
-
-        await this.localForageInstance.setItem(cacheKey, updatedCacheItem)
-
-        /** 更新元数据 */
-        const metadata = await this.getMetadata()
-        if (metadata[fileHash]) {
-          metadata[fileHash].downloadedBytes = downloadedBytes
-          metadata[fileHash].updatedAt = Date.now()
-          await this.saveMetadata(metadata)
-        }
-      }
-
       const chunkKey = ResumeManager.getChunkKey(fileHash, offset)
-      const existChunk = await this.localForageInstance.getItem(chunkKey)
-      if (existChunk) {
-        console.warn(`数据块已存在: ${fileHash}, 偏移: ${offset}`)
-        return
-      }
 
-      const workerManager = getWorkerManager()
+      /** 存储数据块 */
       const chunkInfo: ChunkInfo = {
         chunkSize: chunk.byteLength,
         data: chunk,
         offset,
       }
+      await this.localForageInstance.setItem(chunkKey, chunkInfo)
 
-      await workerManager.storeChunk(chunkKey, chunkInfo, ResumeConfig.localForageOptions)
+      /** 更新缓存项计数 */
+      const cacheKey = ResumeManager.getCacheKey(fileHash)
+      const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
+
+      if (cacheItem) {
+        const newOffset = offset + chunk.byteLength
+        const downloadedBytes = Math.max(cacheItem.downloadedBytes, newOffset)
+        cacheItem.totalChunks += 1
+        cacheItem.downloadedBytes = downloadedBytes
+        cacheItem.updatedAt = Date.now()
+        await this.localForageInstance.setItem(cacheKey, cacheItem)
+
+        /** metadata 每 50 个块更新一次，减少 I/O 压力 */
+        if (cacheItem.totalChunks % 50 === 0) {
+          const metadata = await this.getMetadata()
+          if (metadata[fileHash]) {
+            metadata[fileHash].downloadedBytes = downloadedBytes
+            metadata[fileHash].updatedAt = Date.now()
+            await this.saveMetadata(metadata)
+          }
+        }
+      }
     }
     catch (error) {
-      console.error(`Worker appendChunk 失败: ${fileHash}, 偏移: ${offset}`, error)
+      console.error(`appendChunkToCache 失败: ${fileHash}, 偏移: ${offset}`, error)
       throw error
+    }
+  }
+
+  /**
+   * 强制同步 metadata（在文件传输完成时调用，确保 metadata 一致性）
+   */
+  async flushMetadata(fileHash: string): Promise<void> {
+    const cacheKey = ResumeManager.getCacheKey(fileHash)
+    const cacheItem = await this.localForageInstance.getItem<ResumeCacheItem>(cacheKey)
+    if (!cacheItem)
+      return
+
+    const metadata = await this.getMetadata()
+    if (metadata[fileHash]) {
+      metadata[fileHash].downloadedBytes = cacheItem.downloadedBytes
+      metadata[fileHash].updatedAt = cacheItem.updatedAt
+      await this.saveMetadata(metadata)
     }
   }
 
@@ -247,8 +252,8 @@ export class ResumeManager {
     }
 
     if (isInvalid) {
-      this.deleteResumeCache(fileHash)
-      Log.warn(`数据块不连续，已删除缓存: ${fileHash}`)
+      Log.warn(`数据块不连续，需要清理缓存: ${fileHash}`)
+      await this.deleteResumeCache(fileHash)
     }
   }
 
@@ -395,10 +400,9 @@ export class ResumeManager {
 
   /**
    * 清理资源
-   * 在不再使用 ResumeManager 时调用，清理 Web Worker 等资源
    */
   cleanup(): void {
-    cleanupWorkerManager()
+    // no-op: 不再需要 Worker 清理
   }
 }
 

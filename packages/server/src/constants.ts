@@ -25,7 +25,9 @@ export const defaultOpts: ResolvedWSServerOpts = {
    * 房间邀请有效期
    * @default -1
    */
-  inviteTTL: Number(process.env.ROOM_INVITE_TTL_MS) || -1,
+  inviteTTL: process.env.ROOM_INVITE_TTL_MS != null && process.env.ROOM_INVITE_TTL_MS !== ''
+    ? Number(process.env.ROOM_INVITE_TTL_MS)
+    : -1,
   /**
    * 默认房间码，仅当未配置任何房间码时生效；设置后输入该码即可加入同一固定房间。
    * 环境变量：DEFAULT_ROOM_CODE

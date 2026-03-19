@@ -73,6 +73,16 @@ export class DeviceReconnectManager {
       existing.lastSeen = Date.now()
   }
 
+  /** 清理过期设备映射条目 */
+  cleanupExpired() {
+    const now = Date.now()
+    for (const [key, entry] of this.deviceMap) {
+      if (now - entry.lastSeen > this.reconnectWindowMs) {
+        this.deviceMap.delete(key)
+      }
+    }
+  }
+
   private updateDevice(peer: Peer) {
     const deviceKey = this.getDeviceKey(peer)
     this.deviceMap.set(deviceKey, {

@@ -15,7 +15,7 @@
   "scripts": {
     "dev:build": "tsc -p tsconfig.json",
     "dev": "nodemon -w src -e ts -x pnpm dev:build",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",

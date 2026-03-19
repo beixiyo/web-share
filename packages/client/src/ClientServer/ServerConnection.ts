@@ -47,12 +47,12 @@ export class ServerConnection {
    * 中转数据到指定用户
    */
   relay<T>(data: To & T) {
-    if (!this.isConnected)
+    const msg = { type: Action.Relay, data }
+    if (!this.isConnected) {
+      this.backlogOfData.push(msg)
       return
-    this.server?.send(JSON.stringify({
-      type: Action.Relay,
-      data,
-    }))
+    }
+    this.server?.send(JSON.stringify(msg))
   }
 
   /**
