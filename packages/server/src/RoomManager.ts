@@ -1,9 +1,10 @@
 import type { SendData, UserInfo, UserReconnectedInfo } from 'web-share-common'
 import type { Peer } from '@/Peer'
+import { sendOrTerminateSlowSocket } from './utils/send'
 
 /**
- * 房间管理：维护 roomId -> Map<peerId, Peer>，提供加入/移除/广播/查询。
- * 单一职责：房间与成员的生命周期，不关心邀请、设备、断连延迟。
+ * 房间管理：维护 roomId -> Map<peerId, Peer>，提供加入/移除/广播/查询
+ * 单一职责：房间与成员的生命周期，不关心邀请、设备、断连延迟
  */
 export class RoomManager {
   /**
@@ -49,20 +50,6 @@ export class RoomManager {
     return this.roomMap.get(roomId)?.get(peerId)
   }
 
-  hasPeer(roomId: string, peerId: string): boolean {
-    return this.roomMap.get(roomId)?.has(peerId) ?? false
-  }
-
-  /** 根据 peerId 在任意房间查找 Peer（用于重连时移除旧连接） */
-  getPeerById(peerId: string): Peer | undefined {
-    for (const room of this.roomMap.values()) {
-      const peer = room.get(peerId)
-      if (peer)
-        return peer
-    }
-    return undefined
-  }
-
   getRoomUsers(roomId: string): UserInfo[] {
     const room = this.roomMap.get(roomId)
     if (!room)
@@ -78,10 +65,10 @@ export class RoomManager {
     const room = this.roomMap.get(roomId)
     if (!room)
       return
+    const message = JSON.stringify(data)
     room.forEach((peer) => {
-      if (peer.id === excludePeerId)
-        return
-      peer.socket.send(JSON.stringify(data))
+      if (peer.id !== excludePeerId)
+        sendOrTerminateSlowSocket(peer.socket, message)
     })
   }
 
@@ -90,8 +77,8 @@ export class RoomManager {
     this.roomMap.forEach(room => room.forEach(fn))
   }
 
-  /** 供心跳清理收集待移除的 peer */
-  getRoomMap() {
-    return this.roomMap
+  /** 销毁房间索引，不触发空房业务回调 */
+  clear() {
+    this.roomMap.clear()
   }
 }

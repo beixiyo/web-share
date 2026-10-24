@@ -13,6 +13,7 @@
     "start:debug": "run-s build:debug start",
     "build": "vite build",
     "build:debug": "vite build --sourcemap",
+    "test": "bun test ./tests",
     "lint": "eslint ./src --fix --quiet"
   },
   "dependencies": {

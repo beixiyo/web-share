@@ -1,7 +1,6 @@
 // ======================
 // * 前端存储
 // ======================
-export const PEER_ID = '__web-share__peerId'
 export const ROOM_ID = '__web-share__rommId'
 export const ROOM_CODE_KEY = '__web-share__room-code'
 export const INVITE_INFO_KEY = '__web-share__invite-info'
@@ -26,6 +25,3 @@ export const SERVER_URL = 'VITE_SERVER_URL'
 export enum ErrorCode {
   QRCodeExpired,
 }
-
-/** 房间连接码长度 */
-export const ROOM_CODE_LENGTH = 6

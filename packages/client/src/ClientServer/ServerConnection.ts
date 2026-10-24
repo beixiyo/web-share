@@ -1,6 +1,17 @@
-import type { InviteInvalidatedInfo, JoinInviteInfo, JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomInviteInfo, RTCErrorInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
-import { WS } from '@jl-org/tool'
-import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
+import type {
+  InviteInvalidatedInfo,
+  JoinInviteInfo,
+  JoinRoomCodeInfo,
+  JoinRoomInfo,
+  RoomCodeExpiredInfo,
+  RoomInviteInfo,
+  RTCErrorInfo,
+  SendData,
+  To,
+  UserInfo,
+  UserReconnectedInfo,
+} from 'web-share-common'
+import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PeerIDQueryKey, ResumeTokenQueryKey, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
 
 /**
@@ -10,10 +21,12 @@ import { Events } from './Events'
  * 监听各种事件 如 visibilityChange，并相应地处理 WebSocket 连接和消息
  */
 export class ServerConnection {
-  declare timer: number
-  declare pingTimer: number
-  server: WS | null = null
+  server: WebSocket | null = null
   allUsers: UserInfo[] = []
+  private heartbeatTimer?: ReturnType<typeof setInterval>
+  private reconnectTimer?: ReturnType<typeof setTimeout>
+  private reconnectAttempts = 0
+  private disposed = false
   private pendingUserInfoPromise: Promise<UserInfo> | null = null
   private pendingUserInfoResolve?: (userInfo: UserInfo) => void
   private pendingUserInfoReject?: (error: Error) => void
@@ -28,11 +41,12 @@ export class ServerConnection {
 
   constructor(opts: ServerConnectionOpts) {
     this.opts = opts
+    window.addEventListener('online', this.onOnline)
     this.connect()
   }
 
   get isConnected() {
-    return this.server?.isConnected
+    return this.server?.readyState === WebSocket.OPEN
   }
 
   send<T>(data: SendData<T>) {
@@ -59,7 +73,7 @@ export class ServerConnection {
    * 加入房间
    */
   joinDirectRoom(roomId: string, peerId?: string) {
-    peerId = peerId || sessionStorage.getItem(PEER_ID) || undefined
+    peerId = peerId || sessionStorage.getItem(PeerIDQueryKey) || undefined
     if (!peerId) {
       this.opts.onError?.({ message: '找不到用户' })
       return
@@ -135,11 +149,13 @@ export class ServerConnection {
     })
   }
 
+  /** 保存公开身份信息；只有私有 NotifyUserInfo 响应可以更改恢复令牌 */
   saveUserInfoToSession(data: UserInfo) {
-    sessionStorage.setItem(PEER_ID, data.peerId)
-    sessionStorage.setItem(ROOM_ID, data.roomId)
-    sessionStorage.setItem(DISPLAY_NAME, data.name.displayName)
-    sessionStorage.setItem(USER_INFO, JSON.stringify(data))
+    const { resumeToken: _resumeToken, ...user } = data
+    sessionStorage.setItem(PeerIDQueryKey, user.peerId)
+    sessionStorage.setItem(ROOM_ID, user.roomId)
+    sessionStorage.setItem(DISPLAY_NAME, user.name.displayName)
+    sessionStorage.setItem(USER_INFO, JSON.stringify(user))
   }
 
   get userInfo() {
@@ -161,7 +177,7 @@ export class ServerConnection {
       this.connect()
       this.send({
         type: Action.JoinRoom,
-        data: this.userInfo,
+        data: {},
       })
     })
       .finally(() => {
@@ -172,40 +188,83 @@ export class ServerConnection {
   }
 
   connect() {
-    if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline)
+    if (this.disposed || this.isConnected || this.server?.readyState === WebSocket.CONNECTING || !navigator.onLine)
       return
 
-    const onConnect = (socket: WebSocket) => {
-      // socket.binaryType = 'arraybuffer'
-      socket.onopen = this.onOpen
-      socket.onmessage = this.onMessage
-      socket.onclose = this.onClose
-      socket.onerror = this.onError
-
-      this.server = ws
+    clearTimeout(this.reconnectTimer)
+    const socket = new WebSocket(ServerConnection.endPoint().href)
+    this.server = socket
+    socket.onopen = () => {
+      if (this.server !== socket || this.disposed)
+        return
+      this.reconnectAttempts = 0
+      this.onOpen()
+      clearInterval(this.heartbeatTimer)
+      this.heartbeatTimer = setInterval(() => {
+        if (this.isConnected)
+          socket.send(JSON.stringify({ type: Action.Ping, data: null }))
+      }, HEART_BEAT_TIME)
     }
+    socket.onmessage = (event) => {
+      if (this.server === socket && !this.disposed)
+        this.onMessage(event)
+    }
+    socket.onclose = (event) => {
+      if (this.server !== socket)
+        return
+      clearInterval(this.heartbeatTimer)
+      this.server = null
+      /** 被同一会话的新连接替换时，旧页面不应自动重连并反复抢占 */
+      if (event.code === 4001) {
+        this.close()
+        this.opts.onError?.({ message: '此会话已在另一个连接中恢复，请重新打开页面' })
+        return
+      }
+      this.scheduleReconnect()
+    }
+    socket.onerror = this.onError
+  }
 
-    const ws = new WS({
-      url: ServerConnection.endPoint().href,
-      leaveTime: -1,
-      heartbeatInterval: HEART_BEAT_TIME,
-      stopOnHidden: false,
-      genHeartbeatMsg: () => ({
-        data: null,
-        type: Action.Ping,
-      }),
-      // onVisible: onConnect,
-    })
+  /** 释放连接、心跳、重连计时器和网络监听；可重复调用 */
+  close() {
+    if (this.disposed)
+      return
+    this.disposed = true
+    clearInterval(this.heartbeatTimer)
+    clearTimeout(this.reconnectTimer)
+    window.removeEventListener('online', this.onOnline)
+    const socket = this.server
+    this.server = null
+    socket?.close()
+    this.backlogOfData = []
+    this.finishPendingUserInfoRequest(new Error('连接已关闭'))
+  }
 
-    onConnect(ws.connect())
+  /** 网络恢复时使用最新私有令牌重新握手 */
+  private onOnline = () => {
+    if (this.disposed)
+      return
+    clearInterval(this.heartbeatTimer)
+    const socket = this.server
+    this.server = null
+    socket?.close()
+    this.connect()
+  }
+
+  /** 有界退避避免服务不可用时持续创建连接 */
+  private scheduleReconnect() {
+    if (this.disposed || !navigator.onLine)
+      return
+    const delay = Math.min(200 * 2 ** this.reconnectAttempts++, 5000)
+    clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = setTimeout(() => this.connect(), delay)
   }
 
   private onOpen = () => {
     console.log('WS: server open')
-    const userInfo = this.userInfo
     this.send({
       type: Action.JoinRoom,
-      data: userInfo,
+      data: {},
     })
 
     let backlog = this.backlogOfData.shift()
@@ -222,11 +281,16 @@ export class ServerConnection {
       /**
        * 通知
        */
-      case Action.NotifyUserInfo:
-        this.saveUserInfoToSession(data.data)
-        this.finishPendingUserInfoRequest(undefined, data.data)
-        this.opts.onNotifyUserInfo(data.data)
+      case Action.NotifyUserInfo: {
+        const { resumeToken, ...user } = data.data as UserInfo
+        if (resumeToken)
+          sessionStorage.setItem(ResumeTokenQueryKey, resumeToken)
+        else sessionStorage.removeItem(ResumeTokenQueryKey)
+        this.saveUserInfoToSession(user)
+        this.finishPendingUserInfoRequest(undefined, user)
+        this.opts.onNotifyUserInfo(user)
         break
+      }
 
       /**
        * 房间
@@ -313,10 +377,6 @@ export class ServerConnection {
     this.allUsers = this.allUsers.filter(u => u.peerId !== user.peerId)
   }
 
-  private onClose = () => {
-    console.log('WS: server close')
-  }
-
   private onError = (error: any) => {
     console.error(error)
   }
@@ -338,36 +398,36 @@ export class ServerConnection {
     this.pendingUserInfoReject = undefined
   }
 
+  /** 获取页面源地址，可显式覆盖端口；默认使用页面当前端口 */
   static getUrl(port?: string) {
-    port = port || location.port
-    const hostname = location.hostname
-    const protocol = location.protocol
-    const href = `${protocol}//${hostname}:${port}`
+    const url = new URL(location.origin)
+
+    if (port) {
+      url.port = port
+    }
 
     return {
-      hostname,
-      port,
-      protocol,
-      href,
+      hostname: url.hostname,
+      port: url.port,
+      protocol: url.protocol,
+      href: url.origin,
     }
   }
 
   static endPoint() {
-    const peerId = sessionStorage.getItem(PEER_ID)
-    let {
-      hostname,
-      port,
-      protocol,
-    } = ServerConnection.getUrl('3001')
-    protocol = protocol === 'https:'
-      ? 'wss'
-      : 'ws'
+    const resumeToken = sessionStorage.getItem(ResumeTokenQueryKey)
+    /** 开发时覆盖信令端口，生产环境沿用页面地址 */
+    const { href } = ServerConnection.getUrl(
+      import.meta.env.DEV
+        ? '3001'
+        : undefined,
+    )
+    const url = new URL(import.meta.env[SERVER_URL] || href.replace(/^http/, 'ws'))
 
-    const url = new URL(import.meta.env[SERVER_URL] || `${protocol}://${hostname}:${port}/`)
-
-    if (peerId) {
-      url.searchParams.set(PEER_ID, peerId)
-    }
+    url.searchParams.delete(PeerIDQueryKey)
+    url.searchParams.delete(ResumeTokenQueryKey)
+    if (resumeToken)
+      url.searchParams.set(ResumeTokenQueryKey, resumeToken)
 
     return url
   }

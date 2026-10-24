@@ -1,37 +1,38 @@
 import type { Server } from 'node:http'
-import type { InviteInvalidatedInfo, JoinInviteInfo, JoinRoomCodeInfo, JoinRoomInfo, RoomInviteInfo, SendData, SendUserInfo, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type { InviteInvalidatedInfo, RoomInviteInfo, UserReconnectedInfo } from 'web-share-common'
 import type { RawData } from 'ws'
 import type { ResolvedWSServerOpts, WSServerOpts } from './types'
-import { Action, HEART_BEAT } from 'web-share-common'
+import { randomBytes } from 'node:crypto'
+import { Action, HEART_BEAT, InviteInvalidatedReason, ResumeTokenQueryKey } from 'web-share-common'
 import { WebSocket, WebSocketServer } from 'ws'
+/** WebSocket 信令服务：装配房间、邀请和具有私有恢复凭据的连接生命周期 */
 import { Peer } from '@/Peer'
-import { defaultOpts } from './constants'
-import { DeviceReconnectManager } from './DeviceReconnectManager'
+import { resolveOptions } from './constants'
 import { DisconnectScheduler } from './DisconnectScheduler'
 import { InviteManager } from './InviteManager'
 import { RoomManager } from './RoomManager'
 import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
+import { sendOrTerminateSlowSocket } from './utils/send'
 
-/**
- * WebSocket 信令服务：组合房间、邀请、设备重连、断连调度与消息分发，职责仅为装配与路由。
- */
+const RELAY_ACTIONS = new Set<string>([Action.Offer, Action.Answer, Action.Candidate, Action.FileMetas])
+
+/** 房间成员身份仅由服务端签发的恢复令牌证明，公开 peerId 不作为凭据 */
 export class WSServer {
-  ws: WebSocketServer
-  opts: ResolvedWSServerOpts
+  readonly ws: WebSocketServer
+  readonly opts: ResolvedWSServerOpts
 
-  private roomManager: RoomManager
+  private roomManager = new RoomManager()
   private inviteManager: InviteManager
-  private deviceManager: DeviceReconnectManager
   private disconnectScheduler: DisconnectScheduler
-  private rtcErrorBroadcastManager: RTCErrorBroadcastManager
+  private rtcErrorBroadcastManager = new RTCErrorBroadcastManager()
+  private sessions = new Map<string, Peer>()
+  private peerTokens = new WeakMap<Peer, string>()
+  private timers: ReturnType<typeof setInterval>[] = []
+  private closed = false
+  private closePromise?: Promise<void>
 
-  constructor(
-    server: Server,
-    opts: WSServerOpts = {},
-  ) {
-    this.opts = Object.assign({}, defaultOpts, opts)
-
-    this.roomManager = new RoomManager()
+  constructor(server: Server, opts: WSServerOpts = {}) {
+    this.opts = resolveOptions(opts)
     this.inviteManager = new InviteManager(
       {
         inviteTTL: this.opts.inviteTTL,
@@ -40,304 +41,323 @@ export class WSServer {
       },
       roomId => this.roomManager.hasActiveRoom(roomId),
     )
-    this.roomManager.setOnRoomEmpty(roomId => this.inviteManager.scheduleEmptyRoomCleanup(roomId))
-
-    this.deviceManager = new DeviceReconnectManager(this.opts.disconnectDelay)
-    this.disconnectScheduler = new DisconnectScheduler(
-      this.opts.disconnectDelay,
-      peer => this.executeDisconnect(peer),
-    )
-    this.rtcErrorBroadcastManager = new RTCErrorBroadcastManager()
+    this.roomManager.setOnRoomEmpty((roomId) => {
+      if (!this.closed)
+        this.inviteManager.scheduleEmptyRoomCleanup(roomId)
+    })
+    this.disconnectScheduler = new DisconnectScheduler(this.opts.disconnectDelay, peer => this.executeDisconnect(peer))
 
     this.ws = new WebSocketServer({ server, maxPayload: 10 * 1024 * 1024 })
     this.ws.on('connection', (socket, request) => {
-      const peer = new Peer(socket, request)
-      this.onConnection(peer)
+      /** 拒绝握手的提前返回路径也必须有 error 监听 */
+      socket.on('error', error => console.warn('WebSocket 连接错误:', error))
+      if (this.closed) {
+        socket.close(1012, 'Server closed')
+        return
+      }
+
+      let previous: Peer | undefined
+      let token: string
+      let peer: Peer
+      try {
+        const requestedToken = new URL(request.url ?? '/', 'http://server').searchParams.get(ResumeTokenQueryKey)
+        previous = requestedToken
+          ? this.sessions.get(requestedToken)
+          : undefined
+        token = previous
+          ? requestedToken!
+          : randomBytes(32).toString('hex')
+        peer = new Peer(socket, request, {
+          peerId: previous?.id,
+          roomId: previous?.roomId,
+        })
+      }
+      catch (error) {
+        console.warn('拒绝无效 WebSocket 握手:', error)
+        socket.close(1008, 'Invalid connection metadata')
+        return
+      }
+      this.onConnection(peer, token, previous)
     })
 
-    this.startKeepAliveClear()
-    setInterval(() => {
+    this.timers.push(setInterval(() => this.clearInactivePeers(), this.opts.clearTime))
+    this.timers.push(setInterval(() => {
       this.rtcErrorBroadcastManager.cleanup()
-      this.deviceManager.cleanupExpired()
       this.inviteManager.cleanupExpiredInvites()
-    }, 20 * 1000)
+    }, 20 * 1000))
   }
 
-  private onConnection(peer: Peer) {
+  /** 幂等关闭信令层，取消全部任务并终止所有 WS；HTTP server 的所有者仍负责关闭 HTTP */
+  close(): Promise<void> {
+    if (this.closePromise)
+      return this.closePromise
+
+    this.closed = true
+    this.timers.forEach(clearInterval)
+    this.timers = []
+    this.disconnectScheduler.close()
+    this.inviteManager.close()
+    this.sessions.clear()
+    this.roomManager.clear()
+    this.ws.clients.forEach(socket => socket.terminate())
+    this.closePromise = new Promise(resolve => this.ws.close(() => resolve()))
+    return this.closePromise
+  }
+
+  private onConnection(peer: Peer, token: string, previous?: Peer) {
+    this.disconnectScheduler.cancel(peer.id)
     this.inviteManager.cancelEmptyRoomCleanup(peer.roomId)
-    if (this.disconnectScheduler.hasPending(peer.id)) {
-      this.disconnectScheduler.cancel(peer.id)
-      console.log(`用户 ${peer.name.displayName} 在断开超时前重新连接，取消断开任务`)
-    }
-
-    const reconnection = this.deviceManager.detectReconnection(peer)
-    if (reconnection) {
-      const oldPeer = this.roomManager.getPeerById(reconnection.oldPeerId)
-      if (oldPeer) {
-        console.log(`检测到用户重连: ${peer.name.displayName} (${peer.ip}), 旧peerId: ${reconnection.oldPeerId}, 新peerId: ${peer.id}`)
-        this.roomManager.removePeer(oldPeer)
-      }
-    }
-
+    this.sessions.set(token, peer)
+    this.peerTokens.set(peer, token)
     this.roomManager.addPeer(peer)
-    console.log(`用户 ${peer.name.displayName} (${peer.ip}) 加入房间: ${peer.roomId}`)
-
-    if (reconnection) {
-      this.roomManager.broadcastToRoom(peer.roomId, {
-        type: Action.UserReconnected,
-        data: {
-          oldPeerId: reconnection.oldPeerId,
-          newPeerId: peer.id,
-          userInfo: peer.getInfo(),
-        } satisfies UserReconnectedInfo,
-      }, peer.id)
-    }
 
     const { socket } = peer
     socket.on('message', data => this.onMessage(peer, data))
-    socket.on('close', (code, reason) => {
-      console.log(`${peer.name.displayName} WebSocket连接关闭 (code: ${code}, reason: ${reason})`)
-      this.disconnectScheduler.scheduleDisconnect(peer)
+    socket.on('close', () => {
+      this.handleSocketClosed(peer)
     })
-    socket.on('error', (err) => {
-      console.log(`${peer.name.displayName} WebSocket连接错误:`, err)
-      this.disconnectScheduler.scheduleDisconnect(peer)
+    socket.on('error', () => {
+      if (this.isCurrentSession(peer)) {
+        this.handleSocketClosed(peer)
+        socket.terminate()
+      }
     })
+
+    if (previous) {
+      /** 先切换映射，再关闭旧连接；其排队中的 message/close 不得影响新会话 */
+      previous.socket.close(4001, 'Session replaced')
+      this.roomManager.broadcastToRoom(peer.roomId, {
+        type: Action.UserReconnected,
+        data: { oldPeerId: previous.id, newPeerId: peer.id, userInfo: peer.getInfo() } satisfies UserReconnectedInfo,
+      }, peer.id)
+    }
+  }
+
+  /** 离线会话仍可在宽限内恢复，不依赖在线房间索引 */
+  private isCurrentSession(peer: Peer): boolean {
+    const token = this.peerTokens.get(peer)
+    return !this.closed && token !== undefined && this.sessions.get(token) === peer
+  }
+
+  private isCurrentPeer(peer: Peer): boolean {
+    return this.isCurrentSession(peer) && this.roomManager.getRoomPeer(peer.roomId, peer.id) === peer
+  }
+
+  /** 立即发布离线状态；恢复凭据由独立的宽限计时器回收 */
+  private handleSocketClosed(peer: Peer) {
+    if (!this.isCurrentSession(peer))
+      return
+    this.removeOnlinePeer(peer)
+    this.disconnectScheduler.scheduleDisconnect(peer)
+  }
+
+  /** 仅在确实移除了当前在线成员时广播，避免过期清理重复通知 */
+  private removeOnlinePeer(peer: Peer) {
+    if (this.roomManager.removePeer(peer))
+      this.roomManager.broadcastToRoom(peer.roomId, { type: Action.LeaveRoom, data: peer.getInfo() })
   }
 
   private executeDisconnect(peer: Peer) {
-    if (!this.roomManager.removePeer(peer)) {
-      console.log(`用户 ${peer.name.displayName} 已经不在房间中或已重新连接，跳过执行断开`)
+    if (!this.isCurrentSession(peer))
       return
-    }
-    console.log(`执行用户断开连接: ${peer.name.displayName}`)
-    this.deviceManager.cleanupDevice(peer)
-    this.roomManager.broadcastToRoom(peer.roomId, { type: Action.LeaveRoom, data: peer.getInfo() })
+
+    this.disconnectScheduler.cancel(peer.id)
+    this.removeOnlinePeer(peer)
+    const token = this.peerTokens.get(peer)!
+    this.sessions.delete(token)
+    this.peerTokens.delete(peer)
+    peer.socket.terminate()
   }
 
-  private send<T>(peer: Peer, data: SendData<T>) {
-    if (peer.socket.readyState !== WebSocket.OPEN)
+  private send(peer: Peer, data: { type: Action, [key: string]: unknown }) {
+    if (!this.isCurrentPeer(peer) || peer.socket.readyState !== WebSocket.OPEN)
       return
-    try {
-      peer.socket.send(JSON.stringify(data))
-    }
-    catch (error) {
-      console.warn(`发送消息失败 (${peer.name.displayName}):`, error)
-    }
+    sendOrTerminateSlowSocket(peer.socket, JSON.stringify(data))
   }
 
-  private sendTo<T>(fromPeer: Peer, toId: string, data: SendData<T>) {
-    const target = this.roomManager.getRoomPeer(fromPeer.roomId, toId)
-    if (!target) {
-      console.warn(`目标用户 ${toId} 不在房间 ${fromPeer.roomId} 中`)
-      return
-    }
-    this.send(target, data)
+  private sendError(peer: Peer, message: string) {
+    this.send(peer, { type: Action.Error, data: { message } })
   }
 
-  private sendInviteInvalidated(
-    peer: Peer,
-    reason: InviteInvalidatedInfo['reason'],
-    invite?: Partial<RoomInviteInfo>,
-  ) {
+  private sendRoomState(peer: Peer) {
+    /** 恢复令牌只通过当前连接的私有 NotifyUserInfo 发放 */
+    this.send(peer, {
+      type: Action.NotifyUserInfo,
+      data: { ...peer.getInfo(), resumeToken: this.peerTokens.get(peer)! },
+    })
+    this.roomManager.broadcastToRoom(peer.roomId, { type: Action.JoinRoom, data: this.roomManager.getRoomUsers(peer.roomId) })
+  }
+
+  private sendInviteInvalidated(peer: Peer, reason: InviteInvalidatedInfo['reason'], invite?: Partial<RoomInviteInfo>) {
     const messages: Record<InviteInvalidatedInfo['reason'], string> = {
-      expired: '邀请已过期，请重新生成',
-      not_found: '邀请不存在或已失效',
-      room_unavailable: '邀请对应的房间不可用',
-      restarted: '服务已重启，请重新生成邀请',
-      revoked: '邀请已被刷新，请使用最新邀请',
-      no_active_invite: '当前房间没有可用邀请',
+      [InviteInvalidatedReason.Expired]: '邀请已过期，请重新生成',
+      [InviteInvalidatedReason.NotFound]: '邀请不存在或已失效',
+      [InviteInvalidatedReason.RoomUnavailable]: '邀请对应的房间不可用',
+      [InviteInvalidatedReason.Restarted]: '服务已重启，请重新生成邀请',
+      [InviteInvalidatedReason.Revoked]: '邀请已被刷新，请使用最新邀请',
+      [InviteInvalidatedReason.NoActiveInvite]: '当前房间没有可用邀请',
     }
     this.send(peer, {
       type: Action.InviteInvalidated,
-      data: {
-        inviteId: invite?.inviteId,
-        roomCode: invite?.roomCode,
-        reason,
-        message: messages[reason],
-      } satisfies InviteInvalidatedInfo,
+      data: { inviteId: invite?.inviteId, roomCode: invite?.roomCode, reason, message: messages[reason] },
     })
   }
 
-  private onMessage = (sender: Peer, data: RawData) => {
-    let msg: SendData
+  private onMessage(sender: Peer, raw: RawData) {
+    if (!this.isCurrentPeer(sender))
+      return
+
+    let message: unknown
     try {
-      msg = JSON.parse(data.toString())
+      message = JSON.parse(raw.toString())
     }
     catch {
-      console.warn('WS: Received JSON is malformed')
+      this.sendError(sender, '消息必须是合法 JSON')
+      return
+    }
+    if (!isRecord(message) || typeof message.type !== 'string' || !('data' in message)) {
+      this.sendError(sender, '消息必须包含 type 和 data')
       return
     }
 
-    switch (msg.type) {
+    try {
+      this.dispatch(sender, message.type, message.data)
+    }
+    catch (error) {
+      console.error('处理 WebSocket 消息失败:', error)
+      this.sendError(sender, '消息处理失败')
+    }
+  }
+
+  private dispatch(sender: Peer, type: string, payload: unknown) {
+    const invalid = () => this.sendError(sender, '消息载荷无效')
+    switch (type) {
+      case Action.Close:
+      case Action.Ping:
+      case Action.LeaveRoom:
+      case Action.GetOrCreateInvite:
+      case Action.GetCurrentInvite:
+      case Action.RefreshInvite:
+        if (payload !== null)
+          return invalid()
+    }
+
+    switch (type) {
       case Action.Close:
         sender.socket.terminate()
         break
       case Action.Ping:
         sender[HEART_BEAT] = Date.now()
-        this.deviceManager.updateLastSeen(sender)
         this.send(sender, { type: Action.Ping, data: null })
         break
-
-      case Action.JoinRoom: {
-        const joinData = msg.data as UserInfo
-        if (joinData.roomId && joinData.roomId !== sender.roomId) {
-          console.log(`${sender.name.displayName} 加入房间`)
-          this.removePeerFromCurrentRoomAndJoin(sender, joinData.roomId)
-        }
-        this.send(sender, { type: Action.NotifyUserInfo, data: sender.getInfo() } satisfies SendUserInfo)
-        this.roomManager.broadcastToRoom(sender.roomId, { type: Action.JoinRoom, data: this.roomManager.getRoomUsers(sender.roomId) })
+      case Action.JoinRoom:
+        if (!isRecord(payload) || (payload.roomId !== undefined && typeof payload.roomId !== 'string'))
+          return invalid()
+        if (payload.roomId && payload.roomId !== sender.roomId)
+          this.sendError(sender, '跨房间加入必须使用邀请或房间码')
+        this.sendRoomState(sender)
         break
-      }
-
       case Action.LeaveRoom:
-        console.log(`${sender.name.displayName} 离开房间`)
-        this.disconnectScheduler.scheduleDisconnect(sender, true)
+        this.executeDisconnect(sender)
         break
-
-      case Action.GetOrCreateInvite: {
-        const invite = this.inviteManager.getOrCreateInvite(sender.roomId)
+      case Action.GetOrCreateInvite:
+      case Action.RefreshInvite: {
+        const invite = type === Action.RefreshInvite
+          ? this.inviteManager.refreshInvite(sender.roomId)
+          : this.inviteManager.getOrCreateInvite(sender.roomId)
         this.send(sender, { type: Action.InviteCreated, data: invite })
-        console.log(`用户 ${sender.name.displayName} 创建了统一邀请: ${invite.roomCode}，有效期: ${invite.expiresAt}`)
         break
       }
-
       case Action.GetCurrentInvite: {
         const invite = this.inviteManager.getActiveInviteForRoom(sender.roomId)
-        if (!invite) {
-          this.sendInviteInvalidated(sender, 'no_active_invite')
-          break
-        }
-        this.send(sender, { type: Action.InviteCreated, data: invite })
+        if (invite)
+          this.send(sender, { type: Action.InviteCreated, data: invite })
+        else this.sendInviteInvalidated(sender, InviteInvalidatedReason.NoActiveInvite)
         break
       }
-
-      case Action.RefreshInvite: {
-        const invite = this.inviteManager.refreshInvite(sender.roomId)
-        this.send(sender, { type: Action.InviteCreated, data: invite })
-        console.log(`用户 ${sender.name.displayName} 刷新了邀请: ${invite.roomCode}`)
+      case Action.JoinRoomByQRCode:
+        /** 公开 roomId/peerId 不能授权进入其他房间，旧链接统一失效 */
+        this.sendInviteInvalidated(sender, InviteInvalidatedReason.NotFound)
         break
-      }
-
-      case Action.JoinRoomByQRCode: {
-        const { roomId, peerId } = msg.data as JoinRoomInfo
-        if (this.roomManager.hasPeer(roomId, peerId)) {
-          this.removePeerFromCurrentRoomAndJoin(sender, roomId)
-          this.send(sender, { type: Action.NotifyUserInfo, data: sender.getInfo() } satisfies SendUserInfo)
-          this.roomManager.broadcastToRoom(roomId, { type: Action.JoinRoom, data: this.roomManager.getRoomUsers(roomId) })
-        }
-        else {
-          const fallback = this.inviteManager.getInviteForRoom(roomId)
-          if (fallback && this.inviteManager.isPendingEmptyRoomCleanup(roomId))
-            this.sendInviteInvalidated(sender, 'room_unavailable', fallback)
-          else
-            this.sendInviteInvalidated(sender, 'not_found')
-        }
-        break
-      }
-
       case Action.JoinRoomByInvite: {
-        const result = this.inviteManager.resolveInviteByJoinPayload(msg.data as JoinInviteInfo)
-        if ('invite' in result) {
-          const { invite } = result
-          this.removePeerFromCurrentRoomAndJoin(sender, invite.roomId)
-          this.send(sender, { type: Action.NotifyUserInfo, data: sender.getInfo() } satisfies SendUserInfo)
-          this.roomManager.broadcastToRoom(invite.roomId, { type: Action.JoinRoom, data: this.roomManager.getRoomUsers(invite.roomId) })
-          console.log(`用户 ${sender.name.displayName} 通过邀请 ${invite.roomCode} 加入房间: ${invite.roomId}`)
-        }
-        else {
-          this.sendInviteInvalidated(sender, result.reason)
-        }
+        if (!isRecord(payload) || !isNonEmptyString(payload.inviteId) || !isNonEmptyString(payload.joinToken))
+          return invalid()
+        const result = this.inviteManager.resolveInviteByJoinPayload({ inviteId: payload.inviteId, joinToken: payload.joinToken })
+        if ('invite' in result)
+          this.joinAuthorizedRoom(sender, result.invite.roomId)
+        else this.sendInviteInvalidated(sender, result.reason)
         break
       }
-
       case Action.JoinRoomByCode: {
-        const { roomCode } = msg.data as JoinRoomCodeInfo
-        const result = this.inviteManager.resolveInviteByCode(roomCode)
-        if ('invite' in result) {
-          const { invite } = result
-          this.removePeerFromCurrentRoomAndJoin(sender, invite.roomId)
-          this.send(sender, { type: Action.NotifyUserInfo, data: sender.getInfo() } satisfies SendUserInfo)
-          this.roomManager.broadcastToRoom(invite.roomId, { type: Action.JoinRoom, data: this.roomManager.getRoomUsers(invite.roomId) })
-          console.log(`用户 ${sender.name.displayName} 通过房间码 ${roomCode} 加入房间: ${invite.roomId}`)
-        }
-        else {
-          this.sendInviteInvalidated(sender, result.reason, { roomCode })
-        }
+        if (!isRecord(payload) || !isNonEmptyString(payload.roomCode))
+          return invalid()
+        const result = this.inviteManager.resolveInviteByCode(payload.roomCode)
+        if ('invite' in result)
+          this.joinAuthorizedRoom(sender, result.invite.roomId)
+        else this.sendInviteInvalidated(sender, result.reason, { roomCode: payload.roomCode })
         break
       }
-
       case Action.Relay: {
-        /** 强制设置 fromId 为发送者真实 ID，防止伪造 */
-        const relayData = msg.data as { toId: string, fromId?: string }
-        relayData.fromId = sender.id
-        this.sendTo(sender, relayData.toId, msg.data)
+        if (!isRecord(payload) || !isNonEmptyString(payload.toId) || typeof payload.type !== 'string' || !RELAY_ACTIONS.has(payload.type))
+          return invalid()
+        const target = this.roomManager.getRoomPeer(sender.roomId, payload.toId)
+        if (target)
+          this.send(target, { ...payload, type: payload.type as Action, fromId: sender.id })
         break
       }
-
       case Action.RTCError: {
-        const errorData = msg.data as { errorType?: string }
-        const errorType = errorData?.errorType || 'UNKNOWN_ERROR'
-        console.log(`收到来自 ${sender.name.displayName} 的RTC错误:`, msg.data)
-        if (!this.rtcErrorBroadcastManager.canBroadcast(sender.roomId, errorType)) {
-          console.warn(`跳过RTC错误广播，房间 ${sender.roomId} 的错误类型 ${errorType} 过于频繁`)
-          break
+        if (!isRecord(payload) || (payload.errorType !== undefined && typeof payload.errorType !== 'string'))
+          return invalid()
+        const errorType = typeof payload.errorType === 'string'
+          ? payload.errorType
+          : 'UNKNOWN_ERROR'
+        if (this.rtcErrorBroadcastManager.canBroadcast(sender.roomId, errorType)) {
+          this.roomManager.broadcastToRoom(sender.roomId, {
+            type: Action.RTCErrorBroadcast,
+            data: { ...payload, fromPeerId: sender.id },
+          }, sender.id)
         }
-        this.roomManager.broadcastToRoom(sender.roomId, { type: Action.RTCErrorBroadcast, data: msg.data }, sender.id)
         break
       }
-
       default:
-        break
+        this.sendError(sender, '不支持的消息类型')
     }
   }
 
-  private removePeerFromCurrentRoomAndJoin(peer: Peer, newRoomId: string) {
-    this.roomManager.removePeer(peer)
-    peer.roomId = newRoomId
-    this.inviteManager.cancelEmptyRoomCleanup(newRoomId)
-    if (this.disconnectScheduler.hasPending(peer.id))
-      this.disconnectScheduler.cancel(peer.id)
-    const reconnection = this.deviceManager.detectReconnection(peer)
-    if (reconnection) {
-      const oldPeer = this.roomManager.getPeerById(reconnection.oldPeerId)
-      if (oldPeer)
-        this.roomManager.removePeer(oldPeer)
+  private joinAuthorizedRoom(peer: Peer, roomId: string) {
+    if (roomId !== peer.roomId) {
+      const oldInfo = peer.getInfo()
+      this.roomManager.removePeer(peer)
+      this.roomManager.broadcastToRoom(oldInfo.roomId, { type: Action.LeaveRoom, data: oldInfo })
+      peer.roomId = roomId
+      this.inviteManager.cancelEmptyRoomCleanup(roomId)
+      this.roomManager.addPeer(peer)
     }
-    this.roomManager.addPeer(peer)
-    if (reconnection) {
-      this.roomManager.broadcastToRoom(peer.roomId, {
-        type: Action.UserReconnected,
-        data: { oldPeerId: reconnection.oldPeerId, newPeerId: peer.id, userInfo: peer.getInfo() } satisfies UserReconnectedInfo,
-      }, peer.id)
-    }
+    this.sendRoomState(peer)
   }
 
-  private startKeepAliveClear() {
-    setInterval(() => {
-      this.roomManager.getRoomMap().forEach((room, roomId) => {
-        if (room.size > 0) {
-          const clients = Array.from(room.values()).map(p => p.name.displayName).join(', ')
-          console.log(`房间 ${roomId}: ${clients}`)
-        }
-      })
-
-      const toRemove: Peer[] = []
-      this.roomManager.forEachPeer((peer) => {
-        const now = Date.now()
-        let reason = ''
-        if (now - peer[HEART_BEAT] > this.opts.clearTime)
-          reason = '超时'
-        else if (!peer.socket || peer.socket.readyState === WebSocket.CLOSED)
-          reason = reason || '没有连接或已关闭'
-        if (reason) {
-          console.log(`${peer.name.displayName} 被清理了，原因是${reason}`)
-          toRemove.push(peer)
-        }
-      })
-      toRemove.forEach(peer => this.disconnectScheduler.scheduleDisconnect(peer, true))
-    }, this.opts.clearTime)
+  private clearInactivePeers() {
+    const expired: Peer[] = []
+    const now = Date.now()
+    this.roomManager.forEachPeer((peer) => {
+      if (peer.socket.readyState !== WebSocket.OPEN) {
+        /** 在线状态立即移除；重复检测不会延长会话的恢复期限 */
+        this.handleSocketClosed(peer)
+      }
+      else if (now - peer[HEART_BEAT] > this.opts.clearTime) {
+        expired.push(peer)
+      }
+    })
+    expired.forEach(peer => this.executeDisconnect(peer))
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
 }
 
 export type { WSServerOpts } from './types'

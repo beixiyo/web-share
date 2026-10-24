@@ -1,7 +1,17 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
-import { computed, ref, watch } from 'vue'
-import { INVITE_INFO_KEY, type InviteInvalidatedInfo, ROOM_CODE_KEY, ROOM_CODE_LENGTH, type RoomCodeExpiredInfo, type RoomInviteInfo, type RTCErrorInfo, type UserInfo } from 'web-share-common'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import {
+  INVITE_INFO_KEY,
+  type InviteInvalidatedInfo,
+  InviteInvalidatedReason,
+  ROOM_CODE_KEY,
+  type RoomCodeExpiredInfo,
+  RoomCodeLength,
+  type RoomInviteInfo,
+  type RTCErrorInfo,
+  type UserInfo,
+} from 'web-share-common'
 import { PeerManager, ServerConnection } from '@/ClientServer'
 import { Message } from '@/utils'
 import { resetExpiredSessionState } from './tools'
@@ -25,6 +35,8 @@ export function useServerConnection() {
   let recoverSessionPromise: Promise<void> | null = null
   let server: ServerConnection
   let peerManager: PeerManager
+
+  onUnmounted(() => server?.close())
 
   watch(joinLink, async (link) => {
     if (!link) {
@@ -108,6 +120,7 @@ export function useServerConnection() {
   }) {
     closeAllModalsRef = callbacks.closeAllModals
 
+    server?.close()
     server = new ServerConnection({
       onNotifyUserInfo: callbacks.onNotifyUserInfo,
       onJoinRoom: callbacks.onJoinRoom,
@@ -201,14 +214,12 @@ export function useServerConnection() {
     setLoading?: (state: boolean) => void,
   ) {
     const currentInvite = inviteInfo.value
-    const hasInviteQuery
-      = location.search.includes('inviteId=')
-        || location.search.includes('token=')
-        || location.search.includes('roomId=')
-        || location.search.includes('peerId=')
-    const shouldClearInvite
-      = !!currentInvite
-        && (!invalidInfo.inviteId || invalidInfo.inviteId === currentInvite.inviteId || invalidInfo.roomCode === currentInvite.roomCode)
+    const hasInviteQuery = location.search.includes('inviteId=')
+      || location.search.includes('token=')
+      || location.search.includes('roomId=')
+      || location.search.includes('peerId=')
+    const shouldClearInvite = !!currentInvite
+      && (!invalidInfo.inviteId || invalidInfo.inviteId === currentInvite.inviteId || invalidInfo.roomCode === currentInvite.roomCode)
 
     if (shouldClearInvite) {
       clearInviteState()
@@ -218,7 +229,7 @@ export function useServerConnection() {
       clearInviteQueryFromUrl()
     }
 
-    if (invalidInfo.reason !== 'no_active_invite' || shouldClearInvite || hasInviteQuery) {
+    if (invalidInfo.reason !== InviteInvalidatedReason.NoActiveInvite || shouldClearInvite || hasInviteQuery) {
       Message.warning(invalidInfo.message)
     }
 
@@ -226,8 +237,8 @@ export function useServerConnection() {
   }
 
   function handleJoinWithCode(code: string, setLoading: (state: boolean) => void) {
-    if (!code || code.length !== ROOM_CODE_LENGTH) {
-      Message.error(`请输入${ROOM_CODE_LENGTH}位数字连接码`)
+    if (!code || code.length !== RoomCodeLength) {
+      Message.error(`请输入${RoomCodeLength}位数字连接码`)
       return
     }
 

@@ -7,7 +7,7 @@ import {
 
 export default antfu({
   /**
-   * Style
+   * 样式
    */
   stylistic: {
     indent: 2,
@@ -63,7 +63,7 @@ export default antfu({
   },
 
   /**
-   * Language config
+   * 语言配置
    */
   jsonc: false,
   regexp: false,
@@ -85,9 +85,11 @@ export default antfu({
   },
 
   ignores: [
+    /** tygo 生成文件保持工具原始输出，避免格式化后同步检查失败 */
+    'packages/common/src/generated/protocol.ts',
     'dist',
     'packages/**/public/*',
-    // Skip placeholder/entry views that intentionally have empty templates
+    /** 跳过有意保留空模板的占位视图和入口视图 */
     'src/views/index.vue',
     'packages/client/src/views/index.vue',
     'node_modules',

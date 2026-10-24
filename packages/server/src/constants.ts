@@ -1,36 +1,58 @@
-import type { ResolvedWSServerOpts } from './types'
+/** 在进程边界读取和校验服务配置，保留合法零值并拒绝无效定时器参数 */
+import type { ResolvedWSServerOpts, WSServerOpts } from './types'
 
-export const defaultOpts: ResolvedWSServerOpts = {
-  /**
-   * 心跳超时阈值与离线巡检间隔
-   * 只用于判断 peer 是否失联，不代表 invite 的有效期。
-   * 当前实现里如果房主因失联被清理，且房间被清空，会进一步触发 invite 清理。
-   * 设置为 5min 是为了兼容移动端切后台、选择文件时的长时间挂起。
-   */
-  clearTime: Number(process.env.CLEAR_TIME) || 5 * 60 * 1000,
-  /**
-   * WebSocket 关闭后的断连宽限期（毫秒）。
-   * 1) 断连：WS 关闭后延迟此时间再执行 removePeer 并广播 LeaveRoom，给用户重连时间。
-   * 2) 重连判定：同一设备（IP+设备名+浏览器）在此窗口内再次连接视为重连（踢旧连、广播 UserReconnected）。
-   * 两者共用此配置，避免先广播 Leave 再广播 UserReconnected 的错序；仅需配置 DISCONNECT_DELAY。
-   * @default 300000 (5 分钟)
-   */
-  disconnectDelay: Number(process.env.DISCONNECT_DELAY) || 5 * 60 * 1000,
-  /**
-   * 房间清空后的邀请保留期
-   * 只控制空房多久后才真正删除 invite，用于彻底解耦连接超时与邀请生命周期语义。
-   */
-  roomEmptyGraceMs: Number(process.env.ROOM_EMPTY_GRACE_MS) || 5 * 60 * 1000,
-  /**
-   * 房间邀请有效期
-   * @default -1
-   */
-  inviteTTL: process.env.ROOM_INVITE_TTL_MS != null && process.env.ROOM_INVITE_TTL_MS !== ''
-    ? Number(process.env.ROOM_INVITE_TTL_MS)
-    : -1,
-  /**
-   * 默认房间码，仅当未配置任何房间码时生效；设置后输入该码即可加入同一固定房间。
-   * 环境变量：DEFAULT_ROOM_CODE
-   */
-  defaultRoomCode: (process.env.DEFAULT_ROOM_CODE ?? '').trim() || '442385',
+const FIVE_MINUTES = 5 * 60 * 1000
+const MAX_TIMER_MS = 2 ** 31 - 1
+
+/** 校验公开 options；默认值只在此边界归一化 */
+export function resolveOptions(opts: WSServerOpts = {}, defaults = readDefaultOptions()): ResolvedWSServerOpts {
+  const resolved = {
+    clearTime: opts.clearTime ?? defaults.clearTime,
+    disconnectDelay: opts.disconnectDelay ?? defaults.disconnectDelay,
+    roomEmptyGraceMs: opts.roomEmptyGraceMs ?? defaults.roomEmptyGraceMs,
+    inviteTTL: opts.inviteTTL ?? defaults.inviteTTL,
+    defaultRoomCode: opts.defaultRoomCode ?? defaults.defaultRoomCode,
+  }
+
+  for (const key of ['clearTime', 'disconnectDelay', 'roomEmptyGraceMs', 'inviteTTL'] as const) {
+    const value = resolved[key]
+    if (!Number.isSafeInteger(value) || (key !== 'inviteTTL' && value > MAX_TIMER_MS))
+      throw new Error(`${key} 必须是支持范围内的整数毫秒`)
+  }
+  if (resolved.clearTime <= 0)
+    throw new Error('clearTime 必须大于 0')
+  if (resolved.inviteTTL > Number.MAX_SAFE_INTEGER - Date.now())
+    throw new Error('inviteTTL 超出时间戳范围')
+  return resolved
+}
+
+/** 读取环境配置；未设置或空白值使用默认值，非法值导致启动失败 */
+export function readDefaultOptions(env: NodeJS.ProcessEnv = process.env): ResolvedWSServerOpts {
+  const number = (name: string, fallback: number) => {
+    const value = env[name]?.trim()
+    if (!value)
+      return fallback
+    if (!/^[+-]?\d+$/.test(value))
+      throw new Error(`${name} 必须是整数毫秒`)
+    return Number(value)
+  }
+
+  const defaults: ResolvedWSServerOpts = {
+    clearTime: number('CLEAR_TIME', FIVE_MINUTES),
+    disconnectDelay: number('DISCONNECT_DELAY', FIVE_MINUTES),
+    roomEmptyGraceMs: number('ROOM_EMPTY_GRACE_MS', FIVE_MINUTES),
+    inviteTTL: number('ROOM_INVITE_TTL_MS', -1),
+    defaultRoomCode: env.DEFAULT_ROOM_CODE?.trim() || '442385',
+  }
+
+  return resolveOptions({}, defaults)
+}
+
+/** PORT 仅接受有效 TCP 端口，禁止非法输入静默切换到默认端口 */
+export function readPort(env: NodeJS.ProcessEnv = process.env): number {
+  const value = env.PORT?.trim() || '3001'
+  const port = Number(value)
+  if (!/^\d+$/.test(value) || !Number.isInteger(port) || port < 1 || port > 65535)
+    throw new Error('PORT 必须为 1 到 65535 的整数')
+  return port
 }

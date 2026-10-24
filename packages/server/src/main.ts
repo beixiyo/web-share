@@ -5,9 +5,10 @@ import history from 'connect-history-api-fallback'
 import express from 'express'
 import { cors } from '@/middleware'
 import { WSServer } from '@/WSServer'
+import { readPort } from './constants'
 import { getHttpsOptions } from './utils'
 
-const PORT = Number(process.env.PORT) || 3001
+const PORT = readPort()
 
 const app = express()
 app
@@ -21,9 +22,11 @@ const server = httpsOpts
   : createHttpServer(app)
 
 server.listen(PORT, () => {
-  console.log(httpsOpts
-    ? `信令服务器运行在 https 端口 ${PORT}`
-    : `信令服务器运行在端口 ${PORT}`)
+  console.log(
+    httpsOpts
+      ? `信令服务器运行在 https 端口 ${PORT}`
+      : `信令服务器运行在端口 ${PORT}`,
+  )
 })
 
 new WSServer(server)

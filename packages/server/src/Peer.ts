@@ -1,10 +1,10 @@
 import type { IncomingMessage } from 'node:http'
 import type { WebSocket } from 'ws'
 import crypto from 'node:crypto'
-import { isStr } from '@jl-org/tool'
+import { isIP } from 'node:net'
 import { UAParser } from 'ua-parser-js'
 import { animals, colors, uniqueNamesGenerator } from 'unique-names-generator'
-import { HEART_BEAT, type Name, PEER_ID, type UserInfo } from 'web-share-common'
+import { HEART_BEAT, type Name, type UserInfo } from 'web-share-common'
 import { cyrb53 } from '@/utils'
 
 /**
@@ -15,7 +15,7 @@ export class Peer {
   declare ip: string
   declare id: string
   declare socket: WebSocket
-  declare roomId: string
+  declare roomId: string;
   [HEART_BEAT] = Date.now()
 
   name: Name = {
@@ -27,35 +27,12 @@ export class Peer {
     displayName: '',
   }
 
-  constructor(socket: WebSocket, request: IncomingMessage) {
+  constructor(socket: WebSocket, request: IncomingMessage, opts: PeerOpts = {}) {
     this.socket = socket
-
-    this.setIP(request)
-    this.setPeerId(request)
+    this.ip = getClientIP(request)
+    this.roomId = opts.roomId ?? this.getRoomIdFromIP(this.ip)
+    this.id = opts.peerId ?? crypto.randomUUID()
     this.setName(request)
-  }
-
-  /**
-   * 设置 IP 地址
-   */
-  private setIP(request: IncomingMessage) {
-    if (isStr(request.headers['cf-connecting-ip'])) {
-      this.ip = request.headers['cf-connecting-ip'].split(/\s*,\s*/)[0]
-    }
-    else if (isStr(request.headers['x-forwarded-for'])) {
-      this.ip = request.headers['x-forwarded-for'].split(/\s*,\s*/)[0]
-    }
-    else {
-      this.ip = request.socket.remoteAddress ?? ''
-    }
-
-    /** 移除用于 IPv4 转换地址的前缀 */
-    if (this.ip.slice(0, 7) === '::ffff:') {
-      this.ip = this.ip.slice(7)
-    }
-
-    /** 设置房间ID - 根据IP网段划分 */
-    this.roomId = this.getRoomIdFromIP(this.ip)
   }
 
   /**
@@ -99,35 +76,8 @@ export class Peer {
       return `public_${ip.replace(/\./g, '_')}`
     }
 
-    // IPv6私有地址处理
-    const firstWord = ip.split(':').find(el => !!el)!
-
-    if (/^fe[c-f][0-f]$/.test(firstWord) || /^fc[0-f]{2}$/.test(firstWord) || /^fd[0-f]{2}$/.test(firstWord)) {
-      // IPv6私有地址 - 按前缀划分
-      return `lan_ipv6_${firstWord}`
-    }
-
-    if (firstWord === 'fe80') {
-      /** 链路本地地址 */
-      return 'local'
-    }
-
-    /** 其他IPv6地址 */
-    return `ipv6_${firstWord}`
-  }
-
-  /**
-   * 设置对等方 ID
-   */
-  private setPeerId(request: IncomingMessage) {
-    const searchParams = new URL(request.url!, 'http://server').searchParams
-    const peerId = searchParams.get(PEER_ID)
-
-    if (peerId) {
-      this.id = peerId
-      return
-    }
-    this.id = crypto.randomUUID()
+    /** IPv6 不根据前缀猜测局域网；完整地址隔离不同网络与主机 */
+    return `ipv6_${ip}`
   }
 
   /**
@@ -146,7 +96,7 @@ export class Peer {
       deviceName += ua.device.model
     }
     else {
-      deviceName += ua.browser.name
+      deviceName += ua.browser.name ?? ''
     }
 
     if (!deviceName) {
@@ -172,7 +122,7 @@ export class Peer {
   }
 
   /**
-   * 获取对等方信息。
+   * 获取对等方信息
    */
   getInfo(): UserInfo {
     return {
@@ -205,25 +155,21 @@ export class Peer {
       /** 原始 IPv6 站点本地地址（fec0::/10）已弃用。范围：fec0 - feff */
       return true
     }
-
     /**
-     * 现在使用唯一本地地址（ULA）代替站点本地地址。
+     * 现在使用唯一本地地址（ULA）代替站点本地地址
      * 范围：fc00 - fcff
      */
     else if (/^fc[0-f]{2}$/.test(firstWord)) {
       return true
     }
-
     /** 范围：fd00 - fcff */
     else if (/^fd[0-f]{2}$/.test(firstWord)) {
       return true
     }
-
     /** 链路本地地址（前缀为 fe80）不可路由 */
     else if (firstWord === 'fe80') {
       return true
     }
-
     /** 丢弃前缀 */
     else if (firstWord === '100') {
       return true
@@ -232,4 +178,43 @@ export class Peer {
     /** 任何其他 IP 地址都不是唯一本地地址（ULA） */
     return false
   }
+}
+
+/** 按原有优先级读取客户端地址，校验并规范化后用于自动分房 */
+function getClientIP(request: IncomingMessage): string {
+  const candidates = [request.headers['cf-connecting-ip'], request.headers['x-forwarded-for'], request.socket.remoteAddress]
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string')
+      continue
+    const ip = normalizeIP(candidate.split(',')[0].trim())
+    if (ip)
+      return ip
+  }
+  return ''
+}
+
+/** 统一 IPv6 写法，并将 IPv4-mapped IPv6 转为 IPv4 */
+function normalizeIP(value: string): string | null {
+  const family = isIP(value)
+  if (!family || value.includes('%'))
+    return null
+  if (family === 4)
+    return value
+
+  const normalized = new URL(`http://[${value}]/`).hostname.slice(1, -1)
+  const mapped = /^::ffff:([\da-f]+):([\da-f]+)$/.exec(normalized)
+  if (!mapped)
+    return normalized
+
+  const high = Number.parseInt(mapped[1], 16)
+  const low = Number.parseInt(mapped[2], 16)
+  return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`
+}
+
+/** 由会话所有者注入身份，绝不从客户端 peerId query 获取身份 */
+export type PeerOpts = {
+  /** 会话所有者恢复的服务端身份。@default 新的随机 UUID */
+  peerId?: string
+  /** 会话所有者恢复的房间。@default 根据客户端 IP 分配 */
+  roomId?: string
 }

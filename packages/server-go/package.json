@@ -1,0 +1,10 @@
+{
+  "name": "web-share-server-go",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:protocol": "node ../../scripts/generate-protocol.mjs",
+    "check:protocol": "node ../../scripts/generate-protocol.mjs -check"
+  }
+}

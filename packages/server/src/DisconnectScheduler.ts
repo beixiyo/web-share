@@ -1,8 +1,8 @@
 import type { Peer } from '@/Peer'
 
 /**
- * 断连延迟调度：WebSocket 关闭后延迟一段时间再执行真正断开，便于移动端切后台重连。
- * 单一职责：只做“延迟 + 一次执行”，具体移除与广播由外部回调完成。
+ * 会话过期调度：WebSocket 关闭后保留一段时间的恢复身份，在线状态由调用方立即移除
+ * 单一职责：只做“延迟 + 一次执行”，具体恢复身份回收由外部回调完成
  */
 export class DisconnectScheduler {
   private pendingDisconnects = new Map<string, ReturnType<typeof setTimeout>>()
@@ -27,19 +27,29 @@ export class DisconnectScheduler {
   }
 
   /**
-   * 安排断开：immediate 则立即执行，否则延迟 disconnectDelayMs 后执行。
+   * 安排断开：immediate 则立即执行，否则延迟 disconnectDelayMs 后执行
    */
   scheduleDisconnect(peer: Peer, immediate = false) {
-    if (immediate) {
+    if (immediate || this.disconnectDelayMs <= 0) {
+      this.cancel(peer.id)
       this.onExecuteDisconnect(peer)
       return
     }
-    this.cancel(peer.id)
+
+    if (this.pendingDisconnects.has(peer.id))
+      return
+
     console.log(`延迟处理用户断开连接: ${peer.name.displayName} (${this.disconnectDelayMs}ms)`)
     const timeout = setTimeout(() => {
       this.pendingDisconnects.delete(peer.id)
       this.onExecuteDisconnect(peer)
     }, this.disconnectDelayMs)
     this.pendingDisconnects.set(peer.id, timeout)
+  }
+
+  /** 取消所有断连任务；调用方销毁服务时不再执行回调 */
+  close() {
+    for (const timeout of this.pendingDisconnects.values()) clearTimeout(timeout)
+    this.pendingDisconnects.clear()
   }
 }

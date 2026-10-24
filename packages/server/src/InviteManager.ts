@@ -1,4 +1,5 @@
 import type { JoinInviteInfo, RoomInviteInfo } from 'web-share-common'
+import { InviteInvalidatedReason, InviteStatus } from 'web-share-common'
 
 /** 默认房间的固定 roomId，仅在使用 defaultRoomCode 时存在 */
 export const DEFAULT_ROOM_ID = 'default'
@@ -12,15 +13,15 @@ export type InviteManagerOpts = {
 
 export type ResolveInviteByCodeResult
   = | { invite: RoomInviteInfo }
-    | { reason: 'not_found' | 'expired' | 'room_unavailable' }
+    | { reason: InviteInvalidatedReason.NotFound | InviteInvalidatedReason.Expired | InviteInvalidatedReason.RoomUnavailable }
 
 export type ResolveInviteByJoinPayloadResult
   = | { invite: RoomInviteInfo }
-    | { reason: 'not_found' | 'expired' | 'room_unavailable' }
+    | { reason: InviteInvalidatedReason.NotFound | InviteInvalidatedReason.Expired | InviteInvalidatedReason.RoomUnavailable }
 
 /**
- * 邀请管理：创建/解析/失效邀请，空房后延迟清理。
- * 单一职责：邀请生命周期与房间码映射，不关心 WebSocket 与房间成员细节。
+ * 邀请管理：创建/解析/失效邀请，空房后延迟清理
+ * 单一职责：邀请生命周期与房间码映射，不关心 WebSocket 与房间成员细节
  */
 export class InviteManager {
   private inviteMap = new Map<string, RoomInviteInfo>()
@@ -30,7 +31,7 @@ export class InviteManager {
 
   constructor(
     private opts: InviteManagerOpts,
-    /** 判断房间是否仍有活跃成员（未空房或未在宽限期内） */
+    /** 判断房间是否仍有在线成员，会话恢复宽限不计入在线状态 */
     private hasActiveRoom: (roomId: string) => boolean,
   ) {}
 
@@ -71,9 +72,6 @@ export class InviteManager {
   }
 
   getInviteForRoom(roomId: string): RoomInviteInfo | null {
-    if (roomId === DEFAULT_ROOM_ID && this.opts.defaultRoomCode)
-      return this.getDefaultRoomInvite()
-
     const inviteId = this.roomInviteMap.get(roomId)
     if (!inviteId)
       return null
@@ -81,20 +79,17 @@ export class InviteManager {
   }
 
   getActiveInviteForRoom(roomId: string): RoomInviteInfo | null {
-    if (roomId === DEFAULT_ROOM_ID && this.opts.defaultRoomCode)
-      return this.getDefaultRoomInvite()
-
     const invite = this.getInviteForRoom(roomId)
     if (!invite)
       return null
     if (this.isInviteExpired(invite)) {
-      this.invalidateInvite(invite, 'expired')
+      this.invalidateInvite(invite, InviteInvalidatedReason.Expired)
       return null
     }
     if (!this.hasActiveRoom(invite.roomId)) {
       if (this.pendingEmptyRoomCleanups.has(invite.roomId))
         return invite
-      this.invalidateInvite(invite, 'room_unavailable')
+      this.invalidateInvite(invite, InviteInvalidatedReason.RoomUnavailable)
       return null
     }
     return invite
@@ -112,7 +107,7 @@ export class InviteManager {
       roomCode,
       joinToken: crypto.randomUUID(),
       expiresAt,
-      status: 'active',
+      status: InviteStatus.Active,
     }
     this.inviteMap.set(invite.inviteId, invite)
     this.roomInviteMap.set(roomId, invite.inviteId)
@@ -130,31 +125,32 @@ export class InviteManager {
   refreshInvite(roomId: string): RoomInviteInfo {
     const existing = this.getInviteForRoom(roomId)
     if (existing)
-      this.invalidateInvite(existing, 'revoked')
+      this.invalidateInvite(existing, InviteInvalidatedReason.Revoked)
     return this.createInvite(roomId)
   }
 
   resolveInviteByCode(roomCode: string): ResolveInviteByCodeResult {
+    roomCode = roomCode.trim()
     if (this.opts.defaultRoomCode && roomCode.trim() === this.opts.defaultRoomCode)
       return { invite: this.getDefaultRoomInvite() }
 
     const inviteId = this.roomCodeMap.get(roomCode)
     if (!inviteId)
-      return { reason: 'not_found' }
+      return { reason: InviteInvalidatedReason.NotFound }
     const invite = this.inviteMap.get(inviteId)
     if (!invite) {
       this.roomCodeMap.delete(roomCode)
-      return { reason: 'not_found' }
+      return { reason: InviteInvalidatedReason.NotFound }
     }
     if (this.isInviteExpired(invite)) {
-      this.invalidateInvite(invite, 'expired')
-      return { reason: 'expired' }
+      this.invalidateInvite(invite, InviteInvalidatedReason.Expired)
+      return { reason: InviteInvalidatedReason.Expired }
     }
     if (!this.hasActiveRoom(invite.roomId)) {
       if (this.pendingEmptyRoomCleanups.has(invite.roomId))
-        return { reason: 'room_unavailable' }
-      this.invalidateInvite(invite, 'room_unavailable')
-      return { reason: 'room_unavailable' }
+        return { reason: InviteInvalidatedReason.RoomUnavailable }
+      this.invalidateInvite(invite, InviteInvalidatedReason.RoomUnavailable)
+      return { reason: InviteInvalidatedReason.RoomUnavailable }
     }
     return { invite }
   }
@@ -162,21 +158,24 @@ export class InviteManager {
   resolveInviteByJoinPayload(data: JoinInviteInfo): ResolveInviteByJoinPayloadResult {
     const invite = this.inviteMap.get(data.inviteId)
     if (!invite || invite.joinToken !== data.joinToken)
-      return { reason: 'not_found' }
+      return { reason: InviteInvalidatedReason.NotFound }
     if (this.isInviteExpired(invite)) {
-      this.invalidateInvite(invite, 'expired')
-      return { reason: 'expired' }
+      this.invalidateInvite(invite, InviteInvalidatedReason.Expired)
+      return { reason: InviteInvalidatedReason.Expired }
     }
     if (!this.hasActiveRoom(invite.roomId)) {
       if (this.pendingEmptyRoomCleanups.has(invite.roomId))
-        return { reason: 'room_unavailable' }
-      this.invalidateInvite(invite, 'room_unavailable')
-      return { reason: 'room_unavailable' }
+        return { reason: InviteInvalidatedReason.RoomUnavailable }
+      this.invalidateInvite(invite, InviteInvalidatedReason.RoomUnavailable)
+      return { reason: InviteInvalidatedReason.RoomUnavailable }
     }
     return { invite }
   }
 
-  invalidateInvite(invite: RoomInviteInfo, reason: 'expired' | 'room_unavailable' | 'revoked') {
+  invalidateInvite(
+    invite: RoomInviteInfo,
+    reason: InviteInvalidatedReason.Expired | InviteInvalidatedReason.RoomUnavailable | InviteInvalidatedReason.Revoked,
+  ) {
     if (!this.inviteMap.has(invite.inviteId))
       return
     this.cleanupInviteById(invite.inviteId)
@@ -211,7 +210,8 @@ export class InviteManager {
     let code: string
     do {
       code = Math.floor(100000 + Math.random() * 900000).toString()
-    } while (this.roomCodeMap.has(code) || code === this.opts.defaultRoomCode)
+    }
+    while (this.roomCodeMap.has(code) || code === this.opts.defaultRoomCode)
 
     return code
   }
@@ -225,6 +225,15 @@ export class InviteManager {
     }
   }
 
+  /** 释放空房清理任务及全部内存映射；重复调用无副作用 */
+  close() {
+    for (const timeout of this.pendingEmptyRoomCleanups.values()) clearTimeout(timeout)
+    this.pendingEmptyRoomCleanups.clear()
+    this.inviteMap.clear()
+    this.roomCodeMap.clear()
+    this.roomInviteMap.clear()
+  }
+
   /** 默认房间的虚拟邀请，不写入 inviteMap，永不过期且不校验房间是否有人 */
   private getDefaultRoomInvite(): RoomInviteInfo {
     const code = this.opts.defaultRoomCode!
@@ -234,7 +243,7 @@ export class InviteManager {
       roomCode: code,
       joinToken: `default-${code}`,
       expiresAt: -1,
-      status: 'active',
+      status: InviteStatus.Active,
     }
   }
 }
