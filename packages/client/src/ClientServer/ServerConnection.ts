@@ -1,4 +1,16 @@
-import type { InviteInvalidatedInfo, JoinInviteInfo, JoinRoomCodeInfo, JoinRoomInfo, RoomCodeExpiredInfo, RoomInviteInfo, RTCErrorInfo, SendData, To, UserInfo, UserReconnectedInfo } from 'web-share-common'
+import type {
+  InviteInvalidatedInfo,
+  JoinInviteInfo,
+  JoinRoomCodeInfo,
+  JoinRoomInfo,
+  RoomCodeExpiredInfo,
+  RoomInviteInfo,
+  RTCErrorInfo,
+  SendData,
+  To,
+  UserInfo,
+  UserReconnectedInfo,
+} from 'web-share-common'
 import { WS } from '@jl-org/tool'
 import { Action, DISPLAY_NAME, HEART_BEAT_TIME, PEER_ID, ROOM_ID, SERVER_URL, USER_INFO } from 'web-share-common'
 import { Events } from './Events'
@@ -175,7 +187,7 @@ export class ServerConnection {
     if (this.server?.isConnected || this.server?.isConnecting || this.server?.isOffline)
       return
 
-    const onConnect = (socket: WebSocket) => {
+    const onConnect = (socket: WS) => {
       // socket.binaryType = 'arraybuffer'
       socket.onopen = this.onOpen
       socket.onmessage = this.onMessage

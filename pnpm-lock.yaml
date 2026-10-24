@@ -48,8 +48,8 @@ importers:
         specifier: ^0.0.3
         version: 0.0.3
       '@jl-org/tool':
-        specifier: ^2.1.3
-        version: 2.1.3
+        specifier: ^5.4.0
+        version: 5.4.0
       '@jl-org/vite-auto-route':
         specifier: 1.0.6
         version: 1.0.6
@@ -1065,6 +1065,9 @@ packages:
 
   '@jl-org/tool@2.1.3':
     resolution: {integrity: sha512-MZPEpH/oS8Ei35tpLdCnyiNQWZHh6S//FPhuh046bEXOjgeyM2cR8NaybCZzv7CbCqKkVRBlqxRd5BHrd2Jmog==}
+
+  '@jl-org/tool@5.4.0':
+    resolution: {integrity: sha512-q9vG23/bn76ouyi5k6KmH4LKVnvYQzEjPkDXk5XYZwisOvmy/Zp3j6tHPgTIx6l5gDFTDhQnRyX/YaO1HimwUg==}
 
   '@jl-org/ts-tool@0.0.8':
     resolution: {integrity: sha512-2YwGmzod5LBOi7cKknRXn2H9xcp99OhokZJ55t+kg7wvPST4obcwLxO03ji0gVuFoHp5BgrkwzDICV+z1a3TDg==}
@@ -4760,6 +4763,8 @@ snapshots:
   '@jl-org/tool@2.0.8': {}
 
   '@jl-org/tool@2.1.3': {}
+
+  '@jl-org/tool@5.4.0': {}
 
   '@jl-org/ts-tool@0.0.8': {}
 
