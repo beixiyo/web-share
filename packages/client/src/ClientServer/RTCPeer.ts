@@ -2,10 +2,13 @@ import type { Candidate, FileMeta, ProgressData, ResumeInfo, RTCBaseData, RTCTex
 import type { FileInfo } from '@/types/fileInfo'
 import { isStr } from '@jl-org/tool'
 import { Action, SELECTED_PEER_ID } from 'web-share-common'
+import i18n from '@/i18n'
 import { FileDownloadManager, FileSendManager, Message } from '@/utils'
+import type { FileDownloadError } from '@/utils/handleFile/FileDownloadManager'
+import type { FileSendError } from '@/utils/handleFile/FileSendManager'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Peer, type PeerOpts } from './Peer'
-import { RTCConnect } from './RTCConnect'
+import { RTCConnect, type RTCConnectError } from './RTCConnect'
 
 /**
  * WebRTC 连接管理和消息路由
@@ -37,10 +40,12 @@ export class RTCPeer extends Peer {
     /** 初始化文件下载管理器 */
     this.fileDownloadManager = new FileDownloadManager({
       sendJSON: data => this.sendJSON(data),
+      formatError: (error: FileDownloadError) => {
+        return i18n.global.t(`message.fileDownloadErrors.${error.code}`, error.params ?? {})
+      },
       onError: (error) => {
-        const errorText = `文件下载错误 [FILE_DOWNLOAD_ERROR]: ${error}`
-        console.error(errorText)
-        Message.error(errorText)
+        console.error(error)
+        Message.error(error)
       },
       isChannelClosed: () => this.isChannelClose,
     })
@@ -57,10 +62,12 @@ export class RTCPeer extends Peer {
       getPeerId: () => this.peerId,
       getOriginalFile: (fileHash: string) => this.originalFiles.get(fileHash),
       onProgress: this.opts.onProgress,
+      formatError: (error: FileSendError) => {
+        return i18n.global.t(`message.fileSendErrors.${error.code}`, error.params ?? {})
+      },
       onError: (error) => {
-        const errorText = `文件发送错误 [FILE_SEND_ERROR]: ${error}`
-        console.error(errorText)
-        Message.error(errorText)
+        console.error(error)
+        Message.error(error)
       },
     })
   }
@@ -155,7 +162,7 @@ export class RTCPeer extends Peer {
       await Promise.race([promise, timeout.promise])
 
       if (!options.silentSuccess) {
-        Message.info('连接已恢复')
+        Message.info(i18n.global.t('message.connectionRestored'))
       }
       return true
     }
@@ -250,7 +257,7 @@ export class RTCPeer extends Peer {
     let offerTimer: ReturnType<typeof setTimeout>
     const timeoutPromise = new Promise<never>((_, reject) => {
       offerTimer = setTimeout(() => {
-        reject(new Error('TIMEOUT'))
+        reject(new Error('OFFER_TIMEOUT'))
       }, 4000)
     })
 
@@ -262,10 +269,7 @@ export class RTCPeer extends Peer {
       clearTimeout(offerTimer!)
 
       if (!offer) {
-        if (!this.isRecoveringConnection) {
-          this.broadcastRTCError('创建 offer 失败', 'SEND_OFFER_TIMEOUT')
-        }
-        throw new Error('创建 offer 失败')
+        throw new Error('OFFER_CREATION_FAILED')
       }
 
       const data: To & Sdp = {
@@ -280,20 +284,25 @@ export class RTCPeer extends Peer {
     }
     catch (error) {
       clearTimeout(offerTimer!)
-      const msg = error instanceof Error && error.message === 'TIMEOUT'
-        ? '创建 offer 超时'
-        : `创建或发送 offer 失败: ${error}`
-      const type = error instanceof Error && error.message === 'TIMEOUT'
+      const isTimeout = error instanceof Error && error.message === 'OFFER_TIMEOUT'
+      const isOfferCreationFailure = error instanceof Error && error.message === 'OFFER_CREATION_FAILED'
+      const messageKey = isTimeout
+        ? 'message.rtcOfferErrors.timeout'
+        : (isOfferCreationFailure
+            ? 'message.rtcOfferErrors.creationFailed'
+            : 'message.rtcOfferErrors.sendFailed')
+      const message = i18n.global.t(messageKey, { error: String(error) })
+      const type = isTimeout || isOfferCreationFailure
         ? 'SEND_OFFER_TIMEOUT'
         : 'SEND_OFFER_ERROR'
 
       if (!this.isRecoveringConnection) {
-        this.broadcastRTCError(msg, type)
+        this.broadcastRTCError(message, type)
       }
       else {
-        console.warn(`RTC恢复中 offer 失败: ${msg}`)
+        console.warn(`RTC恢复中 offer 失败: ${message}`)
       }
-      throw new Error(msg)
+      throw new Error(message)
     }
   }
 
@@ -385,7 +394,10 @@ export class RTCPeer extends Peer {
       return
     }
 
-    Message.error(`RTC错误 [${errorType}]: ${errorMessage}`)
+    Message.error(i18n.global.t('message.rtcError', {
+      errorType,
+      errorMessage,
+    }))
 
     this.server.send({
       type: Action.RTCError,
@@ -435,9 +447,11 @@ export class RTCPeer extends Peer {
         console.log('RTC: 连接状态:', state)
       },
       onError: (error) => {
-        const errorText = `RTC错误 [RTC_CONNECT_ERROR]: ${error}`
-        console.error(errorText)
-        Message.error(errorText)
+        console.error(error)
+        Message.error(error)
+      },
+      formatError: (error: RTCConnectError) => {
+        return i18n.global.t(`message.rtcConnectErrors.${error.code}`, error.params ?? {})
       },
     })
   }

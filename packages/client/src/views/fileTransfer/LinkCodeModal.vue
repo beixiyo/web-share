@@ -2,7 +2,7 @@
   <Modal
     v-model="show"
     class="LinkCodeModal-container"
-    title="当前邀请"
+    :title="t('linkCodeModal.title')"
     height="auto"
   >
     <div class="p-4 sm:p-3">
@@ -17,7 +17,7 @@
           class="flex-1"
           @click="activeTab = 'generate'"
         >
-          当前连接码
+          {{ t('linkCodeModal.currentCode') }}
         </Button>
 
         <Button
@@ -27,7 +27,7 @@
           class="flex-1"
           @click="activeTab = 'input'"
         >
-          输入连接码
+          {{ t('linkCodeModal.enterCode') }}
         </Button>
       </div>
 
@@ -41,10 +41,10 @@
             {{ roomCode }}
           </div>
           <p v-else class="mb-4 text-gray-500 dark:text-gray-400">
-            点击下方按钮获取当前邀请
+            {{ t('linkCodeModal.clickToGetInvite') }}
           </p>
           <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">
-            {{ roomCode ? '请将此 6 位数字码告诉对方，让对方输入此码加入当前房间' : '获取当前房间的邀请码信息，供他人通过连接码加入' }}
+            {{ roomCode ? t('linkCodeModal.shareCodeInstructions') : t('linkCodeModal.getInviteInstructions') }}
           </p>
         </div>
 
@@ -55,7 +55,7 @@
             size="md"
             @click.stop="emit('generateCode')"
           >
-            获取当前邀请
+            {{ t('linkCodeModal.getInvite') }}
           </Button>
 
           <Button
@@ -64,7 +64,7 @@
             size="md"
             @click="copyRoomCode"
           >
-            复制连接码
+            {{ t('linkCodeModal.copyCode') }}
           </Button>
         </div>
       </div>
@@ -75,13 +75,13 @@
           <label
             class="mb-2 block text-sm text-gray-700 font-medium dark:text-gray-300"
           >
-            请输入6位数字连接码
+            {{ t('linkCodeModal.codeLabel') }}
           </label>
           <input
             v-model="joinCode"
             type="text"
             maxlength="6"
-            placeholder="例如: 123456"
+            :placeholder="t('linkCodeModal.codePlaceholder')"
             class="w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm dark:border-gray-600 focus:border-emerald-500 dark:bg-gray-700 sm:text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:placeholder-gray-400"
             @keyup.enter="handleJoinWithCode"
             @input="joinCode = joinCode.replace(/[^0-9]/g, '')"
@@ -99,7 +99,7 @@
           :disabled="joinCode.length !== 6"
           @click="handleJoinWithCode"
         >
-          加入房间
+          {{ t('linkCodeModal.joinRoom') }}
         </Button>
       </div>
     </template>
@@ -111,6 +111,7 @@ import { copyToClipboard } from '@jl-org/tool'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 import { Message } from '@/utils'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'LinkCodeModal' })
 
@@ -129,6 +130,7 @@ const emit = defineEmits<{
 }>()
 
 const show = defineModel<boolean>()
+const { t } = useI18n()
 const joinCode = ref('')
 const activeTab = ref<'generate' | 'input'>('generate')
 
@@ -146,7 +148,7 @@ function copyRoomCode() {
   if (!props.roomCode)
     return
   copyToClipboard(props.roomCode)
-  Message.success('连接码已复制')
+  Message.success(t('message.codeCopied'))
 }
 </script>
 

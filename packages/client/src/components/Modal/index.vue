@@ -40,7 +40,7 @@
                     />
                   </div>
                   <h2 class="text-base sm:text-lg">
-                    {{ title }}
+                    {{ title ?? t('common.title') }}
                   </h2>
                 </div>
               </div>
@@ -52,7 +52,7 @@
               :style="bodyStyle"
             >
               <slot>
-                <p>{{ content }}</p>
+                <p>{{ content ?? t('common.content') }}</p>
               </slot>
             </div>
 
@@ -65,14 +65,14 @@
                 <Button
                   @click="onClose"
                 >
-                  {{ cancelText }}
+                  {{ cancelText ?? t('common.cancel') }}
                 </Button>
 
                 <Button
                   variant="primary"
                   @click="onConfirm"
                 >
-                  {{ okText }}
+                  {{ okText ?? t('common.confirm') }}
                 </Button>
               </div>
             </slot>
@@ -85,6 +85,7 @@
 
 <script setup lang="ts">
 import type { CompProps } from './types'
+import { useI18n } from 'vue-i18n'
 import { handleCssUnit } from '@jl-org/tool'
 import Button from '@/components/Button/index.vue'
 import Mask from '@/components/Mask.vue'
@@ -92,6 +93,8 @@ import { variantStyles } from './constants'
 import { defaultProps } from './types'
 
 defineOptions({ name: 'Modal' })
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<CompProps>(),

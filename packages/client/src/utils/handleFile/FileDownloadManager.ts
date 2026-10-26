@@ -1,10 +1,10 @@
-import type { FileMeta, ResumeInfo } from 'web-share-common'
+import { CHUNK_SIZE } from '@/config'
 import type { ChunkMetaData, FileInfo } from '@/types'
+import { ResumeManager } from '@/utils/handleOfflineFile'
 import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
 import streamDownloadWorkerUrl from '@jl-org/tool/stream-download-sw?no-inline&url'
+import type { FileMeta, ResumeInfo } from 'web-share-common'
 import { Action } from 'web-share-common'
-import { CHUNK_SIZE } from '@/config'
-import { ResumeManager } from '@/utils/handleOfflineFile'
 import { Log } from '..'
 import { BinaryMetadataEncoder } from './BinaryMetadataEncoder'
 
@@ -54,7 +54,7 @@ export class FileDownloadManager {
     this.currentFileHash = fileMeta.fileHash
 
     if (!this.currentFileHash) {
-      this.config.onError?.('文件缺少 fileHash，无法处理')
+      this.config.onError?.(this.formatError({ code: 'missing_file_hash' }))
       return
     }
 
@@ -106,14 +106,19 @@ export class FileDownloadManager {
   async download(): Promise<void> {
     try {
       if (!this.downloader) {
-        throw new Error('下载器未初始化')
+        throw new Error('downloader_not_initialized')
       }
 
       /** 完成下载并等待文件保存 */
       await this.downloader.complete()
     }
     catch (error) {
-      const errorMessage = `文件下载完成失败: ${error}`
+      const errorMessage = error instanceof Error && error.message === 'downloader_not_initialized'
+        ? this.formatError({ code: 'downloader_not_initialized' })
+        : this.formatError({
+          code: 'download_complete_failed',
+          params: { error: String(error) },
+        })
       console.error(errorMessage)
       this.config.onError?.(errorMessage)
       throw error
@@ -132,7 +137,10 @@ export class FileDownloadManager {
       )
     }
     catch (error) {
-      this.config.onError?.(`写入文件缓冲区失败: ${error}`)
+      this.config.onError?.(this.formatError({
+        code: 'write_file_buffer_failed',
+        params: { error: String(error) },
+      }))
       throw error
     }
   }
@@ -179,7 +187,10 @@ export class FileDownloadManager {
     }
     catch (error) {
       console.error('解码数据块失败:', error)
-      this.config.onError?.(`解码数据块失败: ${error}`)
+      this.config.onError?.(this.formatError({
+        code: 'decode_data_chunk_failed',
+        params: { error: String(error) },
+      }))
     }
   }
 
@@ -188,13 +199,13 @@ export class FileDownloadManager {
    */
   async handleNewFile(fileInfo: FileInfo): Promise<void> {
     if (this.config.isChannelClosed()) {
-      this.config.onError?.('通道已关闭，无法开始文件下载')
+      this.config.onError?.(this.formatError({ code: 'channel_closed' }))
       return
     }
 
     const fileHash = this.resumeManager.generateFileHash(fileInfo.name, fileInfo.size, fileInfo.lastModified)
     if (fileHash !== this.currentFileHash) {
-      this.config.onError?.('收到的新文件与预期的不符')
+      this.config.onError?.(this.formatError({ code: 'unexpected_file' }))
       return
     }
 
@@ -230,7 +241,13 @@ export class FileDownloadManager {
     }
     catch (error) {
       console.error('文件下载完成处理失败:', error)
-      this.config.onError?.(`文件下载失败: ${error}`)
+      const errorMessage = error instanceof Error && error.message === 'resume_cache_cleanup_failed'
+        ? this.formatError({ code: 'resume_cache_cleanup_failed' })
+        : this.formatError({
+          code: 'file_download_failed',
+          params: { error: String(error) },
+        })
+      this.config.onError?.(errorMessage)
 
       /** 清理当前文件缓存 */
       if (this.currentFileHash) {
@@ -308,17 +325,17 @@ export class FileDownloadManager {
       /** 验证缓存是否真正被清理 */
       const hasCache = await this.resumeManager.hasResumeCache(fileHash)
       if (hasCache) {
-        return Promise.reject(new Error('缓存清理后仍然存在，可能清理失败'))
+        return Promise.reject(new Error('resume_cache_cleanup_incomplete'))
       }
 
       console.warn(`断点续传缓存清理成功: ${fileHash}`)
     }
 
     return retryTask(rmCache, maxRetries)
-      .catch(() => {
+      .catch((error) => {
         /** 所有重试都失败了 */
         console.error(`清理断点续传缓存最终失败: ${fileHash}`)
-        throw new Error(`清理断点续传缓存失败`)
+        throw new Error(this.formatError({ code: 'resume_cache_cleanup_failed' }), { cause: error })
       })
   }
 
@@ -365,18 +382,19 @@ export class FileDownloadManager {
     this.isBufferProcessing = true
 
     const consume = () => {
-      if (!this.isBufferProcessing)
-        return
+      if (!this.isBufferProcessing) return
 
       requestAnimationFrame(async () => {
-        if (!this.isBufferProcessing)
-          return
+        if (!this.isBufferProcessing) return
 
         try {
           await this.appendBuffer()
         }
         catch (error) {
-          this.config.onError?.(`处理下载缓冲区失败: ${error}`)
+          this.config.onError?.(this.formatError({
+            code: 'buffer_processing_failed',
+            params: { error: String(error) },
+          }))
         }
 
         if (this.isBufferProcessing && !this.config.isChannelClosed()) {
@@ -394,6 +412,10 @@ export class FileDownloadManager {
   private stopAllRaf(): void {
     this.isBufferProcessing = false
   }
+
+  private formatError(error: FileDownloadError): string {
+    return this.config.formatError?.(error) ?? error.code
+  }
 }
 
 /**
@@ -406,4 +428,26 @@ export interface FileDownloadConfig {
   onError?: (error: string) => void
   /** 检查通道是否关闭 */
   isChannelClosed: () => boolean
+
+  /**
+   * 将稳定错误码及参数格式化为调用方文案
+   * @default 返回稳定错误码本身，供未配置本地化的调用方诊断
+   */
+  formatError?: (error: FileDownloadError) => string
+}
+
+/** FileDownloadManager 产生的稳定错误码及格式化参数 */
+export interface FileDownloadError {
+  code:
+    | 'missing_file_hash'
+    | 'downloader_not_initialized'
+    | 'download_complete_failed'
+    | 'write_file_buffer_failed'
+    | 'decode_data_chunk_failed'
+    | 'channel_closed'
+    | 'unexpected_file'
+    | 'file_download_failed'
+    | 'resume_cache_cleanup_failed'
+    | 'buffer_processing_failed'
+  params?: Record<string, string | number>
 }

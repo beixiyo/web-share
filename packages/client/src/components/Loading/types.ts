@@ -12,7 +12,7 @@ export interface LoadingProps {
   color?: string
   /**
    * 自定义加载文本
-   * @default '加载中...'
+   * @default 当前语言的 common.loading
    */
   loadingText?: string
 }
@@ -21,5 +21,4 @@ export const defaultLoadingProps: LoadingProps = {
   size: 'md',
   color: '#3b82f6',
   gradient: false,
-  loadingText: '加载中...',
 }

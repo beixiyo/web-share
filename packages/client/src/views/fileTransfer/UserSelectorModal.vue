@@ -2,7 +2,7 @@
   <Modal
     v-model="show"
     class="UserSelectorModal-container"
-    title="选择发送目标"
+    :title="t('userSelector.title')"
     height="60vh"
     variant="info"
   >
@@ -17,10 +17,10 @@
           </div>
           <div class="min-w-0 flex-1">
             <h3 class="truncate text-lg text-gray-900 font-semibold sm:text-base dark:text-gray-100">
-              选择发送目标
+              {{ t('userSelector.title') }}
             </h3>
             <div class="truncate text-sm text-gray-500 sm:text-xs dark:text-gray-400">
-              {{ contentType === 'files' ? `发送 ${contentCount} 个文件` : '发送文本内容' }}
+              {{ contentType === 'files' ? t('userSelector.sendFiles', { count: contentCount }, contentCount) : t('userSelector.sendText') }}
             </div>
           </div>
         </div>
@@ -30,14 +30,14 @@
           class="mt-4 rounded-lg from-blue-50 to-emerald-50 bg-gradient-to-r p-3 dark:from-blue-900/20 dark:to-emerald-900/20 sm:p-2"
         >
           <div class="flex items-center justify-between text-sm sm:text-xs">
-            <span class="text-gray-600 font-medium dark:text-gray-400">在线用户</span>
+            <span class="text-gray-600 font-medium dark:text-gray-400">{{ t('userSelector.onlineUsersLabel') }}</span>
             <div class="flex items-center space-x-3 sm:space-x-2">
               <span class="text-blue-600 font-semibold dark:text-blue-400">
-                {{ onlineUsers.length }} 人在线
+                {{ t('userSelector.usersOnline', { count: onlineUsers.length }, onlineUsers.length) }}
               </span>
               <span class="text-gray-400">•</span>
               <span class="text-emerald-600 font-semibold dark:text-emerald-400">
-                {{ selectedUsers.length }} 人已选
+                {{ t('userSelector.usersSelected', { count: selectedUsers.length }, selectedUsers.length) }}
               </span>
             </div>
           </div>
@@ -99,7 +99,7 @@
                 <span
                   class="rounded bg-emerald-100/60 px-1.5 py-0.5 text-[10px] text-emerald-700 font-medium dark:bg-emerald-900/60 sm:px-1 sm:text-[9px] dark:text-emerald-300"
                 >
-                  在线
+                  {{ t('userSelector.online') }}
                 </span>
               </div>
             </div>
@@ -113,7 +113,7 @@
         >
           <Users class="mb-3 h-12 w-12 opacity-50" />
           <p class="text-sm">
-            暂无在线用户
+            {{ t('userSelector.noOnlineUsers') }}
           </p>
         </div>
       </div>
@@ -129,7 +129,7 @@
           size="md"
           @click="emit('cancel')"
         >
-          <span class="font-medium">取消</span>
+          <span class="font-medium">{{ t('common.cancel') }}</span>
         </Button>
 
         <Button
@@ -140,7 +140,7 @@
           @click="handleConfirm"
         >
           <span class="font-medium">
-            发送给 {{ selectedUsers.length }} 人
+            {{ t('userSelector.sendToUsers', { count: selectedUsers.length }, selectedUsers.length) }}
           </span>
         </Button>
       </div>
@@ -152,11 +152,13 @@
 import type { UserInfo } from 'web-share-common'
 import { Check, Users } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 import { getDeviceIcon } from './hooks/tools'
 
 defineOptions({ name: 'UserSelectorModal' })
+const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     onlineUsers: UserInfo[]

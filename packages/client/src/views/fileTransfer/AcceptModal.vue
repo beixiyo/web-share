@@ -48,7 +48,7 @@
               <span
                 class="text-emerald-600 font-semibold dark:text-emerald-400"
               >
-                {{ t('acceptModal.fileCount', { count: fileMetas.length }) }}
+                {{ t('acceptModal.fileCount', { count: fileMetas.length }, fileMetas.length) }}
               </span>
 
               <span class="text-gray-400">•</span>
@@ -148,7 +148,7 @@
             <img
               :src="previewSrc"
               class="max-h-64 w-full object-contain lg:max-h-80 sm:max-h-48"
-              alt="文件预览"
+              :alt="t('acceptModal.preview')"
             >
           </div>
         </div>

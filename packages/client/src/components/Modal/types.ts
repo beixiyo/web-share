@@ -6,7 +6,7 @@ import { handleCssUnit } from '@jl-org/tool'
 export interface CompProps {
   /**
    * 弹窗标题
-   * @default '标题'
+   * @default 当前语言的 common.title
    */
   title?: string
 
@@ -24,6 +24,7 @@ export interface CompProps {
 
   /**
    * 弹窗内容，可以是字符串或者 VNode
+   * @default 当前语言的 common.content
    */
   content?: string // 如果需要支持 VNode，可以改为 any 或更具体的类型
 
@@ -35,13 +36,13 @@ export interface CompProps {
 
   /**
    * 确认按钮文本
-   * @default '确认'
+   * @default 当前语言的 common.confirm
    */
   okText?: string
 
   /**
    * 取消按钮文本
-   * @default '取消'
+   * @default 当前语言的 common.cancel
    */
   cancelText?: string
 
@@ -74,16 +75,12 @@ export interface CompProps {
 }
 
 export const defaultProps = {
-  title: '标题',
 
   width: handleCssUnit(500),
   height: handleCssUnit(300),
 
-  content: '内容',
 
   variant: 'default' as ModalVariant,
-  okText: '确认',
-  cancelText: '取消',
   zIndex: 99,
   maskClosable: true,
 }

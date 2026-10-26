@@ -1,5 +1,6 @@
 import type { ProgressData } from 'web-share-common'
 import { HelpCircle, Laptop, Smartphone } from 'lucide-vue-next'
+import i18n from '@/i18n'
 import { Message } from '@/utils'
 
 /**
@@ -34,7 +35,7 @@ export async function resetExpiredSessionState(recover?: () => Promise<void> | v
     return expiredRecoverPromise
   }
 
-  Message.warning('用户已过期，请稍后再试')
+  Message.warning(i18n.global.t('message.sessionExpired'))
   sessionStorage.clear()
 
   const nextUrl = new URL(location.href)

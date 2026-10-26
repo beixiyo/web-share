@@ -75,7 +75,7 @@ export class ServerConnection {
   joinDirectRoom(roomId: string, peerId?: string) {
     peerId = peerId || sessionStorage.getItem(PeerIDQueryKey) || undefined
     if (!peerId) {
-      this.opts.onError?.({ message: '找不到用户' })
+      this.opts.onError?.({ message: this.formatError('peer_not_found'), code: 'peer_not_found' })
       return
     }
 
@@ -171,7 +171,7 @@ export class ServerConnection {
       this.pendingUserInfoResolve = resolve
       this.pendingUserInfoReject = reject
       this.pendingUserInfoTimer = setTimeout(() => {
-        this.finishPendingUserInfoRequest(new Error('获取用户信息超时'))
+        this.finishPendingUserInfoRequest(new Error(this.formatError('user_info_timeout')))
       }, timeout)
 
       this.connect()
@@ -217,7 +217,7 @@ export class ServerConnection {
       /** 被同一会话的新连接替换时，旧页面不应自动重连并反复抢占 */
       if (event.code === 4001) {
         this.close()
-        this.opts.onError?.({ message: '此会话已在另一个连接中恢复，请重新打开页面' })
+        this.opts.onError?.({ message: this.formatError('session_replaced'), code: 'session_replaced' })
         return
       }
       this.scheduleReconnect()
@@ -237,7 +237,7 @@ export class ServerConnection {
     this.server = null
     socket?.close()
     this.backlogOfData = []
-    this.finishPendingUserInfoRequest(new Error('连接已关闭'))
+    this.finishPendingUserInfoRequest(new Error(this.formatError('connection_closed')))
   }
 
   /** 网络恢复时使用最新私有令牌重新握手 */
@@ -360,7 +360,8 @@ export class ServerConnection {
         console.warn('收到RTC错误广播:', data.data)
         this.opts.onRTCErrorBroadcast?.(data.data as RTCErrorInfo)
         this.opts.onError?.({
-          message: `RTC连接出现错误: ${data.data?.errorMessage || '未知错误'}`,
+          message: this.formatError('rtc_error'),
+          code: 'rtc_error',
         })
         break
 
@@ -379,6 +380,11 @@ export class ServerConnection {
 
   private onError = (error: any) => {
     console.error(error)
+  }
+
+  /** 在错误发生时调用展示策略，避免缓存过期语言 */
+  private formatError(code: ServerConnectionErrorCode): string {
+    return this.opts.formatError?.(code) ?? code
   }
 
   private finishPendingUserInfoRequest(error?: Error, userInfo?: UserInfo) {
@@ -433,7 +439,16 @@ export class ServerConnection {
   }
 }
 
+/** 稳定的客户端连接错误类别，供调用方决定展示策略 */
+export type ServerConnectionErrorCode = 'peer_not_found' | 'session_replaced' | 'rtc_error' | 'user_info_timeout' | 'connection_closed'
+
 export type ServerConnectionOpts = {
+  /**
+   * 将本地错误类别格式化为当前语言；由调用方注入，不影响服务端原始错误
+   * @default 未提供时返回稳定错误码
+   */
+  formatError?: (code: ServerConnectionErrorCode) => string
+
   onNotifyUserInfo: (user: UserInfo) => void
   onJoinRoom: (user: UserInfo[]) => void
   onLeaveRoom: (user: UserInfo) => void
@@ -442,6 +457,6 @@ export type ServerConnectionOpts = {
   onInviteInvalidated?: (data: InviteInvalidatedInfo) => void
   onUserReconnected?: (data: UserReconnectedInfo) => void
   onRTCErrorBroadcast?: (data: RTCErrorInfo) => void
-  onError?: (data: { message: string }) => void
+  onError?: (data: { message: string; code?: ServerConnectionErrorCode }) => void
   onRoomCodeExpired?: (data: RoomCodeExpiredInfo) => void
 }

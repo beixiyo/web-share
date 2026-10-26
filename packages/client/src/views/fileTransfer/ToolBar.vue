@@ -84,7 +84,6 @@ const handleThemeToggle = toggleThemeWithTransition(theme, setTheme)
 /** 语言切换 */
 function toggleLanguage() {
   locale.value = locale.value === 'zh' ? 'en' : 'zh'
-  localStorage.setItem('language', locale.value)
 }
 
 /** 打开GitHub仓库 */

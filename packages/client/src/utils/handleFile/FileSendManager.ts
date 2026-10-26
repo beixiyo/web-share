@@ -27,7 +27,7 @@ export class FileSendManager {
   async sendFileMetas(files: File[]): Promise<void> {
     const toId = this.config.getToId()
     if (!toId) {
-      const error = '没有指定对方 ID，无法发送文件元数据'
+      const error = this.formatError({ code: 'recipient_id_missing' })
       this.config.onError?.(error)
       throw new Error(error)
     }
@@ -94,7 +94,10 @@ export class FileSendManager {
       })
     }
     catch (error) {
-      this.config.onError?.(`发送文件元数据失败: ${error}`)
+      this.config.onError?.(this.formatError({
+        code: 'metadata_send_failed',
+        params: { error: String(error) },
+      }))
       throw error
     }
   }
@@ -116,7 +119,10 @@ export class FileSendManager {
     const file = this.config.getOriginalFile(fileHash)
 
     if (!fileMeta || !file) {
-      const errorMsg = `找不到文件信息: ${fileHash}`
+      const errorMsg = this.formatError({
+        code: 'file_info_not_found',
+        params: { fileHash },
+      })
       this.config.onError?.(errorMsg)
       throw new Error(errorMsg)
     }
@@ -163,7 +169,7 @@ export class FileSendManager {
     /** 发送文件分片 */
     while (!chunker.done) {
       if (this.config.isChannelClosed()) {
-        throw new Error('RTC channel 已关闭, 中断文件传输')
+        throw new Error(this.formatError({ code: 'channel_closed' }))
       }
 
       const chunkOffset = chunker.currentOffset
@@ -201,6 +207,10 @@ export class FileSendManager {
     // @15. [发送方] 发送文件完成信号
     this.config.sendJSON({ type: Action.FileDone, data: null })
   }
+
+  private formatError(error: FileSendError): string {
+    return this.config.formatError?.(error) ?? error.code
+  }
 }
 
 /**
@@ -229,4 +239,16 @@ export interface FileSendConfig {
   onProgress?: (data: ProgressData) => void
   /** 错误处理回调 */
   onError?: (error: string) => void
+
+  /**
+   * 将稳定错误码及参数格式化为调用方文案
+   * @default 返回稳定错误码本身，供未配置本地化的调用方诊断
+   */
+  formatError?: (error: FileSendError) => string
+}
+
+/** FileSendManager 产生的稳定错误码及格式化参数 */
+export interface FileSendError {
+  code: 'recipient_id_missing' | 'metadata_send_failed' | 'file_info_not_found' | 'channel_closed'
+  params?: Record<string, string | number>
 }

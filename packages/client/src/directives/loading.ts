@@ -1,5 +1,6 @@
 import type { App } from 'vue'
 import Loading from '@/components/Loading/index.vue'
+import i18n from '@/i18n'
 
 const map = new WeakMap<HTMLElement, LoadingData>()
 
@@ -46,6 +47,7 @@ export function loading(app: App<HTMLElement>) {
       }
 
       const Comp = createApp(Loading, opts)
+      Comp.use(i18n)
       const vm = Comp.mount(frag as unknown as Element) as LoadingData['vm']
 
       map.set(el, { comp: Comp, vm, lastLoadingText: loadingText })
@@ -84,6 +86,7 @@ export function loading(app: App<HTMLElement>) {
 
         const frag = document.createDocumentFragment()
         const newComp = createApp(Loading, opts)
+        newComp.use(i18n)
         const newVm = newComp.mount(frag as unknown as Element) as LoadingData['vm']
 
         data.comp = newComp

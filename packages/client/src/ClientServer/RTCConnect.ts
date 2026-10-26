@@ -63,6 +63,7 @@ export class RTCConnect {
       onConnectionStateChange: () => {},
       onError: () => {},
       ...config,
+      formatError: config.formatError ?? (({ code }) => code),
     }
 
     this.initialize()
@@ -180,7 +181,7 @@ export class RTCConnect {
    */
   sendJSON<T>(data: T): boolean {
     if (!this.channelIsReady(this.channel)) {
-      this.config.onError('通道未就绪，无法发送 JSON 数据')
+      this.config.onError(this.config.formatError({ code: 'data_channel_not_ready_json' }))
       return false
     }
 
@@ -189,7 +190,10 @@ export class RTCConnect {
       return true
     }
     catch (error) {
-      this.config.onError(`发送 JSON 数据失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'send_json_failed',
+        params: { error: String(error) },
+      }))
       return false
     }
   }
@@ -208,7 +212,7 @@ export class RTCConnect {
    */
   send(data: Parameters<RTCDataChannel['send']>[0]): boolean {
     if (!this.channelIsReady(this.channel)) {
-      this.config.onError('通道未就绪，无法发送数据')
+      this.config.onError(this.config.formatError({ code: 'data_channel_not_ready' }))
       return false
     }
 
@@ -217,7 +221,10 @@ export class RTCConnect {
       return true
     }
     catch (error) {
-      this.config.onError(`发送数据失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'send_data_failed',
+        params: { error: String(error) },
+      }))
       return false
     }
   }
@@ -289,7 +296,7 @@ export class RTCConnect {
    */
   async createOffer(targetId: string): Promise<RTCSessionDescription | null> {
     if (!this.pc) {
-      this.config.onError('PeerConnection 未初始化，无法创建 offer')
+      this.config.onError(this.config.formatError({ code: 'offer_peer_connection_uninitialized' }))
       return null
     }
 
@@ -311,7 +318,10 @@ export class RTCConnect {
       return this.pc.localDescription
     }
     catch (error) {
-      this.config.onError(`创建 offer 失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'create_offer_failed',
+        params: { error: String(error) },
+      }))
       return null
     }
   }
@@ -336,13 +346,16 @@ export class RTCConnect {
    */
   async handleOffer(offer: Sdp & To): Promise<RTCSessionDescription | null> {
     if (!this.pc) {
-      this.config.onError('PeerConnection 未初始化，无法处理 offer')
+      this.config.onError(this.config.formatError({ code: 'handle_offer_peer_connection_uninitialized' }))
       return null
     }
 
     /** 检查信令状态，只有在 stable 状态下才能处理 offer */
     if (this.pc.signalingState !== 'stable') {
-      this.config.onError(`处理 offer 失败: 当前信令状态为 ${this.pc.signalingState}，期望状态为 stable`)
+      this.config.onError(this.config.formatError({
+        code: 'handle_offer_invalid_signaling_state',
+        params: { state: this.pc.signalingState },
+      }))
       return null
     }
 
@@ -357,7 +370,10 @@ export class RTCConnect {
       return this.pc.localDescription
     }
     catch (error) {
-      this.config.onError(`处理 offer 失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'handle_offer_failed',
+        params: { error: String(error) },
+      }))
       return null
     }
   }
@@ -370,13 +386,16 @@ export class RTCConnect {
    */
   async handleAnswer(answer: Sdp & To): Promise<boolean> {
     if (!this.pc) {
-      this.config.onError('PeerConnection 未初始化，无法处理 answer')
+      this.config.onError(this.config.formatError({ code: 'handle_answer_peer_connection_uninitialized' }))
       return false
     }
 
     /** 检查信令状态，只有在 have-local-offer 状态下才能处理 answer */
     if (this.pc.signalingState !== 'have-local-offer') {
-      this.config.onError(`处理 answer 失败: 当前信令状态为 ${this.pc.signalingState}，期望状态为 have-local-offer`)
+      this.config.onError(this.config.formatError({
+        code: 'handle_answer_invalid_signaling_state',
+        params: { state: this.pc.signalingState },
+      }))
       return false
     }
 
@@ -386,7 +405,10 @@ export class RTCConnect {
       return true
     }
     catch (error) {
-      this.config.onError(`处理 answer 失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'handle_answer_failed',
+        params: { error: String(error) },
+      }))
       return false
     }
   }
@@ -400,7 +422,7 @@ export class RTCConnect {
    */
   async handleCandidate(candidate: Candidate & To): Promise<boolean> {
     if (!this.pc) {
-      this.config.onError('PeerConnection 未初始化，无法处理 ICE candidate')
+      this.config.onError(this.config.formatError({ code: 'handle_candidate_peer_connection_uninitialized' }))
       return false
     }
 
@@ -415,7 +437,10 @@ export class RTCConnect {
       return true
     }
     catch (error) {
-      this.config.onError(`处理 ICE candidate 失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'handle_candidate_failed',
+        params: { error: String(error) },
+      }))
       return false
     }
   }
@@ -429,7 +454,10 @@ export class RTCConnect {
         await this.pc.addIceCandidate(ice)
       }
       catch (error) {
-        this.config.onError(`应用缓存的 ICE candidate 失败: ${error}`)
+        this.config.onError(this.config.formatError({
+          code: 'apply_queued_candidate_failed',
+          params: { error: String(error) },
+        }))
       }
     }
     this.pendingIceCandidates = []
@@ -458,7 +486,10 @@ export class RTCConnect {
       return true
     }
     catch (error) {
-      this.config.onError(`重连失败: ${error}`)
+      this.config.onError(this.config.formatError({
+        code: 'reconnect_failed',
+        params: { error: String(error) },
+      }))
       return false
     }
   }
@@ -627,7 +658,10 @@ export class RTCConnect {
      * disconnected 状态通常在网络波动或切后台时触发，恢复后可能会自动连上
      */
     if (state === 'failed') {
-      this.config.onError(`连接状态变为: ${state}，正在尝试重连...`)
+      this.config.onError(this.config.formatError({
+        code: 'connection_failed',
+        params: { state: state || 'closed' },
+      }))
 
       if (this.config.autoReconnect) {
         this.reconnect()
@@ -639,7 +673,10 @@ export class RTCConnect {
     const state = this.pc?.iceConnectionState
 
     if (state === 'failed') {
-      this.config.onError(`ICE 连接状态变为: ${state}`)
+      this.config.onError(this.config.formatError({
+        code: 'ice_connection_failed',
+        params: { state: state || 'closed' },
+      }))
     }
   }
 
@@ -715,4 +752,37 @@ export interface RTCConnectConfig {
    * @param needReload 是否需要重新加载
    */
   onError?: (error: string, needReload?: boolean) => void
+
+  /**
+   * 将稳定错误码及参数格式化为调用方文案
+   * @default 返回稳定错误码本身，供未配置本地化的调用方诊断
+   */
+  formatError?: (error: RTCConnectError) => string
 }
+
+/** RTCConnect 产生的稳定错误码及格式化参数 */
+export interface RTCConnectError {
+  code: RTCConnectErrorCode
+  params?: Record<string, string | number>
+}
+
+/** RTCConnect 可产生的稳定错误类别 */
+export type RTCConnectErrorCode =
+  | 'data_channel_not_ready_json'
+  | 'send_json_failed'
+  | 'data_channel_not_ready'
+  | 'send_data_failed'
+  | 'offer_peer_connection_uninitialized'
+  | 'create_offer_failed'
+  | 'handle_offer_peer_connection_uninitialized'
+  | 'handle_offer_invalid_signaling_state'
+  | 'handle_offer_failed'
+  | 'handle_answer_peer_connection_uninitialized'
+  | 'handle_answer_invalid_signaling_state'
+  | 'handle_answer_failed'
+  | 'handle_candidate_peer_connection_uninitialized'
+  | 'handle_candidate_failed'
+  | 'apply_queued_candidate_failed'
+  | 'reconnect_failed'
+  | 'connection_failed'
+  | 'ice_connection_failed'

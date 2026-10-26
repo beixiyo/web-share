@@ -1,7 +1,7 @@
 <template>
   <Modal
     v-model="show"
-    title="清理缓存"
+    :title="t('clearCache.title')"
     width="min(400px, 90vw)"
     height="auto"
   >
@@ -9,7 +9,7 @@
       <!-- 清理选项 -->
       <div class="space-y-3">
         <h3 class="text-sm text-gray-700 font-medium dark:text-gray-300">
-          选择清理类型
+          {{ t('clearCache.chooseType') }}
         </h3>
 
         <div class="space-y-3">
@@ -22,10 +22,10 @@
             >
             <div class="min-w-0 flex-1">
               <div class="text-sm text-gray-900 font-medium dark:text-gray-100">
-                清理过期数据
+                {{ t('clearCache.expiredTitle') }}
               </div>
               <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                清理超过 7 天的断点续传缓存
+                {{ t('clearCache.expiredDescription') }}
               </div>
             </div>
           </label>
@@ -39,10 +39,10 @@
             >
             <div class="min-w-0 flex-1">
               <div class="text-sm text-red-600 font-medium dark:text-red-400">
-                清理所有数据
+                {{ t('clearCache.allTitle') }}
               </div>
               <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                清理所有断点续传缓存（不可恢复）
+                {{ t('clearCache.allDescription') }}
               </div>
             </div>
           </label>
@@ -57,16 +57,16 @@
           class="order-2 w-full sm:order-1 sm:w-auto"
           @click="show = false"
         >
-          取消
+          {{ t('common.cancel') }}
         </Button>
         <Button
           variant="danger"
           class="order-1 w-full sm:order-2 sm:w-auto"
           :loading="isClearing"
-          loading-text="清理中..."
+          :loading-text="t('clearCache.cleaning')"
           @click="handleClearCache"
         >
-          {{ cleanupType === 'all' ? '清理所有数据' : '开始清理' }}
+          {{ cleanupType === 'all' ? t('clearCache.clearAll') : t('clearCache.startCleaning') }}
         </Button>
       </div>
     </template>
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ClearCacheModal' })
 
@@ -84,6 +85,7 @@ const emit = defineEmits<{
 }>()
 
 const show = defineModel<boolean>()
+const { t } = useI18n()
 
 /** 清理选项 */
 const cleanupType = ref<'all' | 'expired'>('expired')

@@ -1,6 +1,7 @@
 import type { ExtendedCompProps, ModalInstance, ModalVariant, ModelType } from '@/components/Modal/types'
 import { variantStyles } from '@/components/Modal/constants'
 import ModalComp from '@/components/Modal/index.vue'
+import i18n from '@/i18n'
 import { defaultProps } from '@/components/Modal/types'
 
 export const modal: ModelType = (() => {
@@ -28,6 +29,7 @@ export const modal: ModelType = (() => {
         ...newProps,
         modelValue: true,
       })
+      app.use(i18n)
       const frag = document.createDocumentFragment()
 
       const vm = app.mount(frag as unknown as HTMLElement) as ModalInstance

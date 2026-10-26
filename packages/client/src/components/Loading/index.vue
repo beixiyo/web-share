@@ -23,6 +23,7 @@
 /* eslint-disable vue/prop-name-casing */
 import type { BaseType } from '@jl-org/tool'
 import type { LoadingProps } from './types'
+import { useI18n } from 'vue-i18n'
 import Mask from '../Mask.vue'
 import LoadingIcon from './LoadingIcon.vue'
 import { defaultLoadingProps } from './types'
@@ -52,12 +53,14 @@ const props = withDefaults(
   },
 )
 
+const { t } = useI18n()
+
 let show: Ref<boolean>
 
 /** 计算显示的文本 */
 const displayText = computed(() => {
   /** 优先使用指令传递的文本，然后是组件属性，最后是默认值 */
-  return props.__loadingText || props.loadingText || defaultLoadingProps.loadingText
+  return props.__loadingText || props.loadingText || t('common.loading')
 })
 
 /** 初始化入口 */

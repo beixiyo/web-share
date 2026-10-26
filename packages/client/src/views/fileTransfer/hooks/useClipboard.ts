@@ -1,5 +1,6 @@
 import type { UserInfo } from 'web-share-common'
 import { onUnmounted, ref } from 'vue'
+import i18n from '@/i18n'
 import { Message } from '@/utils'
 
 /**
@@ -31,7 +32,7 @@ export function useClipboard() {
     try {
       /** 检查是否有在线用户可以发送 */
       if (onlineUsers.length === 0) {
-        Message.warning('没有在线用户，无法发送内容')
+        Message.warning(i18n.global.t('message.noOnlineUsersForContent'))
         return
       }
 
@@ -83,12 +84,12 @@ export function useClipboard() {
         }
       }
       else {
-        Message.warning('剪贴板中没有可发送的内容')
+        Message.warning(i18n.global.t('message.clipboardEmpty'))
       }
     }
     catch (error) {
       console.error('处理剪贴板数据时出错:', error)
-      Message.error('处理剪贴板内容时发生错误')
+      Message.error(i18n.global.t('message.clipboardProcessingFailed'))
     }
   }
 
@@ -105,11 +106,17 @@ export function useClipboard() {
       const targetPeer = onlineUsers[0]
       await sendFilesToPeer(targetPeer, files)
 
-      Message.success(`已通过粘贴发送 ${files.length} 个文件给 ${targetPeer.name.displayName}`)
+      const messageKey = files.length === 1
+        ? 'message.clipboardFileSent'
+        : 'message.clipboardFilesSent'
+      Message.success(i18n.global.t(messageKey, {
+        count: files.length,
+        name: targetPeer.name.displayName,
+      }))
     }
     catch (error) {
       console.error('发送剪贴板文件时出错:', error)
-      Message.error('发送文件时发生错误')
+      Message.error(i18n.global.t('message.sendFileError'))
     }
   }
 
@@ -126,11 +133,13 @@ export function useClipboard() {
       const targetPeer = onlineUsers[0]
       await sendTextToPeer(targetPeer, textContent)
 
-      Message.success(`已通过粘贴发送文本给 ${targetPeer.name.displayName}`)
+      Message.success(i18n.global.t('message.clipboardTextSent', {
+        name: targetPeer.name.displayName,
+      }))
     }
     catch (error) {
       console.error('发送剪贴板文本时出错:', error)
-      Message.error('发送文本时发生错误')
+      Message.error(i18n.global.t('message.sendTextError'))
     }
   }
 
@@ -176,13 +185,19 @@ export function useClipboard() {
 
     /** 显示结果消息 */
     if (successCount === targetUsers.length) {
-      Message.success(`已成功发送文件给 ${successCount} 个用户`)
+      Message.success(i18n.global.t('message.filesSentToUsers', {
+        count: successCount,
+      }))
     }
     else if (successCount > 0) {
-      Message.warning(`发送完成：${successCount} 个成功，${failedCount} 个失败，${rejectedCount} 个拒绝`)
+      Message.warning(i18n.global.t('message.multiUserTransferSummary', {
+        succeeded: successCount,
+        failed: failedCount,
+        rejected: rejectedCount,
+      }))
     }
     else {
-      Message.error('文件发送失败')
+      Message.error(i18n.global.t('message.sendFilesFailed'))
     }
 
     /** 清除待发送状态 */
@@ -231,13 +246,19 @@ export function useClipboard() {
 
     /** 显示结果消息 */
     if (successCount === targetUsers.length) {
-      Message.success(`已成功发送文本给 ${successCount} 个用户`)
+      Message.success(i18n.global.t('message.textSentToUsers', {
+        count: successCount,
+      }))
     }
     else if (successCount > 0) {
-      Message.warning(`发送完成：${successCount} 个成功，${failedCount} 个失败，${rejectedCount} 个拒绝`)
+      Message.warning(i18n.global.t('message.multiUserTransferSummary', {
+        succeeded: successCount,
+        failed: failedCount,
+        rejected: rejectedCount,
+      }))
     }
     else {
-      Message.error('文本发送失败')
+      Message.error(i18n.global.t('message.sendTextFailed'))
     }
 
     /** 清除待发送状态 */
@@ -264,7 +285,7 @@ export function useClipboard() {
         event.preventDefault()
 
         if (!event.clipboardData) {
-          Message.warning('无法访问剪贴板内容')
+          Message.warning(i18n.global.t('message.clipboardUnavailable'))
           return
         }
 

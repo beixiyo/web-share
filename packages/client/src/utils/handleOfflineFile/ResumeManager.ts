@@ -311,7 +311,7 @@ export class ResumeManager {
     }
     catch (error) {
       console.error(`删除断点续传缓存失败: ${fileHash}`, error)
-      throw new Error(`删除断点续传缓存失败: ${error}`)
+      throw new Error('RESUME_CACHE_DELETE_FAILED', { cause: error })
     }
   }
 

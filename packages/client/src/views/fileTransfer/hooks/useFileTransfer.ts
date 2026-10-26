@@ -1,6 +1,7 @@
 import type { FileMeta, ProgressData, UserInfo } from 'web-share-common'
 import type { RTCPeer } from '@/ClientServer'
 import { ref, useTemplateRef } from 'vue'
+import i18n from '@/i18n'
 import { Message } from '@/utils'
 import { getInitProgress } from './tools'
 
@@ -43,7 +44,7 @@ export function useFileTransfer() {
 
       me?.sendFiles(files, () => {
         console.warn('对方拒绝了你的文件')
-        Message.warning('对方拒绝了文件传输')
+        Message.warning(i18n.global.t('message.fileTransferRejected'))
       })
     }
 
@@ -65,12 +66,17 @@ export function useFileTransfer() {
       files: File[],
     ) {
       if (!me.value) {
-        throw new Error('未初始化连接')
+        throw new Error(i18n.global.t('message.connectionNotInitialized'))
       }
 
       /** 设置选中的用户 */
       setSelectedPeer(targetPeer)
-      setLoading(true, `正在向 ${targetPeer.name.displayName} 发送文件...`)
+      setLoading(
+        true,
+        i18n.global.t('fileTransfer.sendFiles', {
+          name: targetPeer.name.displayName,
+        }),
+      )
 
       try {
         /** 建立连接 */
@@ -87,13 +93,15 @@ export function useFileTransfer() {
         /** 发送文件，处理拒绝情况 */
         await me.value.sendFiles(files, () => {
           console.warn('对方拒绝了你的文件')
-          Message.warning(`${targetPeer.name.displayName} 拒绝了文件传输`)
+          Message.warning(i18n.global.t('message.fileTransferRejectedBy', {
+            name: targetPeer.name.displayName,
+          }))
           forceCloseLoading() // 确保关闭loading状态
         })
       }
       catch (error) {
         console.error('发送文件时出错:', error)
-        Message.error('发送文件时发生错误')
+        Message.error(i18n.global.t('message.sendFileError'))
         forceCloseLoading() // 确保关闭loading状态
         throw error
       }

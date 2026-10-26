@@ -7,10 +7,10 @@
           📁
         </div>
         <div class="text-xl font-semibold">
-          释放文件开始传输
+          {{ t('dragDrop.releaseToTransfer') }}
         </div>
         <div class="text-sm opacity-75">
-          支持多文件同时传输
+          {{ t('dragDrop.multipleFilesSupported') }}
         </div>
       </div>
       <div v-else class="space-y-4">
@@ -18,10 +18,10 @@
           🚫
         </div>
         <div class="text-xl font-semibold">
-          不支持的内容类型
+          {{ t('dragDrop.unsupportedContentType') }}
         </div>
         <div class="text-sm opacity-75">
-          请拖拽文件到此区域
+          {{ t('dragDrop.dropFilesHere') }}
         </div>
       </div>
     </div>
@@ -35,7 +35,7 @@
     <div class="flex items-center space-x-2">
       <div class="h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
       <span class="text-sm font-medium dark:text-gray-200">
-        {{ isDragFile ? '检测到文件' : '拖拽中...' }}
+        {{ isDragFile ? t('dragDrop.fileDetected') : t('dragDrop.dragging') }}
       </span>
     </div>
   </div>
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 /**
  * 拖拽覆盖层组件的 Props 接口
@@ -64,6 +65,8 @@ const props = withDefaults(defineProps<DragDropOverlayProps>(), {
   isDragFile: false,
   isDropZoneActive: false,
 })
+
+const { t } = useI18n()
 
 /**
  * 拖拽覆盖层样式计算

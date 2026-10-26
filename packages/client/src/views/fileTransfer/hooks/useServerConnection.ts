@@ -1,6 +1,10 @@
 import type { RouteLocationNormalized } from 'vue-router'
 import QRCode from 'qrcode'
 import { computed, onUnmounted, ref, watch } from 'vue'
+import type { ServerConnectionErrorCode } from '@/ClientServer'
+import { PeerManager, ServerConnection } from '@/ClientServer'
+import i18n from '@/i18n'
+import { Message } from '@/utils'
 import {
   INVITE_INFO_KEY,
   type InviteInvalidatedInfo,
@@ -12,9 +16,24 @@ import {
   type RTCErrorInfo,
   type UserInfo,
 } from 'web-share-common'
-import { PeerManager, ServerConnection } from '@/ClientServer'
-import { Message } from '@/utils'
 import { resetExpiredSessionState } from './tools'
+
+const serverErrorMessageKeys: Record<ServerConnectionErrorCode, string> = {
+  peer_not_found: 'message.peerNotFound',
+  session_replaced: 'message.sessionReplaced',
+  rtc_error: 'message.rtcConnectionError',
+  user_info_timeout: 'message.userInfoTimeout',
+  connection_closed: 'message.connectionClosed',
+}
+
+const inviteInvalidatedMessageKeys: Record<InviteInvalidatedReason, string> = {
+  [InviteInvalidatedReason.Expired]: 'message.inviteExpired',
+  [InviteInvalidatedReason.NotFound]: 'message.inviteNotFound',
+  [InviteInvalidatedReason.RoomUnavailable]: 'message.inviteRoomUnavailable',
+  [InviteInvalidatedReason.Restarted]: 'message.inviteServerRestarted',
+  [InviteInvalidatedReason.Revoked]: 'message.inviteRefreshed',
+  [InviteInvalidatedReason.NoActiveInvite]: 'message.noActiveInvite',
+}
 
 /**
  * 服务器连接管理 Hook
@@ -122,6 +141,7 @@ export function useServerConnection() {
 
     server?.close()
     server = new ServerConnection({
+      formatError: code => i18n.global.t(serverErrorMessageKeys[code]),
       onNotifyUserInfo: callbacks.onNotifyUserInfo,
       onJoinRoom: callbacks.onJoinRoom,
       onLeaveRoom: callbacks.onLeaveRoom,
@@ -131,7 +151,10 @@ export function useServerConnection() {
       onRTCErrorBroadcast: callbacks.onRTCErrorBroadcast,
       onError: (errorData) => {
         console.error('Server Error:', errorData.message)
-        Message.error(`发生错误: ${errorData.message}`)
+        const messageKey = errorData.code
+          ? serverErrorMessageKeys[errorData.code]
+          : 'message.serverError'
+        Message.error(i18n.global.t(messageKey))
         callbacks.setLoading(false)
         callbacks.closeAllModals()
       },
@@ -230,7 +253,7 @@ export function useServerConnection() {
     }
 
     if (invalidInfo.reason !== InviteInvalidatedReason.NoActiveInvite || shouldClearInvite || hasInviteQuery) {
-      Message.warning(invalidInfo.message)
+      Message.warning(i18n.global.t(inviteInvalidatedMessageKeys[invalidInfo.reason] ?? 'message.inviteNotFound'))
     }
 
     setLoading?.(false)
@@ -238,7 +261,9 @@ export function useServerConnection() {
 
   function handleJoinWithCode(code: string, setLoading: (state: boolean) => void) {
     if (!code || code.length !== RoomCodeLength) {
-      Message.error(`请输入${RoomCodeLength}位数字连接码`)
+      Message.error(i18n.global.t('message.invalidRoomCode', {
+        length: RoomCodeLength,
+      }))
       return
     }
 
@@ -279,7 +304,7 @@ export function useServerConnection() {
   ) {
     if (roomCode.value && roomCode.value === expiredInfo.roomCode) {
       clearInviteState()
-      Message.warning(expiredInfo.message)
+      Message.warning(i18n.global.t('message.roomCodeExpired'))
       setLoading(false)
     }
   }
@@ -299,7 +324,7 @@ export function useServerConnection() {
     })
       .catch((error) => {
         console.error('会话恢复失败:', error)
-        Message.error('重新连接失败，请稍后重试')
+        Message.error(i18n.global.t('message.connectFailed'))
         throw error
       })
       .finally(() => {

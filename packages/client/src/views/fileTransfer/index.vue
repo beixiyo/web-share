@@ -431,7 +431,7 @@ watch([showAcceptFile, showTextInput, loading], ([acceptFile, textInput, isLoadi
  */
 async function sendTextToPeer(targetPeer: UserInfo, textContent: string) {
   if (!me.value) {
-    throw new Error('未初始化连接')
+    throw new Error(t('message.connectionNotInitialized'))
   }
 
   /** 设置选中的用户 */
@@ -702,7 +702,7 @@ function onNotifyUserInfo(data: UserInfo) {
        */
       onFileMetas(fileMetas, acceptCallback) {
         /** 根据 fromId 查找发送方用户信息 */
-        let fromUserName = '未知用户'
+        let fromUserName = t('acceptModal.unknownUser')
         if (fileMetas && fileMetas.length > 0 && fileMetas[0].fromId) {
           const senderUser = allUsers.value.find(user => user.peerId === fileMetas[0].fromId)
           if (senderUser) {
@@ -743,7 +743,7 @@ function onNotifyUserInfo(data: UserInfo) {
  */
 async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
   try {
-    setLoading(true, '正在清理缓存...')
+    setLoading(true, t('message.clearingCache'))
 
     const resumeManager = new ResumeManager()
     let result
@@ -756,7 +756,7 @@ async function handleClearCache(type: 'all' | 'expired'): Promise<void> {
     }
 
     /** 显示清理结果 */
-    const message = t('message.clearCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) })
+    const message = t('message.clearCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }, result.cleanedCount)
     Message.success(message)
 
     console.warn('缓存清理完成:', result)
@@ -784,7 +784,7 @@ function handleKeepCache() {
 async function handleClearAllResumeCache() {
   try {
     const result = await clearAllCache()
-    Message.success(t('message.clearResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }))
+    Message.success(t('message.clearResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }, result.cleanedCount))
   }
   catch (error) {
     console.error('清理断点续传缓存失败:', error)
@@ -799,7 +799,7 @@ async function handleClearAllResumeCache() {
 async function handleCleanupExpiredResumeCache() {
   try {
     const result = await cleanupExpiredCache(7) // 清理7天前的缓存
-    Message.success(t('message.clearExpiredResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }))
+    Message.success(t('message.clearExpiredResumeCacheSuccess', { count: result.cleanedCount, size: formatByte(result.freedBytes) }, result.cleanedCount))
   }
   catch (error) {
     console.error('清理过期缓存失败:', error)

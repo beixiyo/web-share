@@ -2,6 +2,7 @@ import type { Candidate, FileMeta, Sdp, To, UserReconnectedInfo } from 'web-shar
 import type { ServerConnection } from './ServerConnection'
 import { Action } from 'web-share-common'
 import { modal } from '@/utils'
+import i18n from '@/i18n'
 import { Events } from './Events'
 import { RTCPeer, type RTCPeerOpts } from './RTCPeer'
 
@@ -16,8 +17,8 @@ export class PeerManager {
   ) {
     if (typeof RTCPeerConnection === 'undefined') {
       modal.error({
-        title: 'WebRTC 不可用',
-        content: 'WebRTC 在你的设备不可用，请尝试关闭浏览器扩展，或者开启无痕模式。如果还不能用，请更新浏览器版本，推荐使用 Chrome 浏览器',
+        title: i18n.global.t('message.webRtcUnavailableTitle'),
+        content: i18n.global.t('message.webRtcUnavailableDescription'),
       })
       return
     }

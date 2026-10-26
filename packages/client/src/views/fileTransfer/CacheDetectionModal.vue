@@ -1,7 +1,7 @@
 <template>
   <Modal
     v-model="show"
-    title="检测到断点续传缓存"
+    :title="t('cacheDetection.title')"
     width="600"
     height="500"
     :closable="false"
@@ -12,18 +12,18 @@
         <div class="mb-2 flex items-center space-x-2">
           <HardDrive class="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <h3 class="text-sm text-blue-800 font-medium dark:text-blue-200">
-            缓存概览
+            {{ t('cacheDetection.overview') }}
           </h3>
         </div>
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span class="text-gray-600 dark:text-gray-400">缓存文件数:</span>
+            <span class="text-gray-600 dark:text-gray-400">{{ t('cacheDetection.fileCountLabel') }}:</span>
             <span class="ml-2 text-blue-800 font-medium dark:text-blue-200">
-              {{ cacheStats.totalFiles }} 个
+              {{ t('cacheDetection.fileCount', { count: cacheStats.totalFiles }, cacheStats.totalFiles) }}
             </span>
           </div>
           <div>
-            <span class="text-gray-600 dark:text-gray-400">占用空间:</span>
+            <span class="text-gray-600 dark:text-gray-400">{{ t('cacheDetection.storageUsed') }}:</span>
             <span class="ml-2 text-blue-800 font-medium dark:text-blue-200">
               {{ formatBytes(cacheStats.totalBytes) }}
             </span>
@@ -34,7 +34,7 @@
       <!-- 缓存文件列表 -->
       <div class="space-y-2">
         <h4 class="text-sm text-gray-700 font-medium dark:text-gray-300">
-          缓存文件详情
+          {{ t('cacheDetection.fileDetails') }}
         </h4>
         <div
           class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 space-y-2 dark:border-gray-700"
@@ -56,7 +56,7 @@
                 ({{ item.progress }}%)
               </div>
               <div class="text-xs text-gray-400 dark:text-gray-500">
-                最后更新: {{ item.updatedAt }}
+                {{ t('cacheDetection.lastUpdated', { date: item.updatedAt }) }}
               </div>
             </div>
             <div class="ml-2 flex-shrink-0">
@@ -81,11 +81,10 @@
           />
           <div class="text-sm text-yellow-800 dark:text-yellow-200">
             <p class="mb-1 font-medium">
-              发现未完成的文件传输缓存
+              {{ t('cacheDetection.incompleteTransfersTitle') }}
             </p>
             <p class="text-xs">
-              这些缓存数据可能来自之前中断的文件传输。建议清理这些缓存以释放存储空间，
-              或者保留它们以便在下次传输相同文件时实现断点续传
+              {{ t('cacheDetection.incompleteTransfersDescription') }}
             </p>
           </div>
         </div>
@@ -101,7 +100,7 @@
             :loading="isClearing"
             @click="handleCleanupExpired"
           >
-            清理过期缓存
+            {{ t('cacheDetection.cleanExpired') }}
           </Button>
         </div>
         <div class="flex space-x-2">
@@ -109,15 +108,15 @@
             design-style="ghost"
             @click="handleKeepCache"
           >
-            保留缓存
+            {{ t('cacheDetection.keepCache') }}
           </Button>
           <Button
             variant="danger"
             :loading="isClearing"
-            loading-text="清理中..."
+            :loading-text="t('cacheDetection.cleaning')"
             @click="handleClearAll"
           >
-            清理所有缓存
+            {{ t('cacheDetection.cleanAll') }}
           </Button>
         </div>
       </div>
@@ -128,6 +127,7 @@
 <script setup lang="ts">
 import { AlertTriangle, HardDrive } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/Button/index.vue'
 import Modal from '@/components/Modal/index.vue'
 import { formatByte } from '@/utils'
@@ -138,6 +138,8 @@ const props = defineProps<{
   cacheStats: CacheStats
   formattedCacheInfo: CacheItem[]
 }>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'keepCache'): void

@@ -1,6 +1,7 @@
 import type { RTCPeer } from '@/ClientServer'
 import { computed, ref } from 'vue'
 import { SELECTED_PEER_ID, type UserInfo, type UserReconnectedInfo } from 'web-share-common'
+import i18n from '@/i18n'
 import { Message } from '@/utils'
 
 /**
@@ -75,7 +76,9 @@ export function useUserManagement() {
     }
 
     /** 显示重连提示 */
-    Message.info(`用户 ${data.userInfo.name.displayName} 已重新连接`)
+    Message.info(i18n.global.t('message.userReconnected', {
+      name: data.userInfo.name.displayName,
+    }))
   }
 
   return {

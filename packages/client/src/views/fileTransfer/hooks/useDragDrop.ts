@@ -1,5 +1,6 @@
 import type { UserInfo } from 'web-share-common'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import i18n from '@/i18n'
 import { Message } from '@/utils'
 
 /**
@@ -209,7 +210,7 @@ export function useDragDrop(options: DragDropOptions = {}) {
       options.onDrop?.(files, event)
     }
     else {
-      Message.warning('拖拽的内容中没有可传输的文件')
+      Message.warning(i18n.global.t('message.dropHasNoFiles'))
     }
   }
 
@@ -272,13 +273,13 @@ export function useDragDrop(options: DragDropOptions = {}) {
     try {
       /** 检查是否有在线用户可以发送 */
       if (onlineUsers.length === 0) {
-        Message.warning('没有在线用户，无法发送文件')
+        Message.warning(i18n.global.t('message.noOnlineUsersForFiles'))
         return
       }
 
       /** 验证文件 */
       if (files.length === 0) {
-        Message.warning('没有可发送的文件')
+        Message.warning(i18n.global.t('message.noFilesToSend'))
         return
       }
 
@@ -286,11 +287,13 @@ export function useDragDrop(options: DragDropOptions = {}) {
       const { uniqueFiles, duplicateCount } = deduplicateFiles(files)
 
       if (duplicateCount > 0) {
-        Message.warning(`检测到 ${duplicateCount} 个重复文件，已自动去重`)
+        Message.warning(i18n.global.t('message.duplicateFilesRemoved', {
+          count: duplicateCount,
+        }))
       }
 
       if (uniqueFiles.length === 0) {
-        Message.warning('去重后没有可发送的文件')
+        Message.warning(i18n.global.t('message.noFilesAfterDeduplication'))
         return
       }
 
@@ -304,16 +307,28 @@ export function useDragDrop(options: DragDropOptions = {}) {
         const targetPeer = onlineUsers[0]
         await sendFilesToPeer(targetPeer, uniqueFiles)
 
-        const fileCountText = duplicateCount > 0
-          ? `${uniqueFiles.length} 个文件（已去重 ${duplicateCount} 个）`
-          : `${uniqueFiles.length} 个文件`
+        const message = duplicateCount > 0
+          ? i18n.global.t('message.dragFilesSentWithDuplicates', {
+            count: uniqueFiles.length,
+            duplicates: duplicateCount,
+            name: targetPeer.name.displayName,
+          })
+          : i18n.global.t(
+            uniqueFiles.length === 1
+              ? 'message.dragFileSent'
+              : 'message.dragFilesSent',
+            {
+              count: uniqueFiles.length,
+              name: targetPeer.name.displayName,
+            },
+          )
 
-        Message.success(`已通过拖拽发送 ${fileCountText} 给 ${targetPeer.name.displayName}`)
+        Message.success(message)
       }
     }
     catch (error) {
       console.error('处理拖拽文件时出错:', error)
-      Message.error('处理拖拽文件时发生错误')
+      Message.error(i18n.global.t('message.dragProcessingFailed'))
     }
     finally {
       /** 重置DOM状态 */

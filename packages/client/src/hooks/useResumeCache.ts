@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import i18n from '@/i18n'
 import { ResumeManager } from '@/utils/handleOfflineFile'
 
 /**
@@ -130,8 +131,8 @@ export function useResumeCache() {
       fileSize: info.fileSize,
       downloadedBytes: info.downloadedBytes,
       progress: Math.round((info.downloadedBytes / info.fileSize) * 100),
-      createdAt: new Date(info.createdAt).toLocaleString(),
-      updatedAt: new Date(info.updatedAt).toLocaleString(),
+      createdAt: new Date(info.createdAt).toLocaleString(i18n.global.locale.value),
+      updatedAt: new Date(info.updatedAt).toLocaleString(i18n.global.locale.value),
     }))
   }
 
