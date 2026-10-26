@@ -1,15 +1,17 @@
+import { randomBytes } from 'node:crypto'
 import type { Server } from 'node:http'
 import type { InviteInvalidatedInfo, RoomInviteInfo, UserReconnectedInfo } from 'web-share-common'
-import type { RawData } from 'ws'
-import type { ResolvedWSServerOpts, WSServerOpts } from './types'
-import { randomBytes } from 'node:crypto'
 import { Action, HEART_BEAT, InviteInvalidatedReason, ResumeTokenQueryKey } from 'web-share-common'
+import type { RawData } from 'ws'
 import { WebSocket, WebSocketServer } from 'ws'
+import type { RoomResolver } from './networkRooms'
+import type { ResolvedWSServerOpts, WSServerOpts } from './types'
 /** WebSocket 信令服务：装配房间、邀请和具有私有恢复凭据的连接生命周期 */
 import { Peer } from '@/Peer'
 import { resolveOptions } from './constants'
 import { DisconnectScheduler } from './DisconnectScheduler'
 import { InviteManager } from './InviteManager'
+import { createRoomResolver } from './networkRooms'
 import { RoomManager } from './RoomManager'
 import { RTCErrorBroadcastManager } from './RTCErrorBroadcastManager'
 import { sendOrTerminateSlowSocket } from './utils/send'
@@ -30,27 +32,28 @@ export class WSServer {
   private timers: ReturnType<typeof setInterval>[] = []
   private closed = false
   private closePromise?: Promise<void>
+  private roomResolver: RoomResolver
 
   constructor(server: Server, opts: WSServerOpts = {}) {
     this.opts = resolveOptions(opts)
+    this.roomResolver = createRoomResolver(this.opts.lanCIDRs)
     this.inviteManager = new InviteManager(
       {
         inviteTTL: this.opts.inviteTTL,
         roomEmptyGraceMs: this.opts.roomEmptyGraceMs,
         defaultRoomCode: this.opts.defaultRoomCode,
       },
-      roomId => this.roomManager.hasActiveRoom(roomId),
+      (roomId) => this.roomManager.hasActiveRoom(roomId),
     )
     this.roomManager.setOnRoomEmpty((roomId) => {
-      if (!this.closed)
-        this.inviteManager.scheduleEmptyRoomCleanup(roomId)
+      if (!this.closed) this.inviteManager.scheduleEmptyRoomCleanup(roomId)
     })
-    this.disconnectScheduler = new DisconnectScheduler(this.opts.disconnectDelay, peer => this.executeDisconnect(peer))
+    this.disconnectScheduler = new DisconnectScheduler(this.opts.disconnectDelay, (peer) => this.executeDisconnect(peer))
 
     this.ws = new WebSocketServer({ server, maxPayload: 10 * 1024 * 1024 })
     this.ws.on('connection', (socket, request) => {
       /** 拒绝握手的提前返回路径也必须有 error 监听 */
-      socket.on('error', error => console.warn('WebSocket 连接错误:', error))
+      socket.on('error', (error) => console.warn('WebSocket 连接错误:', error))
       if (this.closed) {
         socket.close(1012, 'Server closed')
         return
@@ -70,6 +73,7 @@ export class WSServer {
         peer = new Peer(socket, request, {
           peerId: previous?.id,
           roomId: previous?.roomId,
+          roomResolver: this.roomResolver,
         })
       }
       catch (error) {
@@ -89,8 +93,7 @@ export class WSServer {
 
   /** 幂等关闭信令层，取消全部任务并终止所有 WS；HTTP server 的所有者仍负责关闭 HTTP */
   close(): Promise<void> {
-    if (this.closePromise)
-      return this.closePromise
+    if (this.closePromise) return this.closePromise
 
     this.closed = true
     this.timers.forEach(clearInterval)
@@ -99,8 +102,8 @@ export class WSServer {
     this.inviteManager.close()
     this.sessions.clear()
     this.roomManager.clear()
-    this.ws.clients.forEach(socket => socket.terminate())
-    this.closePromise = new Promise(resolve => this.ws.close(() => resolve()))
+    this.ws.clients.forEach((socket) => socket.terminate())
+    this.closePromise = new Promise((resolve) => this.ws.close(() => resolve()))
     return this.closePromise
   }
 
@@ -112,7 +115,7 @@ export class WSServer {
     this.roomManager.addPeer(peer)
 
     const { socket } = peer
-    socket.on('message', data => this.onMessage(peer, data))
+    socket.on('message', (data) => this.onMessage(peer, data))
     socket.on('close', () => {
       this.handleSocketClosed(peer)
     })
@@ -145,21 +148,18 @@ export class WSServer {
 
   /** 立即发布离线状态；恢复凭据由独立的宽限计时器回收 */
   private handleSocketClosed(peer: Peer) {
-    if (!this.isCurrentSession(peer))
-      return
+    if (!this.isCurrentSession(peer)) return
     this.removeOnlinePeer(peer)
     this.disconnectScheduler.scheduleDisconnect(peer)
   }
 
   /** 仅在确实移除了当前在线成员时广播，避免过期清理重复通知 */
   private removeOnlinePeer(peer: Peer) {
-    if (this.roomManager.removePeer(peer))
-      this.roomManager.broadcastToRoom(peer.roomId, { type: Action.LeaveRoom, data: peer.getInfo() })
+    if (this.roomManager.removePeer(peer)) this.roomManager.broadcastToRoom(peer.roomId, { type: Action.LeaveRoom, data: peer.getInfo() })
   }
 
   private executeDisconnect(peer: Peer) {
-    if (!this.isCurrentSession(peer))
-      return
+    if (!this.isCurrentSession(peer)) return
 
     this.disconnectScheduler.cancel(peer.id)
     this.removeOnlinePeer(peer)
@@ -169,9 +169,8 @@ export class WSServer {
     peer.socket.terminate()
   }
 
-  private send(peer: Peer, data: { type: Action, [key: string]: unknown }) {
-    if (!this.isCurrentPeer(peer) || peer.socket.readyState !== WebSocket.OPEN)
-      return
+  private send(peer: Peer, data: { type: Action; [key: string]: unknown }) {
+    if (!this.isCurrentPeer(peer) || peer.socket.readyState !== WebSocket.OPEN) return
     sendOrTerminateSlowSocket(peer.socket, JSON.stringify(data))
   }
 
@@ -204,8 +203,7 @@ export class WSServer {
   }
 
   private onMessage(sender: Peer, raw: RawData) {
-    if (!this.isCurrentPeer(sender))
-      return
+    if (!this.isCurrentPeer(sender)) return
 
     let message: unknown
     try {
@@ -238,8 +236,7 @@ export class WSServer {
       case Action.GetOrCreateInvite:
       case Action.GetCurrentInvite:
       case Action.RefreshInvite:
-        if (payload !== null)
-          return invalid()
+        if (payload !== null) return invalid()
     }
 
     switch (type) {
@@ -251,10 +248,8 @@ export class WSServer {
         this.send(sender, { type: Action.Ping, data: null })
         break
       case Action.JoinRoom:
-        if (!isRecord(payload) || (payload.roomId !== undefined && typeof payload.roomId !== 'string'))
-          return invalid()
-        if (payload.roomId && payload.roomId !== sender.roomId)
-          this.sendError(sender, '跨房间加入必须使用邀请或房间码')
+        if (!isRecord(payload) || (payload.roomId !== undefined && typeof payload.roomId !== 'string')) return invalid()
+        if (payload.roomId && payload.roomId !== sender.roomId) this.sendError(sender, '跨房间加入必须使用邀请或房间码')
         this.sendRoomState(sender)
         break
       case Action.LeaveRoom:
@@ -270,8 +265,7 @@ export class WSServer {
       }
       case Action.GetCurrentInvite: {
         const invite = this.inviteManager.getActiveInviteForRoom(sender.roomId)
-        if (invite)
-          this.send(sender, { type: Action.InviteCreated, data: invite })
+        if (invite) this.send(sender, { type: Action.InviteCreated, data: invite })
         else this.sendInviteInvalidated(sender, InviteInvalidatedReason.NoActiveInvite)
         break
       }
@@ -280,34 +274,27 @@ export class WSServer {
         this.sendInviteInvalidated(sender, InviteInvalidatedReason.NotFound)
         break
       case Action.JoinRoomByInvite: {
-        if (!isRecord(payload) || !isNonEmptyString(payload.inviteId) || !isNonEmptyString(payload.joinToken))
-          return invalid()
+        if (!isRecord(payload) || !isNonEmptyString(payload.inviteId) || !isNonEmptyString(payload.joinToken)) return invalid()
         const result = this.inviteManager.resolveInviteByJoinPayload({ inviteId: payload.inviteId, joinToken: payload.joinToken })
-        if ('invite' in result)
-          this.joinAuthorizedRoom(sender, result.invite.roomId)
+        if ('invite' in result) this.joinAuthorizedRoom(sender, result.invite.roomId)
         else this.sendInviteInvalidated(sender, result.reason)
         break
       }
       case Action.JoinRoomByCode: {
-        if (!isRecord(payload) || !isNonEmptyString(payload.roomCode))
-          return invalid()
+        if (!isRecord(payload) || !isNonEmptyString(payload.roomCode)) return invalid()
         const result = this.inviteManager.resolveInviteByCode(payload.roomCode)
-        if ('invite' in result)
-          this.joinAuthorizedRoom(sender, result.invite.roomId)
+        if ('invite' in result) this.joinAuthorizedRoom(sender, result.invite.roomId)
         else this.sendInviteInvalidated(sender, result.reason, { roomCode: payload.roomCode })
         break
       }
       case Action.Relay: {
-        if (!isRecord(payload) || !isNonEmptyString(payload.toId) || typeof payload.type !== 'string' || !RELAY_ACTIONS.has(payload.type))
-          return invalid()
+        if (!isRecord(payload) || !isNonEmptyString(payload.toId) || typeof payload.type !== 'string' || !RELAY_ACTIONS.has(payload.type)) return invalid()
         const target = this.roomManager.getRoomPeer(sender.roomId, payload.toId)
-        if (target)
-          this.send(target, { ...payload, type: payload.type as Action, fromId: sender.id })
+        if (target) this.send(target, { ...payload, type: payload.type as Action, fromId: sender.id })
         break
       }
       case Action.RTCError: {
-        if (!isRecord(payload) || (payload.errorType !== undefined && typeof payload.errorType !== 'string'))
-          return invalid()
+        if (!isRecord(payload) || (payload.errorType !== undefined && typeof payload.errorType !== 'string')) return invalid()
         const errorType = typeof payload.errorType === 'string'
           ? payload.errorType
           : 'UNKNOWN_ERROR'
@@ -348,7 +335,7 @@ export class WSServer {
         expired.push(peer)
       }
     })
-    expired.forEach(peer => this.executeDisconnect(peer))
+    expired.forEach((peer) => this.executeDisconnect(peer))
   }
 }
 

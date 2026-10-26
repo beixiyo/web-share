@@ -41,9 +41,13 @@ export type WSServerOpts = {
    * @default '442385'
    */
   defaultRoomCode?: string
+
+  /** IPv4 networks whose matching clients share a room. The LAN_CIDRS environment variable accepts comma-separated CIDRs. Omitted uses local non-internal IPv4 interfaces; an empty list disables LAN grouping. @default 自动识别本机 IPv4 前缀 */
+  lanCIDRs?: string[]
 }
 
 /** 合并默认值后的配置（defaultRoomCode 仍可选） */
-export type ResolvedWSServerOpts = Required<Omit<WSServerOpts, 'defaultRoomCode'>> & {
+export type ResolvedWSServerOpts = Required<Omit<WSServerOpts, 'defaultRoomCode' | 'lanCIDRs'>> & {
   defaultRoomCode?: string
+  lanCIDRs?: string[]
 }

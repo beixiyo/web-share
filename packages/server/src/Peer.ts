@@ -1,11 +1,12 @@
-import type { IncomingMessage } from 'node:http'
-import type { WebSocket } from 'ws'
+import { cyrb53 } from '@/utils'
 import crypto from 'node:crypto'
+import type { IncomingMessage } from 'node:http'
 import { isIP } from 'node:net'
 import { UAParser } from 'ua-parser-js'
 import { animals, colors, uniqueNamesGenerator } from 'unique-names-generator'
 import { HEART_BEAT, type Name, type UserInfo } from 'web-share-common'
-import { cyrb53 } from '@/utils'
+import type { WebSocket } from 'ws'
+import { defaultRoomResolver, type RoomResolver } from './networkRooms'
 
 /**
  * 连接到 WebSocket 服务器的对等方
@@ -30,54 +31,9 @@ export class Peer {
   constructor(socket: WebSocket, request: IncomingMessage, opts: PeerOpts = {}) {
     this.socket = socket
     this.ip = getClientIP(request)
-    this.roomId = opts.roomId ?? this.getRoomIdFromIP(this.ip)
+    this.roomId = opts.roomId ?? (opts.roomResolver ?? defaultRoomResolver)(this.ip)
     this.id = opts.peerId ?? crypto.randomUUID()
     this.setName(request)
-  }
-
-  /**
-   * 根据IP地址获取房间ID
-   * 同一局域网的设备会被分配到同一个房间
-   */
-  private getRoomIdFromIP(ip: string): string {
-    // IPv6本地地址
-    if (ip === '::1') {
-      return 'local'
-    }
-
-    // IPv4处理
-    if (!ip.includes(':')) {
-      /** 本地回环地址 */
-      if (ip === '127.0.0.1' || ip.startsWith('127.')) {
-        return 'local'
-      }
-
-      /** 私有网络地址 - 按网段划分 */
-      if (Peer.ipIsPrivate(ip)) {
-        const parts = ip.split('.')
-
-        // 10.x.x.x 网络 - 按前两段划分
-        if (parts[0] === '10') {
-          return `lan_10_${parts[1]}`
-        }
-
-        // 172.16.x.x - 172.31.x.x 网络 - 按前三段划分
-        if (parts[0] === '172' && Number.parseInt(parts[1]) >= 16 && Number.parseInt(parts[1]) <= 31) {
-          return `lan_172_${parts[1]}_${parts[2]}`
-        }
-
-        // 192.168.x.x 网络 - 按前三段划分
-        if (parts[0] === '192' && parts[1] === '168') {
-          return `lan_192_168_${parts[2]}`
-        }
-      }
-
-      /** 公网IP - 每个IP一个房间（通常不会有文件传输需求） */
-      return `public_${ip.replace(/\./g, '_')}`
-    }
-
-    /** IPv6 不根据前缀猜测局域网；完整地址隔离不同网络与主机 */
-    return `ipv6_${ip}`
   }
 
   /**
@@ -149,7 +105,7 @@ export class Peer {
     }
 
     /** 否则：IP 是 IPv6 */
-    const firstWord = ip.split(':').find(el => !!el)! // 获取第一个非空单词
+    const firstWord = ip.split(':').find((el) => !!el)! // 获取第一个非空单词
 
     if (/^fe[c-f][0-f]$/.test(firstWord)) {
       /** 原始 IPv6 站点本地地址（fec0::/10）已弃用。范围：fec0 - feff */
@@ -184,11 +140,9 @@ export class Peer {
 function getClientIP(request: IncomingMessage): string {
   const candidates = [request.headers['cf-connecting-ip'], request.headers['x-forwarded-for'], request.socket.remoteAddress]
   for (const candidate of candidates) {
-    if (typeof candidate !== 'string')
-      continue
+    if (typeof candidate !== 'string') continue
     const ip = normalizeIP(candidate.split(',')[0].trim())
-    if (ip)
-      return ip
+    if (ip) return ip
   }
   return ''
 }
@@ -196,25 +150,25 @@ function getClientIP(request: IncomingMessage): string {
 /** 统一 IPv6 写法，并将 IPv4-mapped IPv6 转为 IPv4 */
 function normalizeIP(value: string): string | null {
   const family = isIP(value)
-  if (!family || value.includes('%'))
-    return null
-  if (family === 4)
-    return value
+  if (!family || value.includes('%')) return null
+  if (family === 4) return value
 
   const normalized = new URL(`http://[${value}]/`).hostname.slice(1, -1)
   const mapped = /^::ffff:([\da-f]+):([\da-f]+)$/.exec(normalized)
-  if (!mapped)
-    return normalized
+  if (!mapped) return normalized
 
   const high = Number.parseInt(mapped[1], 16)
   const low = Number.parseInt(mapped[2], 16)
   return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`
 }
 
-/** 由会话所有者注入身份，绝不从客户端 peerId query 获取身份 */
+/** WebSocket 握手时创建 Peer 的选项。会话身份由服务端注入，不从客户端 peerId query 获取 */
 export type PeerOpts = {
   /** 会话所有者恢复的服务端身份。@default 新的随机 UUID */
   peerId?: string
   /** 会话所有者恢复的房间。@default 根据客户端 IP 分配 */
   roomId?: string
+
+  /** 由连接所有者注入的房间映射策略。@default 自动识别本机 IPv4 前缀 */
+  roomResolver?: RoomResolver
 }

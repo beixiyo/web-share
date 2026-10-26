@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "nodemon --watch . --ext go,mod,sum --signal SIGTERM --exec \"go run\" ./cmd/web-share",
     "generate:protocol": "node ../../scripts/generate-protocol.mjs",
-    "check:protocol": "node ../../scripts/generate-protocol.mjs -check"
+    "check:protocol": "node ../../scripts/generate-protocol.mjs -check",
+    "build": "node ../../scripts/build-go.mjs",
+    "test": "go test -race ./...",
+    "check": "go vet ./..."
   }
 }
