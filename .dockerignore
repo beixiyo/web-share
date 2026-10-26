@@ -14,6 +14,7 @@ pnpm-debug.log*
 packages/*/dist
 dist
 build
+release
 
 # OS generated files
 .DS_Store

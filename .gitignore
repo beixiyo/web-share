@@ -18,6 +18,7 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 /deploy
+/release
 
 # Editor directories and files
 .idea

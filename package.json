@@ -36,6 +36,7 @@
     "test:go": "pnpm -F web-share-server-go test",
     "test:backends": "bun test ./scripts/backends.test.ts ./scripts/client-connection.test.ts",
     "build:go": "pnpm generate:protocol && pnpm build:common && pnpm build:client && pnpm -F web-share-server-go build",
+    "release:build": "node scripts/release.mjs",
     "build": "pnpm build:common && run-p build:server build:client",
     "---deploy---": "---deploy---",
     "deploy:server": "pnpm -F web-share-server deploy ./deploy --prod",
