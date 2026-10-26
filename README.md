@@ -7,6 +7,7 @@
 
 <p align="center">
   <img alt="License" src="https://img.shields.io/npm/l/@jl-org/cvs?color=blue" />
+  <img alt="Go" src="https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white" />
   <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/Vue.js-4FC08D?logo=vuedotjs&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
@@ -23,107 +24,48 @@
 
 <br />
 
-在浏览器实现 **局域网** 文件传输，无服务器收集信息，让浏览器再次伟大！！
+基于 WebRTC 的浏览器文件与文本共享工具。文件在设备间传输，服务端负责信令和房间管理
 
-**注意（移动端）**：移动端打开系统相册/文件选择器时，浏览器可能会将页面挂起（暂停 JS 执行/定时器），导致心跳短暂停止或 WebSocket 短暂断连，从而引发页面刷新等现象
+> **后端维护状态**：`packages/server-go` 为当前维护版本；`packages/server`（TypeScript）已归档，不再维护。新部署请使用 Go 后端
+
+**移动端注意**：打开系统文件选择器或切换应用可能挂起页面并中断连接，返回页面后请确认连接状态
 
 ## ✨ 核心功能亮点
 
-🚫 **无需安装应用，纯浏览器运行**
-  - 🖱️ 拖拽传输
-  - 📋 粘贴传输
-  - 🖼️ 图片文件预览
-  - 🔢 扫码连接
-  - 🔑 密钥连接
-
-#### ⚡ 高性能点对点传输
-- **💧 流式下载**：传统前端下载要保存所有分片到内存，传输内容大了会崩溃。为了确保移动端正常下载，请使用 Chrome
-- **⬇️ 无限大小文件传输**：使用 Service Worker 或 File System Access API 实现后台流式下载（需浏览器支持）
-- **🔄 流控制机制**：智能缓冲区管理，防止内存溢出和传输阻塞
-- **🌐 直连技术**：基于 WebRTC DataChannel 实现浏览器间直接连接
-
-### 🔄 智能断点续传
-> **大文件传输的可靠保障**
-
-- **🧠 智能缓存机制**：基于文件名+文件大小生成唯一哈希标识，确保断点续传的准确性
-- **💾 本地数据持久化**：利用 IndexedDB 存储传输进度和数据块，支持浏览器重启后恢复传输
-- **🔄 自动协商恢复**：发送端和接收端通过 WebRTC 自动协商传输起始位置，无需手动干预
-- **⚡ 秒级恢复速度**：中断后重连，系统自动检测并从断点位置继续，大幅节省传输时间
-- **🛡️ 数据完整性保证**：多重校验机制确保断点续传数据的完整性和一致性
-
-### 🎯 便捷文件操作
-> **极致的用户体验设计**
-
-- **🖱️ 拖拽即传**：支持直接将文件拖拽到浏览器窗口，自动识别并准备传输
-- **📋 粘贴传输**：使用 `Ctrl + V` 快捷键直接粘贴剪贴板中的文件，支持截图、复制文件等场景
-- **📁 批量选择**：支持同时选择多个文件进行批量传输，提高工作效率
-- **🔍 文件预览**：传输前自动生成文件预览图和详细信息，确保传输内容准确无误
-- **📊 实时进度**：精确显示每个文件的传输进度、速度和剩余时间
-
-### 💬 跨设备文本共享
-> **无缝的文本传输体验**
-
-- **📝 即时文本传输**：支持纯文本、富文本、代码片段等多种文本格式的快速传输
-- **🔄 双向同步**：任意设备都可以发送和接收文本内容，真正实现跨设备协作
-- **📋 一键复制**：接收到的文本内容支持一键复制到剪贴板，方便后续使用
-- **🎨 格式保持**：保持原始文本的格式和编码，确保特殊字符和换行符的准确传输
-- **⚡ 毫秒级传输**：文本传输延迟极低，实现近乎实时的跨设备文本同步
-
-### 📱 二维码快速连接
-> **移动设备的最佳连接方案**
-
-- **📲 扫码即连**：自动生成高清二维码，手机扫码即可快速加入传输会话
-- **🔄 动态更新**：二维码包含完整的连接信息，支持房间状态的实时更新
-- **📱 移动优化**：针对移动设备优化的二维码尺寸和识别算法，确保快速识别
-- **🔒 安全编码**：二维码内容经过加密处理，防止恶意截获和伪造
-- **⏰ 智能过期**：二维码具有时效性，过期自动失效，保障连接安全
-
-### 🔢 房间码便捷连接
-> **简单易记的连接方式**
-
-- **🎲 智能生成**：自动生成6位数字房间码，易于记忆和输入
-- **🔄 一码多连**：同一房间码支持多设备同时连接，实现多方文件共享
-- **📞 语音传达**：纯数字设计便于电话或语音传达，适合各种沟通场景
-
-### 🚀 其他技术亮点
-
-#### 🔐 端到端安全传输
-- **🛡️ WebRTC 原生加密**：利用 DTLS 和 SRTP 协议提供端到端加密保护
-- **🚫 零服务器存储**：文件直接在设备间传输，服务器不存储任何用户数据
-- **🔒 会话隔离**：每个传输会话独立加密，确保数据安全隔离
-
-#### 🌍 跨平台兼容性
-- **💻 桌面端支持**：完美支持 Windows、macOS、Linux 等主流操作系统
-- **📱 移动端优化**：针对 iOS、Android 移动浏览器进行专项优化
-- **🌐 浏览器兼容**：支持 Chrome、Firefox、Safari、Edge 等主流浏览器
-
-#### 🎨 现代化用户界面
-- **📱 响应式设计**：完美适配各种屏幕尺寸，从手机到大屏显示器
-- **🌙 深色模式**：支持明暗主题切换，保护用户视力
+- **文件传输**：支持选择、拖拽或粘贴文件，可批量发送并预览图片
+- **多种连接方式**：通过二维码、邀请链接或房间码加入同一房间
+- **流式下载**：支持 Service Worker 和 File System Access API，不可用时回退到内存 Blob 下载
+- **断点续传**：在本地缓存已接收的数据，再次发送文件时协商续传位置
+- **文本共享**：跨设备发送文本，接收后可一键复制
+- **传输进度**：显示进度、速度与预计剩余时间
+- **界面适配**：支持响应式布局、明暗主题与中英文切换
 
 ---
 
-## 📋 目录
+## 📑 目录
 
-- [📚 使用说明](#-使用说明)
+- [使用说明](#-使用说明)
+  - [Go 单二进制部署](#go-单二进制部署)
+  - [Go 本地开发](#本地开发go-后端)
   - [服务端环境变量](#服务端环境变量)
-- [🎯 项目概述](#-项目概述)
-- [🏗️ 架构设计](#️-架构设计)
-- [🔧 核心技术解析](#-核心技术解析)
-  - [WebRTC 连接机制详解](#webrtc-连接机制详解)
-  - [断点续传机制深度解析](#断点续传机制深度解析)
-- [🛠️ 技术栈和依赖](#️-技术栈和依赖)
-- [❓ 常见问题](#-常见问题)
+- [常见问题](#-常见问题)
+- [架构设计](#️-架构设计)
+- [核心技术解析](#-核心技术解析)
+  - [WebRTC 连接机制](#webrtc-连接机制)
+  - [断点续传机制](#断点续传机制)
 
 ---
 
-## 📚 使用说明
+## 🚀 使用说明
 
 ### 环境要求
 
+使用预编译 Go 部署包无需安装运行时依赖。源码构建和本地开发需要：
+
+- **Go**: >= 1.26.0
 - **Node.js**: >= 22.0.0
 - **pnpm**: >= 9.7.1
-- **现代浏览器**: 支持 WebRTC 的浏览器（Chrome 60+, Firefox 55+, Safari 14+）
+- **浏览器**: 支持 WebRTC 的现代浏览器
 
 ### 安装和启动
 
@@ -138,9 +80,9 @@ cd web-share
 
 可直接下载 [GitHub Release](https://github.com/beixiyo/web-share/releases) 中对应平台的 Go 部署包，前端已内嵌在可执行文件中。发布构建、附件内容和 HTTPS 配置见[发布与部署说明](./docs/releasing.md)
 
-Go 后端可以将前端页面一起编译进单个可执行文件，目标服务器无需安装 Docker、Node.js 或 Go，原 TypeScript 后端继续保留。构建、运行、开发与交叉编译步骤见 [Go 后端：构建和运行](./packages/server-go/README.md#构建和运行)
+目标服务器无需安装 Docker、Node.js 或 Go。源码构建与交叉编译见 [Go 后端：构建和运行](./packages/server-go/README.md#构建和运行)
 
-#### Docker 部署
+#### Docker 部署（已归档的 TS 后端）
 
 1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址（HTTPS 时使用 `wss://你的域名:端口`）
 2. （可选）如需 **HTTPS**：将证书放入 `certs/`（如 `key.pem`、`cert.pem`），在 `docker-compose.yml` 中取消 `volumes` 与 `SSL_KEY_PATH`、`SSL_CERT_PATH` 的注释，端口可按需改为 `"443:3001"`。证书也可通过环境变量 `SSL_KEY`、`SSL_CERT` 直接传入 PEM 内容
@@ -150,7 +92,7 @@ Go 后端可以将前端页面一起编译进单个可执行文件，目标服�
   docker compose down && docker compose up -d
   ```
 
-#### 本地开发
+#### 本地开发（Go 后端）
 
 ```bash
 # 全局安装 pnpm
@@ -159,25 +101,25 @@ npm i -g pnpm@9.7.1
 # 安装项目依赖
 pnpm i
 
-# 启动开发环境（首次运行需要执行两次，构建 common 包）
-pnpm run dev
+# 启动前端、Go 后端和共享协议监听
+pnpm run dev:go
 
 # 分别启动各个服务
-pnpm run dev:server  # 启动信令服务器
-pnpm run dev:client  # 启动前端客户端
-pnpm run dev:common  # 构建公共类型包
+pnpm run dev:server:go     # 启动 Go 信令服务器
+pnpm run dev:client        # 启动前端客户端
+pnpm run dev:common        # 构建公共类型包
 ```
 
 #### 生产构建
 
 ```bash
-# 构建所有包
-pnpm run build
+# 构建内嵌前端的 Go 可执行文件
+pnpm run build:go
 
 # 分别构建
-pnpm run build:common  # 先构建公共包
-pnpm run build:server  # 构建服务器
-pnpm run build:client  # 构建客户端
+pnpm run build:common      # 先构建公共包
+pnpm run build:server      # 构建已归档的 TS 后端（仅供参考）
+pnpm run build:client      # 构建客户端
 ```
 
 ### 服务端环境变量
@@ -202,164 +144,59 @@ TS 与 Go 信令后端共用以下环境变量名称和默认值，其中时长�
 
 ### 基本使用流程
 
-#### 🏠 创建连接
+#### 创建连接
 
 **通过连接码加入（他人）**
+
 1. 点击工具栏 **「连接码管理」**
 2. 切换到 **「输入连接码」** 选项卡，输入对方提供的 6 位数字码
 3. 点击 **「加入房间」** 即可进入同一房间
 
 **通过二维码或链接加入**
+
 - 对方在邀请卡片点击 **「二维码」** 后扫码，或点击 **「链接」** 复制后发送给你，在浏览器中打开即可加入同一房间
 
-#### 📁 文件传输
+#### 文件传输
 
-**发送文件**：
-1. 选择要发送的文件（支持多文件选择），或者直接 `Ctrl + V` 粘贴
-2. 系统显示文件预览和大小信息
-3. 点击"发送文件"按钮
-4. 等待接收方确认
-
-**接收文件**：
-1. 接收到文件传输请求
-2. 查看文件信息和预览图
-3. 点击"接受"或"拒绝"
-4. 接受后自动开始下载
+1. 点击目标设备并选择文件，或通过粘贴、拖拽文件后选择接收者
+2. 接收方查看文件列表，选择接受或拒绝
+3. 接受后开始传输，接收完成后保存文件
 
 <img src="./docAssets/save.webp" alt="文件传输界面" width="300px" />
 
-#### ⚡ 断点续传
+#### 断点续传
 
 **自动断点续传**：
+
 - 传输中断后，系统自动保存进度
 - 重新连接后，提示是否继续传输
 - 支持清理过期的传输缓存
 
 **手动管理**：
+
 - 在工具栏中点击"清理缓存"
 - 选择清理策略（全部/过期/失败）
 - 查看缓存占用空间
 
 ---
 
-## 🛠️ 技术栈和依赖
-
-### 前端技术栈
-
-#### 🎨 核心框架
-- **Vue 3.5.13**: 渐进式 JavaScript 框架
-- **TypeScript 5.7.2**: 静态类型检查
-- **Vite**: 现代化构建工具
-- **Vue Router 4.4.5**: 单页应用路由
-
-#### 🎯 UI 和样式
-- **UnoCSS**: 原子化 CSS 引擎
-- **Tailwind CSS**: 实用优先的 CSS 框架
-- **Lucide Vue Next**: 现代图标库
-
-#### 🔧 工具库
-- **@jl-org/tool**: 通用工具函数库
-- **LocalForage**: 客户端存储解决方案
-- **QRCode**: 二维码生成库
-
-### 后端技术栈
-
-#### 🌐 服务器框架
-- **Express 5.1.0**: Web 应用框架
-- **WebSocket (ws 8.18.2)**: WebSocket 服务器
-- **Connect History API Fallback**: SPA 路由支持
-
-#### 🔧 工具库
-- **UA Parser JS**: 用户代理解析
-- **Unique Names Generator**: 随机名称生成
-
-### 开发工具
-
-#### 📦 包管理
-- **pnpm**: 高效的包管理器
-- **Monorepo**: 多包管理架构
-
-#### 🔍 代码质量
-- **ESLint**: 代码检查工具
-- **@antfu/eslint-config**: ESLint 配置预设
-
----
-
 ## ❓ 常见问题
 
-### 🔧 技术问题
+**下载失败，或大文件导致内存不足？**
 
-**Q: 下载失败？**
-A: 各个手机浏览器很难 debug，直接使用 Chrome 浏览器可避免所有问题
+可先尝试新版 Chrome，并检查可用存储空间。流式下载依赖浏览器支持和安全上下文；回退到 Blob 时，文件会完整累积在内存中，大小受可用内存限制
 
-**Q: WebRTC 连接失败怎么办？**
+**设备之间连接失败？**
 
-A: 常见解决方案：
-1. 尝试关闭所有浏览器插件，或者开无痕
-2. 检查浏览器是否支持 WebRTC
-3. 检查网络环境，确保不在严格的 NAT 或防火墙后
+确认双方加入同一房间、WebSocket 信令可达且浏览器支持 WebRTC。NAT 或防火墙限制仍可能阻止设备直连
 
-### 🚀 部署问题
+**部署后页面能打开，但无法连接？**
 
-**Q: Docker 部署后无法连接？**
+检查 WebSocket 地址、端口映射和防火墙。HTTPS 页面需要使用 WSS 和有效证书；Go 发布包默认使用页面同源的信令地址
 
-A: 检查清单：
-1. 确保 WebSocket 服务器 URL 配置正确
-2. 检查端口映射是否正确
-3. 验证防火墙设置
-4. 确认 HTTPS/WSS 证书配置
+**服务器会接收我的文件吗？**
 
-### 📱 兼容性问题
-
-**Q: 文件大小限制？**
-
-A: 限制说明：
-- 理论上无大小限制，现代浏览器可以支持我写的流式传输
-- 支持多文件批量传输
-
-### 🔒 安全问题
-
-**Q: 文件传输是否安全？**
-
-A: 安全保障：
-1. WebRTC 提供端到端加密
-2. 文件不经过服务器存储
-3. 连接建立后即可断开信令服务器
-4. 支持房间码过期机制
-
----
-
-## 🎯 项目概述
-
-功能与技术亮点见[核心功能亮点](#-核心功能亮点)，模块职责见[架构设计](#️-架构设计)。以下展示浏览器与信令服务器的连接关系
-
-### 架构概览
-
-```
-┌─────────────────┐    WebSocket     ┌─────────────────┐
-│   Client A      │◄────────────────►│   Signal Server │
-│                 │                  │                 │
-│  ┌─────────────┐│                  │  ┌─────────────┐│
-│  │ Vue3 + TS   ││                  │  │ Express +   ││
-│  │ WebRTC      ││                  │  │ WebSocket   ││
-│  │ LocalForage ││                  │  │ Server      ││
-│  └─────────────┘│                  │  └─────────────┘│
-└─────────────────┘                  └─────────────────┘
-         │                                    ▲
-         │                                    │
-         │          WebRTC P2P                │
-         │         DataChannel                │
-         ▼                                    │
-┌─────────────────┐    WebSocket     ┌───────┴─────────┐
-│   Client B      │◄─────────────────┤                 │
-│                 │                  │                 │
-│  ┌─────────────┐│                  │                 │
-│  │ Vue3 + TS   ││                  │                 │
-│  │ WebRTC      ││                  │                 │
-│  │ LocalForage ││                  │                 │
-│  └─────────────┘│                  │                 │
-└─────────────────┘                  └─────────────────┘
-```
+文件内容通过 WebRTC DataChannel 传输，信令服务器不存储文件，但会维护房间和连接状态；接收端会在本地缓存数据以供续传。持有邀请或房间码的人可以加入，请仅分享给预期的接收者
 
 ---
 
@@ -370,104 +207,49 @@ A: 安全保障：
 ```
 web-share/
 ├── packages/
-│   ├── client/          # 前端客户端
+│   ├── client/                        # 前端客户端
 │   │   ├── src/
-│   │   │   ├── ClientServer/     # WebRTC 连接管理
-│   │   │   ├── utils/           # 工具函数和文件处理
-│   │   │   ├── views/           # 页面组件
-│   │   │   └── components/      # 通用组件
+│   │   │   ├── ClientServer/          # WebRTC 连接管理
+│   │   │   ├── utils/                 # 工具函数和文件处理
+│   │   │   ├── views/                 # 页面组件
+│   │   │   └── components/            # 通用组件
 │   │   └── package.json
-│   ├── server/          # 信令服务器
+│   ├── server-go/                     # Go 信令服务器（维护中）
+│   │   ├── cmd/web-share/             # 服务入口
+│   │   ├── internal/                  # 配置、HTTP 与信令逻辑
+│   │   ├── protocol/                  # 共享协议源定义
+│   │   ├── web/                       # 内嵌前端资源
+│   │   └── go.mod
+│   ├── server/                        # TS 后端（已归档，不再维护）
 │   │   ├── src/
-│   │   │   ├── WSServer.ts      # WebSocket 服务器
-│   │   │   └── main.ts          # 服务器入口
+│   │   │   ├── WSServer.ts            # WebSocket 服务器
+│   │   │   └── main.ts                # 服务器入口
 │   │   └── package.json
-│   └── common/          # 公共类型定义
+│   └── common/                        # 公共类型定义
 │       ├── src/
-│       │   ├── generated/protocol.ts # Go 生成的协议类型与运行时值
-│       │   ├── RTCData.ts       # WebRTC 数据类型
-│       │   └── index.ts         # 公共导出入口
+│       │   ├── generated/protocol.ts  # Go 生成的协议类型与运行时值
+│       │   ├── RTCData.ts             # WebRTC 数据类型
+│       │   └── index.ts               # 公共导出入口
 │       └── package.json
-└── package.json         # 根配置文件
+└── package.json                       # 根配置文件
 ```
 
-### 核心模块说明
+### 核心模块
 
-#### 📦 packages/client - 前端客户端
-
-**主要职责**：
-- 用户界面展示和交互
-- WebRTC 连接管理
-- 文件传输逻辑处理
-- 断点续传缓存管理
-
-**核心组件**：
-- `RTCPeer`: WebRTC 对等连接管理
-- `FileSendManager`: 文件发送管理器
-- `FileDownloadManager`: 文件下载管理器
-- `ResumeManager`: 断点续传管理器
-
-#### 🌐 packages/server - 信令服务器
-
-**主要职责**：
-- WebRTC 信令中继
-- 房间管理和用户匹配
-- 连接状态维护
-- 心跳检测
-
-**核心功能**：
-- WebSocket 连接管理
-- 房间码生成和验证
-- 用户重连处理
-- 消息路由转发
-
-#### 📋 packages/common - 公共类型
-
-**主要职责**：
-- 统一的类型定义
-- 常量配置管理
-- 导出 Go 生成的消息协议，生成流程见 [Go 后端：协议与 common 包](./packages/server-go/README.md#协议与-common-包)
-
-**核心内容**：
-- Action 枚举定义
-- WebRTC 数据类型
-- 文件传输相关类型
-- 断点续传数据结构
+| 模块 | 职责 |
+|------|------|
+| `packages/client` | 浏览器界面、WebRTC 连接、文件传输与本地续传缓存。 |
+| `packages/server-go` | 当前维护的后端：信令、房间、邀请、心跳与内嵌前端资源。 |
+| `packages/server` | 已归档的 TS 后端，仅供参考；现有 Docker 部署使用此后端。 |
+| `packages/common` | 共享常量与生成的 TypeScript 协议定义，见[协议生成说明](./packages/server-go/README.md#协议与-common-包)。 |
 
 ---
 
 ## 🔧 核心技术解析
 
-### WebRTC 连接机制详解
+### WebRTC 连接机制
 
-WebRTC（Web Real-Time Communication）是本项目的核心技术，实现了浏览器间的点对点通信。以下详细解析连接建立的完整流程：
-
-#### 🔄 连接建立流程
-
-**1. 初始化阶段**
-```typescript
-class RTCConnect {
-  private pc: RTCPeerConnection | null = null
-  private config: any
-
-  private initialize(): void {
-    this.pc = new RTCPeerConnection({
-      iceServers: this.config.iceServers, // STUN/TURN 服务器配置
-    })
-
-    /** 设置事件监听器 */
-    this.pc.ondatachannel = this.onDataChannel
-    this.pc.onicecandidate = this.onIceCandidate
-    this.pc.onconnectionstatechange = this.onConnectionStateChange
-  }
-
-  private onDataChannel(event: RTCDataChannelEvent) {}
-  private onIceCandidate(event: RTCPeerConnectionIceEvent) {}
-  private onConnectionStateChange(event: Event) {}
-}
-```
-
-**2. 信令交换过程**
+信令服务器转发 SDP Offer、Answer 和 ICE 候选；DataChannel 建立后，浏览器直接传输文件内容
 
 ```mermaid
 sequenceDiagram
@@ -486,140 +268,37 @@ sequenceDiagram
     A->>B: 9. 建立 P2P 连接
 ```
 
-**3. 详细步骤解析**
+### 断点续传机制
 
-**步骤1: 创建 Offer**
-- 执行函数：`RTCConnect.createOffer()`
-- 等待事件：无
-- 成功处理：生成 SDP Offer，通过信令服务器发送给目标客户端
-- 失败处理：触发 `onError` 回调，记录错误信息
-
-**步骤2: 处理 Answer**
-- 执行函数：`RTCConnect.handleAnswer()`
-- 等待事件：接收远程 SDP Answer
-- 成功处理：设置远程描述，开始 ICE 候选交换
-- 失败处理：连接失败，触发重连机制
-
-**步骤3: ICE 候选交换**
-- 执行函数：`RTCConnect.addIceCandidate()`
-- 等待事件：ICE 候选收集完成
-- 成功处理：建立最优连接路径
-- 失败处理：尝试其他候选或报告连接失败
-
-**步骤4: 数据通道建立**
-- 执行函数：`onDataChannel` 事件处理
-- 等待事件：数据通道打开
-- 成功处理：触发 `onChannelReady` 回调，开始文件传输
-- 失败处理：重新建立连接或报告错误
-
-#### 🔧 信令服务器的作用
-
-信令服务器在 WebRTC 连接中扮演"媒人"角色：
-
-1. **SDP 交换中继**：转发 Offer 和 Answer 消息
-2. **ICE 候选中继**：转发网络连接候选信息
-3. **房间管理**：维护用户房间状态和连接映射
-4. **连接状态监控**：检测用户在线状态和连接健康度
-
-#### 📡 数据通道管理
-
-数据通道是文件传输的核心通道：
-
-```typescript
-/** 数据通道配置 */
-const channelOptions = {
-  ordered: true, // 保证数据顺序
-  maxRetransmits: 3, // 最大重传次数
-}
-
-/** 发送控制 */
-if (this.channel.bufferedAmount > this.config.bufferedAmountLowThreshold) {
-  await this.waitUntilChannelIdle() // 等待缓冲区空闲
-}
-```
-
-**流控制机制**：
-- 监控 `bufferedAmount` 防止缓冲区溢出
-- 实现背压控制，确保传输稳定性
-- 支持暂停/恢复传输功能
-
----
-
-### 断点续传机制深度解析
-
-断点续传是本项目的核心特性之一，通过精心设计的缓存和协商机制，实现了可靠的大文件传输
-
-#### 🏗️ 整体架构设计
-
-断点续传系统由以下核心组件构成：
-
-1. **ResumeManager**: 断点续传缓存管理
-2. **FileSendManager**: 发送端断点续传逻辑
-3. **FileDownloadManager**: 接收端断点续传逻辑
-4. **WebRTC 协商机制**: 偏移量协商和同步
-
-#### 🔍 代码流程标记说明
-
-为了便于开发者理解复杂的断点续传流程，我们在关键代码位置添加了 `@数字. 描述` 格式的流程标记
-
-![流程图](./docAssets/code-flow.webp)
-
-**如何查看流程标记**：
-
-1. **使用我定制的 VSCode Todo Tree Enhanced 插件**（推荐）：
-   - 项目已配置 `.vscode/settings.json`，自动识别 `@数字.` 格式标记
-   - 在 VSCode 侧边栏查看 "TODO TREE Enhanced" 面板
-   - 点击标记可直接跳转到对应代码位置
-
-2. **手动搜索**：
-   - 在项目中搜索 `@01.` `@02.` 等标记
-   - 按数字顺序查看完整流程
-
-> 💡 **提示**：使用 VSCode Todo Tree 插件可以快速浏览所有流程标记，点击即可跳转到对应代码位置
-
-#### 🔄 WebRTC 协商偏移量过程
-
-断点续传的关键在于发送端和接收端就传输起始位置达成一致：
-
-**协商时序图**：
+`ResumeManager` 在本地保存已接收的数据块。传输前，`FileDownloadManager` 恢复缓存，并向 `FileSendManager` 告知续传偏移量
 
 ```mermaid
 sequenceDiagram
     participant S as 发送端
     participant R as 接收端
 
-    Note over S,R: 文件传输准备阶段
-    S->>R: 1. FileMetas (文件元数据)
-    R->>R: 2. 检查本地缓存
-    R->>S: 3. ResumeInfo (startOffset: 1024000)
-    S->>S: 4. 设置 FileChunker startOffset
-
-    Note over S,R: 断点续传传输阶段
-    S->>R: 5. NewFile (文件开始信号)
-    S->>R: 6. 数据块 (从 1MB 开始)
-    R->>R: 7. 恢复已缓存数据
-    R->>R: 8. 追加新数据块
-    S->>R: 9. FileDone (传输完成)
-    R->>R: 10. 文件重组和下载
+    S->>R: FileMetas
+    R->>R: 恢复缓存数据
+    R->>S: ResumeInfo (startOffset)
+    S->>R: NewFile
+    S->>R: 剩余数据块
+    S->>R: FileDone
+    R->>R: 完成下载
 ```
 
-**关键协商点**：
+客户端源码使用 `@数字.` 注释标记传输流程，可直接搜索或使用 Todo Tree Enhanced 浏览
 
-1. **偏移量计算**：基于已缓存的数据块大小
-2. **缓存验证**：确保缓存数据的完整性
-3. **状态同步**：发送端和接收端状态保持一致
+![流程图](./docAssets/code-flow.webp)
 
 ---
 
 <div align="center">
 
-**🌟 如果这个项目对你有帮助，请给个 ⭐ Star！**
+**如果这个项目对你有帮助，请给个 ⭐ Star！**
 
 ---
 
-**📧 联系我**
-
-如有问题或建议，欢迎通过以下方式联系：
+**联系我**
 
 [![Email](https://img.shields.io/badge/Email-Contact-blue?style=flat-square&logo=gmail)](mailto:2662442385@qq.com)
 

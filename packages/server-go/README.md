@@ -1,6 +1,6 @@
 # Go 后端
 
-Go 后端与 TypeScript 后端并存，使用相同的 WebSocket JSON 协议。项目功能、使用方法、Docker 部署与 TS 本地开发见[项目主文档](../../README.md)。本文件维护 Go 构建、协议生成、运行差异与验证步骤
+Go 后端为当前维护版本，使用 WebSocket JSON 协议。原 TypeScript 后端（`packages/server`）已归档，不再维护，仅保留源码供参考。项目功能、使用方法与部署入口见[项目主文档](../../README.md)。本文件维护 Go 构建、协议生成、运行差异与验证步骤
 
 ## 构建和运行
 
