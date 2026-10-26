@@ -17,7 +17,6 @@
     "lint": "eslint ./src --fix --quiet"
   },
   "dependencies": {
-    "@jl-org/tool": "^2.0.8",
     "connect-history-api-fallback": "^2.0.0",
     "express": "^5.1.0",
     "ua-parser-js": "^2.0.3",

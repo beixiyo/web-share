@@ -1,6 +1,7 @@
 import type { FileMeta, ResumeInfo } from 'web-share-common'
 import type { ChunkMetaData, FileInfo } from '@/types'
 import { createStreamDownloader, type MIMEType, retryTask, type StreamDownloader, wait } from '@jl-org/tool'
+import streamDownloadWorkerUrl from '@jl-org/tool/stream-download-sw?no-inline&url'
 import { Action } from 'web-share-common'
 import { CHUNK_SIZE } from '@/config'
 import { ResumeManager } from '@/utils/handleOfflineFile'
@@ -17,6 +18,7 @@ export class FileDownloadManager {
   private downloader?: StreamDownloader
   private isBufferProcessing = false
   private downloadBuffer: Uint8Array[] = []
+  private bufferProcessing?: Promise<void>
 
   private fileMetaCache: FileMeta[] = []
   private resumeManager: ResumeManager
@@ -61,7 +63,7 @@ export class FileDownloadManager {
 
     /** 创建下载器 */
     this.downloader = await createStreamDownloader(fileMeta.name, {
-      swPath: '/sw.js',
+      serviceWorker: { scriptUrl: streamDownloadWorkerUrl },
       contentLength: fileMeta.size,
       mimeType: fileMeta.type as MIMEType,
     })
@@ -336,10 +338,23 @@ export class FileDownloadManager {
    * 处理下载缓冲区数据
    */
   private async appendBuffer(): Promise<void> {
-    let data = this.downloadBuffer.shift()
-    while (data) {
-      await this.writeFileBuffer(data)
-      data = this.downloadBuffer.shift()
+    if (this.bufferProcessing) {
+      return this.bufferProcessing
+    }
+
+    this.bufferProcessing = (async () => {
+      let data = this.downloadBuffer.shift()
+      while (data) {
+        await this.writeFileBuffer(data)
+        data = this.downloadBuffer.shift()
+      }
+    })()
+
+    try {
+      await this.bufferProcessing
+    }
+    finally {
+      this.bufferProcessing = undefined
     }
   }
 
