@@ -1,4 +1,4 @@
-// 本文件定义 WebSocket 消息动作及其取值。
+// 本文件定义 WebSocket 消息动作及其取值
 package protocol
 
 // Action 标识 WebSocket 消息类型

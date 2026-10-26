@@ -1,4 +1,4 @@
-// Command protocolgen 调用 tygo 生成共享协议，并提供只读同步检查。
+// Command protocolgen 调用 tygo 生成共享协议，并提供只读同步检查
 package main
 
 import (
@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// flag 包解析命令行选项；默认输出路径相对于 packages/server-go
 	output := flag.String("out", "../common/src/generated/protocol.ts", "生成的 TypeScript 文件")
 	check := flag.Bool("check", false, "只检查生成文件是否同步")
 	flag.Parse()
@@ -22,8 +23,9 @@ func main() {
 	}
 }
 
-// run 先在临时目录生成，确保检查模式不会改写共享文件。
+// run 先在临时目录生成，确保检查模式不会改写共享文件
 func run(outputPath string, check bool) error {
+	// 先写入临时目录：检查模式只比较内容，不会碰仓库里的生成文件
 	directory, err := os.MkdirTemp("", "web-share-protocol-*")
 	if err != nil {
 		return err
@@ -62,6 +64,7 @@ func run(outputPath string, check bool) error {
 		return nil
 	}
 
+	// 正常生成时才创建目标目录并覆盖生成文件
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return err
 	}

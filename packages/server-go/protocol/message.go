@@ -1,4 +1,4 @@
-// 本文件定义通用消息封装。
+// 本文件定义通用消息封装
 package protocol
 
 // SendData 是通用的 WebSocket 消息封装

@@ -134,6 +134,12 @@ git clone https://github.com/beixiyo/web-share
 cd web-share
 ```
 
+#### Go Single-binary Deployment
+
+Download a platform-specific Go deployment package with the frontend embedded in the executable from [GitHub Releases](https://github.com/beixiyo/web-share/releases). See the [release and deployment guide (Chinese)](./docs/releasing.md) for build automation and HTTPS configuration.
+
+The Go backend embeds the frontend into one executable, so the target server needs no Docker, Node.js, or Go installation. See the [Go backend build and run guide (Chinese)](./packages/server-go/README.md#构建和运行) for build, development, and cross-compilation instructions.
+
 #### Docker Deployment
 
 1. modify `docker-compose.yml` file's `VITE_SERVER_URL` environment variable to your WebSocket server address
@@ -175,15 +181,11 @@ pnpm run build:client  # Client build
 
 ### Server environment variables
 
-The signaling server (`packages/server`) accepts the following environment variables (all values in **milliseconds**) to tune timeouts and invite policy, e.g. for mobile backgrounding or file picker suspension.
+TS and Go use the same environment variable names and defaults. See the [shared configuration reference (Chinese)](./README.md#服务端环境变量) for ports, HTTPS certificates, heartbeat timeouts, reconnect grace periods, and invite settings. Go-specific configuration and validation are documented in the [Go backend guide (Chinese)](./packages/server-go/README.md#环境变量). Duration values are in milliseconds.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CLEAR_TIME` | Heartbeat timeout and offline check interval. Used only to detect peer disconnect; clearing room after host disconnect triggers invite cleanup. | 300000 (5min) |
-| `DISCONNECT_DELAY` | Grace period after WS close. Delay removePeer and LeaveRoom broadcast by this amount; reconnection within window is treated as same device. | 300000 (5min) |
-| `ROOM_EMPTY_GRACE_MS` | Invite retention after room becomes empty. Invite is deleted only after room stays empty for this duration. | 300000 (5min) |
-| `ROOM_INVITE_TTL_MS` | Room invite TTL. -1 means no limit. | -1 |
-| `DEFAULT_ROOM_CODE` | Default room code. When set, anyone can join the same fixed room by entering this code via “Join by room code”, without creating a room or generating an invite first; 6 digits recommended. If unset, a built-in default is used. | 442385 |
+LAN discovery uses the server's IPv4 interface prefixes at startup, choosing the longest matching prefix. Set `LAN_CIDRS=192.168.4.0/23,10.0.0.0/24` to override discovery, especially with Docker bridge networking or a remote reverse proxy. Invalid or IPv6 CIDRs reject startup. Unmatched IPv4 addresses and IPv6 addresses remain isolated by full address; invitations and room codes still work across networks. Restart the backend after network or configuration changes.
+
+Client addresses are read from `CF-Connecting-IP`, the first `X-Forwarded-For` entry, or the socket address, in that order, without extra configuration. Public IPv6 users are grouped by their complete address. Invalid or incomplete TLS configuration prevents startup rather than falling back to HTTP.
 
 ### Basic Usage
 
@@ -308,25 +310,7 @@ A: Yes:
 
 ## 🎯 Project Overview
 
-### Features
-
-**WebRTC File Transfer** enables:
-
-- 🔗 **P2P direct transfer**
-- 📱 **Cross-platform support**
-- ⚡ **Resume interrupted transfers**
-- 🏠 **Room-based sharing**
-- 🔒 **Encrypted transfers**
-- 📊 **Real-time progress**
-
-### Technical Highlights
-
-1. **🎨 Modern architecture**: Monorepo structure
-2. **⚡ High performance**: WebRTC DataChannel
-3. **🔄 Smart resume**: File hash-based
-4. **📱 Responsive UI**: All screen sizes
-5. **🛡️ Type safety**: Full TypeScript
-6. **🔧 Extensible**: Modular design
+See [Core Feature Highlights](#-core-feature-highlights) for features and [Architecture](#️-architecture) for module responsibilities. The diagram below shows how browsers connect through the signaling server.
 
 ### Architecture
 
@@ -379,9 +363,9 @@ web-share/
 │   │   └── package.json
 │   └── common/          # Shared
 │       ├── src/
-│       │   ├── action.ts        # Actions
+│       │   ├── generated/protocol.ts # Generated protocol types and runtime values
 │       │   ├── RTCData.ts       # WebRTC
-│       │   └── message.ts       # Messages
+│       │   └── index.ts         # Public exports
 │       └── package.json
 └── package.json         # Root
 ```
@@ -421,7 +405,7 @@ web-share/
 **Responsibilities**:
 - Type definitions
 - Constants
-- Message protocols
+- Generated Go message protocols; see the [protocol generation guide (Chinese)](./packages/server-go/README.md#协议与-common-包)
 
 **Contents**:
 - Action enums

@@ -134,11 +134,17 @@ git clone https://github.com/beixiyo/web-share
 cd web-share
 ```
 
+#### Go 单二进制部署
+
+可直接下载 [GitHub Release](https://github.com/beixiyo/web-share/releases) 中对应平台的 Go 部署包，前端已内嵌在可执行文件中。发布构建、附件内容和 HTTPS 配置见[发布与部署说明](./docs/releasing.md)
+
+Go 后端可以将前端页面一起编译进单个可执行文件，目标服务器无需安装 Docker、Node.js 或 Go，原 TypeScript 后端继续保留。构建、运行、开发与交叉编译步骤见 [Go 后端：构建和运行](./packages/server-go/README.md#构建和运行)
+
 #### Docker 部署
 
-1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址（HTTPS 时使用 `wss://你的域名:端口`）。
-2. （可选）如需 **HTTPS**：将证书放入 `certs/`（如 `key.pem`、`cert.pem`），在 `docker-compose.yml` 中取消 `volumes` 与 `SSL_KEY_PATH`、`SSL_CERT_PATH` 的注释，端口可按需改为 `"443:3001"`。证书也可通过环境变量 `SSL_KEY`、`SSL_CERT` 直接传入 PEM 内容。
-3. （可选）如需调整超时或邀请策略，可在 `docker-compose.yml` 中配置服务端环境变量，详见[服务端环境变量](#服务端环境变量)。
+1. 修改 `docker-compose.yml` 文件中的 `VITE_SERVER_URL` 环境变量为你的 WebSocket 服务器地址（HTTPS 时使用 `wss://你的域名:端口`）
+2. （可选）如需 **HTTPS**：将证书放入 `certs/`（如 `key.pem`、`cert.pem`），在 `docker-compose.yml` 中取消 `volumes` 与 `SSL_KEY_PATH`、`SSL_CERT_PATH` 的注释，端口可按需改为 `"443:3001"`。证书也可通过环境变量 `SSL_KEY`、`SSL_CERT` 直接传入 PEM 内容
+3. （可选）如需调整超时或邀请策略，可在 `docker-compose.yml` 中配置服务端环境变量，详见[服务端环境变量](#服务端环境变量)
 4. 启动容器：
   ```bash
   docker compose down && docker compose up -d
@@ -176,20 +182,23 @@ pnpm run build:client  # 构建客户端
 
 ### 服务端环境变量
 
-信令服务（`packages/server`）支持通过环境变量调整超时与邀请策略，单位均为**毫秒**。可用于兼容移动端切后台、选择文件时的挂起或短断连。
+TS 与 Go 信令后端共用以下环境变量名称和默认值，其中时长单位均为**毫秒**。可用于兼容移动端切后台、选择文件时的挂起或短断连。Go 的 `HOST` 配置、参数校验与边界行为见 [Go 后端：环境变量](./packages/server-go/README.md#环境变量)
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `PORT` | 服务监听端口。 | 3001 |
+| `LAN_CIDRS` | 逗号分隔的 IPv4 网段，覆盖自动发现，例如 `192.168.4.0/23,10.0.0.0/24`。容器或反向代理后的服务可用它声明实际局域网；非法 CIDR 会拒绝启动。 | 未设置或空白时读取本机网卡网段 |
 | `SSL_KEY_PATH` | HTTPS 私钥文件路径。与 `SSL_CERT_PATH` 同时设置时启用 HTTPS/WSS。 | - |
 | `SSL_CERT_PATH` | HTTPS 证书文件路径。与 `SSL_KEY_PATH` 同时设置时启用 HTTPS/WSS。 | - |
 | `SSL_KEY` | HTTPS 私钥 PEM 内容（与 `SSL_CERT` 同时设置时可替代文件路径）。 | - |
 | `SSL_CERT` | HTTPS 证书 PEM 内容（与 `SSL_KEY` 同时设置时可替代文件路径）。 | - |
 | `CLEAR_TIME` | 心跳超时与离线巡检间隔。仅用于判断 peer 是否失联；房主失联且房间清空时会触发 invite 清理。 | 300000 (5min) |
-| `DISCONNECT_DELAY` | 断连宽限期。WS 关闭后延迟此时间再 removePeer 并广播 LeaveRoom；同一设备在此窗口内重连视为重连。 | 300000 (5min) |
+| `DISCONNECT_DELAY` | 会话恢复宽限期。WS 关闭后立即移出在线名单并广播离开，仅保留恢复身份；携带私有恢复令牌可在此期间恢复身份和房间。非正数表示立即清理恢复身份。 | 300000 (5min) |
 | `ROOM_EMPTY_GRACE_MS` | 房间清空后邀请保留时间。空房超过此时长才删除 invite。 | 300000 (5min) |
 | `ROOM_INVITE_TTL_MS` | 房间邀请有效期。-1 表示不限制。 | -1 |
 | `DEFAULT_ROOM_CODE` | 默认房间码。设置后，任何人通过「输入连接码」输入该码即可进入同一固定房间，无需先有人建房或生成邀请；建议 6 位数字。不设置时使用内置默认码。 | 442385 |
+
+客户端地址按 `CF-Connecting-IP`、`X-Forwarded-For` 首项、连接来源地址的顺序读取。启动时读取本机 IPv4 网段，匹配同一网段的客户端自动进入同一房间；重叠网段采用最长前缀。例如 `192.168.4.165` 和 `192.168.5.199` 在 `/23` 网段内可以互相发现。未匹配的 IPv4 与 IPv6 均按完整地址隔离，回环地址进入本地房间；跨网段仍可通过邀请或房间码加入。Docker 默认桥接网络无法自动获知宿主机局域网，请设置 `LAN_CIDRS`。配置只在启动时读取，网卡或配置变化后需重启后端
 
 ### 基本使用流程
 
@@ -322,25 +331,7 @@ A: 安全保障：
 
 ## 🎯 项目概述
 
-### 功能介绍
-
-**WebRTC 文件传输系统** 是一个基于现代 Web 技术构建的点对点文件传输解决方案。该项目实现了以下核心功能：
-
-- 🔗 **点对点直连传输**：利用 WebRTC 技术实现浏览器间的直接连接，无需文件经过服务器
-- 📱 **跨平台支持**：支持桌面端和移动端浏览器，实现设备间无缝文件传输
-- ⚡ **断点续传**：支持传输中断后的断点续传功能，提高大文件传输的可靠性
-- 🏠 **房间机制**：支持创建房间码或直连房间，方便多设备间的文件共享
-- 🔒 **安全传输**：基于 WebRTC 的端到端加密，确保文件传输安全
-- 📊 **实时进度**：提供详细的传输进度显示和状态管理
-
-### 技术亮点
-
-1. **🎨 现代化架构**：采用 Monorepo 架构，清晰分离客户端、服务端和公共代码
-2. **⚡ 高性能传输**：利用 WebRTC DataChannel 实现高速文件传输
-3. **🔄 智能断点续传**：基于文件哈希的断点续传机制，支持传输中断恢复
-4. **📱 响应式设计**：完全响应式的用户界面，适配各种设备屏幕
-5. **🛡️ 类型安全**：全面使用 TypeScript，提供完整的类型定义和检查
-6. **🔧 可扩展性**：模块化设计，易于扩展和维护
+功能与技术亮点见[核心功能亮点](#-核心功能亮点)，模块职责见[架构设计](#️-架构设计)。以下展示浏览器与信令服务器的连接关系
 
 ### 架构概览
 
@@ -393,9 +384,9 @@ web-share/
 │   │   └── package.json
 │   └── common/          # 公共类型定义
 │       ├── src/
-│       │   ├── action.ts        # 动作类型定义
+│       │   ├── generated/protocol.ts # Go 生成的协议类型与运行时值
 │       │   ├── RTCData.ts       # WebRTC 数据类型
-│       │   └── message.ts       # 消息类型定义
+│       │   └── index.ts         # 公共导出入口
 │       └── package.json
 └── package.json         # 根配置文件
 ```
@@ -435,7 +426,7 @@ web-share/
 **主要职责**：
 - 统一的类型定义
 - 常量配置管理
-- 消息协议定义
+- 导出 Go 生成的消息协议，生成流程见 [Go 后端：协议与 common 包](./packages/server-go/README.md#协议与-common-包)
 
 **核心内容**：
 - Action 枚举定义
@@ -556,7 +547,7 @@ if (this.channel.bufferedAmount > this.config.bufferedAmountLowThreshold) {
 
 ### 断点续传机制深度解析
 
-断点续传是本项目的核心特性之一，通过精心设计的缓存和协商机制，实现了可靠的大文件传输。
+断点续传是本项目的核心特性之一，通过精心设计的缓存和协商机制，实现了可靠的大文件传输
 
 #### 🏗️ 整体架构设计
 
@@ -584,7 +575,7 @@ if (this.channel.bufferedAmount > this.config.bufferedAmountLowThreshold) {
    - 在项目中搜索 `@01.` `@02.` 等标记
    - 按数字顺序查看完整流程
 
-> 💡 **提示**：使用 VSCode Todo Tree 插件可以快速浏览所有流程标记，点击即可跳转到对应代码位置。
+> 💡 **提示**：使用 VSCode Todo Tree 插件可以快速浏览所有流程标记，点击即可跳转到对应代码位置
 
 #### 🔄 WebRTC 协商偏移量过程
 
